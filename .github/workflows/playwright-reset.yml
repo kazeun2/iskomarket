@@ -1,0 +1,42 @@
+name: Playwright E2E - Reset Flow
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  e2e-reset:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright reset tests (stubbed OTP)
+        env:
+          # Build-time Vite vars (used during app build) — keep them for consistency
+          VITE_TEST_RESET_STUB: 'true'
+          VITE_TEST_RESET_OTP: '11111111'
+          # Also set a plain env flag so scripts or helpers can detect stub mode as RESET_TEST_STUB=1
+          RESET_TEST_STUB: '1'
+          # Optional: provide a test email for the full reset flow (override via Secrets in real CI)
+          TEST_RESET_EMAIL: 'test+reset@cvsu.edu.ph'
+          CI: 'true'
+        run: npx playwright test tests/e2e/playwright/reset-invalid.spec.ts tests/e2e/playwright/reset-complete.spec.ts --config=playwright.config.ts --project=chromium

@@ -1,0 +1,6 @@
+// Backup of scripts/check_no_dark_green.js
+
+const fs = require('fs');
+const path = require('path');
+
+// ... original script content backed up on 2025-12-26

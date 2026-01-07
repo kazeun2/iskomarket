@@ -1,0 +1,5 @@
+# Code owners: Add an owner (team or username) to require code owner reviews by branch protection rules.
+# Example:
+# /src/auth/ @your-org/your-team
+
+# NOTE: This file is intentionally left with guidance; please update it to specify your code-owners for auth/ to enforce branch protection in GitHub settings.
