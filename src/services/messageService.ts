@@ -320,7 +320,7 @@ export async function getMessages(params: {
         is_read,
         transaction_id,
         automation_type,
-        sender:sender_id ( user_id as id, display_name, avatar_url )
+        sender:sender_id ( id, user_id, display_name, avatar_url, username )
       `)
       .eq('conversation_id', params.conversation_id)
       .order('created_at', { ascending: true });
@@ -351,11 +351,21 @@ export async function getMessages(params: {
         const senderIds = Array.from(new Set((rows || []).map((r: any) => r.sender_id).filter(Boolean)));
         let profilesMap: Record<string, any> = {};
         if (senderIds.length) {
-          const { data: profiles } = await supabase
+          // Try lookup by id first, then fallback to user_id
+          let profiles: any[] = [];
+          const { data: byId } = await supabase
             .from('user_profile')
-            .select('user_id as id, display_name, avatar_url')
-            .in('user_id', senderIds as string[]);
-          profilesMap = (profiles || []).reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
+            .select('id, user_id, display_name, avatar_url, username')
+            .in('id', senderIds as string[]);
+          if (byId && byId.length) profiles = byId;
+          else {
+            const { data: byUserId } = await supabase
+              .from('user_profile')
+              .select('id, user_id, display_name, avatar_url, username')
+              .in('user_id', senderIds as string[]);
+            profiles = byUserId || [];
+          }
+          profilesMap = (profiles || []).reduce((acc: any, p: any) => { acc[p.id || p.user_id] = p; return acc; }, {});
         }
 
         const normalizedFallback = (rows || []).map((m: any) => ({
@@ -636,7 +646,19 @@ export function subscribeToMessages(
         if (!(message as any).sender || !(message as any).sender?.display_name) {
           (async () => {
             try {
-              const { data: profile } = await supabase.from('user_profile').select('user_id as id, display_name, avatar_url').eq('user_id', message.sender_id).maybeSingle();
+              // Prefer `id` lookup then fallback to `user_id` for older schemas
+              let profile: any = null;
+              try {
+                const { data: p1 } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').eq('id', message.sender_id).maybeSingle();
+                if (p1) profile = p1;
+                else {
+                  const { data: p2 } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').eq('user_id', message.sender_id).maybeSingle();
+                  if (p2) profile = p2;
+                }
+              } catch (e) {
+                // ignore
+              }
+
               if (profile) {
                 (message as any).sender = profile;
               }

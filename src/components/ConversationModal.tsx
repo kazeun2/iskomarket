@@ -65,7 +65,7 @@ export function ConversationModal({ isOpen, onClose, contact }: ConversationModa
       id: messages.length + 1,
       text: newMessage,
       sender: 'me',
-      timestamp: 'Just now'
+      timestamp: ''
     };
 
     setMessages([...messages, message]);

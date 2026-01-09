@@ -6,6 +6,7 @@ type TxUser = {
   id?: string
   user_id?: string
   username?: string
+  display_name?: string
   avatar_url?: string | null
 }
 
@@ -33,7 +34,7 @@ export function MessageCard({ transaction, currentUserId, onOpen }: MessageCardP
   const isCurrentReceiver = String(transaction.receiver_id) === String(currentUserId)
   const otherUser = isCurrentReceiver ? (transaction.buyer || {}) : (transaction.seller || {})
   const otherUserId = String(otherUser.user_id || otherUser.id || '')
-  const username = otherUser.username || 'Unknown User'
+  const username = otherUser.display_name || otherUser.username || 'Unknown User'
 
   // Product title fallback
   const productTitle = transaction.product?.title || 'Product'
@@ -49,7 +50,7 @@ export function MessageCard({ transaction, currentUserId, onOpen }: MessageCardP
     }
   }
 
-  const timeText = transaction.created_at ? formatRelativeTime(transaction.created_at) : 'Just now'
+  const timeText = transaction.created_at ? formatRelativeTime(transaction.created_at) : ''
 
   return (
     <button

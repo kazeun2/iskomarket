@@ -167,8 +167,8 @@ export async function getTransaction(transactionId: string) {
       product:products(id, title, images),
       sender_id,
       receiver_id,
-      buyer:sender_id (id, display_name, avatar_url),
-      seller:receiver_id (user_id as id, display_name, avatar_url),
+      buyer:sender_id (id, display_name, avatar_url, username),
+      seller:receiver_id (user_id as id, display_name, avatar_url, username),
       meetup_date,
       meetup_location,
       status,
@@ -200,7 +200,14 @@ export async function getTransaction(transactionId: string) {
       const ids = [simple.sender_id, simple.receiver_id].filter(Boolean) as string[];
       let profiles: any[] = [];
       if (ids.length) {
-        const { data: ps } = await supabase.from('user_profile').select('user_id as id, display_name, avatar_url').in('user_id', ids);
+        // Try lookup by id (newer schemas) then fallback to user_id
+        let profiles: any[] = [];
+        const { data: psById } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').in('id', ids);
+        if (psById && psById.length) profiles = psById;
+        else {
+          const { data: psByUserId } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').in('user_id', ids);
+          profiles = psByUserId || [];
+        }
         profiles = ps || [];
       }
 
@@ -231,8 +238,8 @@ export async function getUserTransactions(userId: string) {
       product:products(id, title, images),
       sender_id,
       receiver_id,
-      buyer:sender_id (user_id as id, display_name, avatar_url),
-      seller:receiver_id (user_id as id, display_name, avatar_url),
+      buyer:sender_id (user_id as id, display_name, avatar_url, username),
+      seller:receiver_id (user_id as id, display_name, avatar_url, username),
       meetup_date,
       meetup_location,
       status,
@@ -551,8 +558,8 @@ export async function getPendingTransactions(userId: string) {
         product:products(id, title, images),
         sender_id,
         receiver_id,
-        buyer:sender_id (user_id as id, display_name, avatar_url),
-        seller:receiver_id (user_id as id, display_name, avatar_url),
+        buyer:sender_id (user_id as id, display_name, avatar_url, username),
+        seller:receiver_id (user_id as id, display_name, avatar_url, username),
         meetup_date,
         meetup_location,
         status,

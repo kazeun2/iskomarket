@@ -30,7 +30,7 @@ export async function getMessageCards(userId: string, limit: number = 100) {
       unread_count,
       created_at,
       updated_at,
-      other_user:other_user_id ( user_id as id, display_name, avatar_url )
+      other_user:other_user_id ( id, user_id, display_name, avatar_url, username )
     `)
     .eq('user_id', userId)
     .order('last_message_at', { ascending: false })
@@ -65,11 +65,22 @@ export async function getMessageCards(userId: string, limit: number = 100) {
       const otherUserIds = Array.from(new Set((rows || []).map((r: any) => r.other_user_id).filter(Boolean)));
       let profilesMap: Record<string, any> = {};
       if (otherUserIds.length > 0) {
-        const { data: profiles } = await supabase
+        // Try to look up profiles by `id` first (newer schemas), then fallback to `user_id` for compatibility
+        let profiles: any[] = [];
+        const { data: byId } = await supabase
           .from('user_profile')
-          .select('user_id as id, display_name, avatar_url')
-          .in('user_id', otherUserIds as string[]);
-        profilesMap = (profiles || []).reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
+          .select('id, user_id, display_name, avatar_url, username')
+          .in('id', otherUserIds as string[]);
+        if (byId && byId.length) {
+          profiles = byId;
+        } else {
+          const { data: byUserId } = await supabase
+            .from('user_profile')
+            .select('id, user_id, display_name, avatar_url, username')
+            .in('user_id', otherUserIds as string[]);
+          profiles = byUserId || [];
+        }
+        profilesMap = (profiles || []).reduce((acc: any, p: any) => { acc[p.id || p.user_id] = p; return acc; }, {});
       }
 
       // Attach profile objects to rows so UI can use the same shape
@@ -95,7 +106,19 @@ export function subscribeToMessageCards(userId: string, onEvent: (payload: any) 
         try {
           const card = payload.new || payload.old;
           if (card && card.other_user_id && !card.other_user) {
-            const { data: profile } = await supabase.from('user_profile').select('user_id as id, display_name, avatar_url').eq('user_id', card.other_user_id).maybeSingle();
+            // Try to fetch profile using `id` then fallback to `user_id` for compatibility
+            let profile: any = null;
+            try {
+              const { data: p1 } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').eq('id', card.other_user_id).maybeSingle();
+              if (p1) profile = p1;
+              else {
+                const { data: p2 } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').eq('user_id', card.other_user_id).maybeSingle();
+                if (p2) profile = p2;
+              }
+            } catch (e) {
+              // ignore
+            }
+
             if (profile) {
               if (payload.new) payload.new.other_user = profile;
               if (payload.old) payload.old.other_user = profile;

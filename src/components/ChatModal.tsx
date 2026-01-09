@@ -79,6 +79,7 @@ interface ChatModalProps {
   otherUser?: any;
   recipient?: string;
   contactId?: number;
+  conversationId?: string; // optional pre-resolved conversation id (preferred when opening from message card)
   isPriorityBuyer?: boolean;
   zIndex?: number;
   product?: {
@@ -140,6 +141,7 @@ export function ChatModal({
   otherUser,
   recipient,
   contactId = 1,
+  conversationId: propConversationId,
   isPriorityBuyer: priorityBuyerProp,
   product,
   onRequestEdit,
@@ -323,7 +325,7 @@ export function ChatModal({
           message: "Hi! Thank you for messaging! I'll get back to you as soon as possible!",
           sender_id: recipientIdStr || 'system',
           receiver_id: currentUserId || undefined,
-          timestamp: 'Just now',
+          timestamp: '',
           type: 'text',
           created_at: new Date().toISOString(),
           is_read: true,
@@ -354,10 +356,13 @@ export function ChatModal({
         productId: product?.id,
       });
 
-      // Resolve conversation id: prefer product-based conversation if product exists
+      // Resolve conversation id: if caller provided a pre-resolved conversation id, prefer it
       let convId: string | null = null;
       try {
-        if (product?.id) {
+        if (propConversationId) {
+          convId = propConversationId;
+          setConversationId(propConversationId);
+        } else if (product?.id) {
           convId = await getOrCreateConversation(product.id.toString(), currentUserId, recipientIdStr);
         } else {
           convId = await findConversationBetween(currentUserId, recipientIdStr);
@@ -515,7 +520,7 @@ export function ChatModal({
     };
 
       loadMessages();
-  }, [isOpen, userIdForMessages, recipientId, productIdForMessages]);
+  }, [isOpen, userIdForMessages, recipientId, productIdForMessages, propConversationId]);
 
   // Subscribe to real-time messages (by conversation when available)
   useEffect(() => {
@@ -853,7 +858,7 @@ export function ChatModal({
       message: messageText,
       sender_id: senderId,
       receiver_id: recipientIdStr,
-      timestamp: "Just now",
+      timestamp: "",
       type: "text",
       created_at: new Date().toISOString(),
       is_read: false,
@@ -1274,7 +1279,7 @@ export function ChatModal({
         meetupLocation:
           product.meetupLocation ||
           "Main Gate, Cavite State University",
-        postedDate: product.postedDate || "Just now",
+        postedDate: product.postedDate || "",
         views: product.views ?? 0,
         rating:
           typeof product.rating === "number"

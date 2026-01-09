@@ -79,7 +79,7 @@ export function getTimeAgo(date: string | Date | null | undefined): string {
     const diffYears = Math.floor(diffDays / 365);
 
     if (diffSeconds < 60) {
-      return 'Just now';
+      return '';
     } else if (diffMinutes < 60) {
       return `${diffMinutes} ${diffMinutes === 1 ? 'minute' : 'minutes'} ago`;
     } else if (diffHours < 24) {

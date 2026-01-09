@@ -710,10 +710,12 @@ export default function App() {
     function onError(e: ErrorEvent) {
       console.error('Global error caught:', e.error || e.message || e);
       try { toast.error('Runtime error occurred - check console for details'); } catch (err) {}
+      try { if (e.preventDefault) e.preventDefault(); } catch (err) {}
     }
     function onRejection(e: PromiseRejectionEvent) {
       console.error('Unhandled rejection:', e.reason || e);
       try { toast.error('Unhandled promise rejection - check console'); } catch (err) {}
+      try { if (e.preventDefault) e.preventDefault(); } catch (err) {}
     }
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);

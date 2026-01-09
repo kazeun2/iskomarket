@@ -132,8 +132,8 @@ export function sortMessagesByTime(messages: Message[]): Message[] {
  * @returns Timestamp in milliseconds
  */
 function parseTimestamp(timestamp: string): number {
-  // If it's "Just now", return current time
-  if (timestamp.toLowerCase() === 'just now') {
+  // Treat empty or 'Just now' timestamps as current time so sorting works predictably
+  if (!timestamp || (typeof timestamp === 'string' && timestamp.trim().length === 0) || timestamp.toLowerCase() === 'just now') {
     return Date.now();
   }
   

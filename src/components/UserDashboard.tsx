@@ -116,6 +116,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
           other_user_id: c.other_user_id,
           other_user: c.other_user || null,
           other_user_name: (c.other_user && (c.other_user.display_name || c.other_user.username)) || undefined,
+          other_user_username: c.other_user?.username || undefined,
           other_user_avatar: c.other_user?.avatar_url || undefined,
           product_id: c.product_id,
           product_title: undefined,
@@ -1034,7 +1035,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
                               <h3 className="font-medium truncate">{conversation.other_user_name || 'Unknown User'}</h3>
                             </div>
                             <span className="text-sm text-muted-foreground flex-shrink-0">
-                              {conversation.last_message_at ? new Date(conversation.last_message_at).toLocaleDateString() : 'Just now'}
+                              {conversation.last_message_at ? new Date(conversation.last_message_at).toLocaleDateString() : ''}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-2">
@@ -1214,6 +1215,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
             price: 0,
             image: ""
           } : undefined}
+          conversationId={selectedMessage.conversationId}
         />
       )}
 

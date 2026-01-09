@@ -16,16 +16,16 @@ export function formatNotificationTime(timestamp: Date | string | number): strin
   const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
 
   if (diffInSeconds < 0) {
-    return 'Just now';
+    return '';
   }
 
   if (diffInSeconds < 30) {
-    return 'Just now';
+    return '';
   }
 
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 1) {
-    return 'Just now';
+    return '';
   }
 
   if (diffInMinutes < 60) {
@@ -70,11 +70,11 @@ export function formatRelativeTime(timestamp: Date | string | number): string {
   const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
 
   if (diffInSeconds < 0) {
-    return 'Just now';
+    return '';
   }
 
   if (diffInSeconds < 60) {
-    return 'Just now';
+    return '';
   }
 
   const diffInMinutes = Math.floor(diffInSeconds / 60);
