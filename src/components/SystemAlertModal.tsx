@@ -55,6 +55,19 @@ export function SystemAlertModal({ isOpen, onClose }: SystemAlertModalProps) {
           throw res.error
         }
 
+        // If this is a maintenance window, also update the singleton maintenance_settings row so the app activates overlay immediately
+        if (alertType === 'maintenance') {
+          try {
+            const ms = await import('../services/maintenanceSettingsService')
+            const { data: msRow } = await ms.getMaintenanceStatus()
+            if (msRow && msRow.id) {
+              await ms.updateMaintenanceSettings(msRow.id, { is_active: true, title: res.data?.title || 'Scheduled maintenance', message: res.data?.message || alertMessage.trim(), updated_at: new Date().toISOString() })
+            }
+          } catch (e) {
+            console.warn('Failed to set maintenance_settings active (non-fatal):', e)
+          }
+        }
+
         // Add to global context for real-time display only for immediate alerts
         addSystemAlert({ message: alertMessage.trim(), alertType })
         toast.success(`${alertType === 'alert' ? 'Alert' : 'Maintenance'} scheduled and notification sent`)

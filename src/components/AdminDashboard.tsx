@@ -66,6 +66,8 @@ import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
 import { InactiveAccountsPanel } from "./InactiveAccountsPanel";
 import { adminFlags } from "../config/adminFlags";
+import { useMaintenanceStatus } from '../hooks/useMaintenanceStatus';
+import { updateMaintenanceSettings } from '../services/maintenanceSettingsService';
 import { WarningConfirmationModal } from "./WarningConfirmationModal";
 import { SeasonResetCountdown } from "./SeasonResetCountdown";
 import {
@@ -331,34 +333,7 @@ export function AdminDashboard({
     };
   }, [currentUser, logsPage]);
 
-  // Listen for maintenance window changes and fetch current active window
-  useEffect(() => {
-    if (isExampleMode(currentUser)) return;
-    let mounted = true;
 
-    let unsubscribe: (() => void) | null = null;
-
-    (async () => {
-      try {
-        const ms = await import('../services/maintenanceService');
-        const { data } = await ms.getActiveMaintenanceWindow();
-        if (!mounted) return;
-        setMaintenanceWindow(data || null);
-
-        unsubscribe = ms.subscribeToMaintenanceWindows((rows: any[] | null) => {
-          if (!mounted) return;
-          setMaintenanceWindow(rows && rows.length ? rows[0] : null);
-        });
-      } catch (e) {
-        console.warn('Failed to load maintenance window (non-fatal):', e);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-      if (unsubscribe) unsubscribe();
-    };
-  }, [currentUser]);
   const [showAuditLogs, setShowAuditLogs] = useState(false);
   const [adminAuditLogs, setAdminAuditLogs] = useState<AdminAuditUI[]>([]);
   const [selectedProductDetails, setSelectedProductDetails] =
@@ -609,7 +584,7 @@ export function AdminDashboard({
     useState(false);
   const [showSystemAlert, setShowSystemAlert] = useState(false);
   // Maintenance window state (active window shown to admins)
-  const [maintenanceWindow, setMaintenanceWindow] = useState<any | null>(null);
+  const { id: maintenanceId, isActive: maintenanceIsActive, title: maintenanceTitle, message: maintenanceMessage } = useMaintenanceStatus();
   const [showCancelMaintenanceConfirmation, setShowCancelMaintenanceConfirmation] = useState(false);
   const [isCancellingMaintenance, setIsCancellingMaintenance] = useState(false);
   const [appealSearchTerm, setAppealSearchTerm] = useState("");
@@ -2027,6 +2002,18 @@ Cavite State University`;
               </CardContent>
             </Card>
 
+            {/* System Alert - always visible */}
+            <div className="mb-4">
+              <button
+                className="w-full rounded-[12px] py-3 px-4 bg-red-600 text-white hover:bg-red-700 font-medium"
+                onClick={() => setShowSystemAlert(true)}
+                data-quick-action="system-alert"
+              >
+                <span className="mr-2">🔔</span>
+                System Alert & Maintenance Notification
+              </button>
+            </div>
+
             {/* Quick Actions */}
             {adminFlags.quickActions ? (
               <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative p-6">
@@ -2126,14 +2113,11 @@ Cavite State University`;
 
 
                 {/* If there's an active maintenance window, show a prominent admin status card */}
-                {maintenanceWindow ? (
+                {maintenanceIsActive ? (
                   <div className="col-span-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-between" role="status">
                     <div className="flex-1 pr-4">
-                      <div className="font-medium text-yellow-900">Maintenance active: {maintenanceWindow.title}</div>
-                      <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{maintenanceWindow.message || 'Scheduled maintenance is currently active.'}</div>
-                      <div className="text-xs mt-2 text-muted-foreground">
-                        {maintenanceWindow.start_at ? new Date(maintenanceWindow.start_at).toLocaleString() : ''} — {maintenanceWindow.end_at ? new Date(maintenanceWindow.end_at).toLocaleString() : ''}
-                      </div>
+                      <div className="font-medium text-yellow-900">Maintenance active: {maintenanceTitle}</div>
+                      <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{maintenanceMessage || 'Scheduled maintenance is currently active.'}</div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Button variant="outline" className="text-sm" onClick={() => setShowCancelMaintenanceConfirmation(true)} disabled={isCancellingMaintenance}>
@@ -4869,16 +4853,10 @@ Cavite State University`
               <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground" onClick={async () => {
                 setIsCancellingMaintenance(true);
                 try {
-                  const ms = await import('../services/maintenanceService');
-                  if (maintenanceWindow && maintenanceWindow.id) {
-                    const res = await ms.cancelMaintenanceWindow(String(maintenanceWindow.id));
-                    if (res && res.error) {
-                      throw res.error;
-                    }
-                    // Optimistically clear local state; realtime subscription will update shortly
-                    setMaintenanceWindow(null);
-                    toast.success('Maintenance cancelled');
-                  }
+                  if (!maintenanceId) throw new Error('No maintenance id available');
+                  const res = await updateMaintenanceSettings(String(maintenanceId), { is_active: false, updated_at: new Date().toISOString() });
+                  if (res && (res as any).error) throw (res as any).error;
+                  toast.success('Maintenance cancelled');
                 } catch (e) {
                   console.error('Failed to cancel maintenance:', e);
                   toast.error('Failed to cancel maintenance');

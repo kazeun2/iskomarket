@@ -87,7 +87,8 @@ import { InactivityManager } from "./components/InactivityManager";
 import { InactivityWarningBanner } from "./components/InactivityWarningBanner";
 import { AdminNotificationBanner } from "./components/AdminNotificationBanner";
 import { MaintenanceOverlay } from "./components/MaintenanceOverlay";
-import { useMaintenance } from './hooks/useMaintenance';
+import { useMaintenanceStatus } from './hooks/useMaintenanceStatus';
+import { useAuth } from './contexts/AuthContext';
 import {
   AnnouncementBannerList,
   Announcement,
@@ -727,10 +728,16 @@ export default function App() {
 
   // Maintenance manager (shows overlay or banner depending on role)
   function MaintenanceManager() {
-    const { maintenanceWindow } = useMaintenance()
-    if (!maintenanceWindow) return null
+    // Use the new singleton-based maintenance status
+    const { id, isActive, title, message } = useMaintenanceStatus()
+    const { user } = useAuth()
+    const isAdmin = Boolean(user?.is_admin)
+
+    if (!isActive) return null
+
+    // For admins we still show the banner (MaintenanceOverlay handles admin banner)
     return (
-      <MaintenanceOverlay title={maintenanceWindow.title} message={maintenanceWindow.message || ''} currentWindowId={maintenanceWindow.id} />
+      <MaintenanceOverlay title={title} message={message || ''} currentWindowId={id} isAdmin={isAdmin} />
     )
   }
 
