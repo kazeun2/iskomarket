@@ -34,6 +34,9 @@ export async function sendMessage(data: {
   // Accept either `message` or `content` to be forgiving of client callers
   message?: string;
   content?: string;
+  // Optional metadata for automated messages or linking to transactions
+  transaction_id?: string | null;
+  automation_type?: string | null;
 }): Promise<{ data: Message | null; error: any }> {
   try {
     if (!checkSupabaseReady()) {
@@ -129,6 +132,9 @@ export async function sendMessage(data: {
     let attempt = 0;
     let lastError: any = null;
 
+    // Candidate column names for message text; some deployments use different column names
+    const candidateFields = ['message_text', 'message', 'content', 'body'];
+
     while (attempt < maxRetries) {
       attempt += 1;
       const insertPayload: any = {
@@ -141,14 +147,20 @@ export async function sendMessage(data: {
       // Only add conversation_id when we have one
       if (conversationId) insertPayload.conversation_id = conversationId;
 
-      // Try the canonical column name used in our schema: `message_text`
-      insertPayload.message_text = trimmedMessage;
+      // Attach optional automation or transaction metadata if provided by caller
+      if ((data as any).transaction_id) insertPayload.transaction_id = (data as any).transaction_id;
+      if ((data as any).automation_type) insertPayload.automation_type = (data as any).automation_type;
+
+      // Use the first candidate field for this attempt
+      const fieldToUse = candidateFields[0];
+      insertPayload[fieldToUse] = trimmedMessage;
 
       const { data: message, error } = await supabase
         .from('messages')
         .insert(insertPayload)
         .select()
         .single();
+
 
       if (!error) {
         // Normalize message object to include `message` for UI compatibility
@@ -216,9 +228,23 @@ export async function sendMessage(data: {
         return { data: normalized as Message, error: null };
       }
 
-      // If error suggests schema cache problem (Realtime), retry after a short delay
+      // If error suggests schema cache problem (Realtime) or a missing column, decide whether to retry with a different candidate field
       const msg = (error?.message || '').toLowerCase();
-      // Retry on schema cache or column-mismatch errors
+
+      // If missing column for the field we tried, rotate to the next candidate and retry immediately
+      if (candidateFields.length > 0 && msg.includes(`could not find the '${candidateFields[0]}`)) {
+        console.warn(`[MessageService] Column ${candidateFields[0]} missing on insert attempt ${attempt}, trying next candidate...`, error);
+        // drop the failed candidate and retry without delay
+        candidateFields.shift();
+        lastError = error;
+        if (candidateFields.length === 0) {
+          // No more candidates, fallthrough to schema-cache style retry gap
+          await new Promise((res) => setTimeout(res, 500 * attempt));
+        }
+        continue;
+      }
+
+      // Retry on schema cache or generic column-mismatch errors
       if (msg.includes('schema cache') || msg.includes("could not find the 'message' column") || msg.includes("could not find the 'content' column") || msg.includes("could not find the 'message_text' column")) {
         console.warn(`[MessageService] Schema cache error on insert attempt ${attempt}, retrying...`, error);
         lastError = error;
@@ -228,6 +254,19 @@ export async function sendMessage(data: {
 
       // Non-retriable error - return immediately
       console.error('[MessageService] Error sending message:', error);
+
+      // Map common Postgres schema error (missing column etc.) to a friendly message
+      try {
+        const code = error?.code || (error?.details && error.details.code) || null;
+        const msg = (error?.message || '').toLowerCase();
+        if (code === '42703' || msg.includes("has no field") || msg.includes('could not find')) {
+          const friendly = { ...error, message: 'Server schema mismatch: messaging table missing expected column. Please contact support.' };
+          return { data: null, error: friendly };
+        }
+      } catch (e) {
+        // ignore mapping errors
+      }
+
       return { data: null, error };
     }
 
@@ -266,23 +305,73 @@ export async function getMessages(params: {
     }
 
     // Only query by conversation_id - this ensures RLS policies are properly enforced
-    let q = supabase
+    const q = supabase
       .from('messages')
-      .select('*')
+      .select(`
+        id,
+        conversation_id,
+        sender_id,
+        receiver_id,
+        message,
+        message_text,
+        content,
+        body,
+        created_at,
+        is_read,
+        transaction_id,
+        automation_type,
+        sender:sender_id ( user_id as id, display_name, avatar_url )
+      `)
       .eq('conversation_id', params.conversation_id)
       .order('created_at', { ascending: true });
     
-    if (params.limit) q = q.limit(params.limit);
-    
-    const { data, error } = await q;
+    const query = params.limit ? q.limit(params.limit) : q;
+    const { data, error } = await query;
 
     if (error) {
+      const msg = (error?.message || '').toLowerCase();
       console.error('[MessageService] Error fetching messages:', error);
+
+      // If the nested join failed due to missing columns in the related table (some schemas point FK to auth.users which doesn't have display_name),
+      // fall back to a safe simple select and then resolve sender profiles in a second step.
+      if (error?.code === '42703' || msg.includes('does not exist') || msg.includes('could not find')) {
+        console.info('[MessageService] Falling back to simple messages query due to schema mismatch', { message: error?.message });
+        const { data: rows, error: rowsErr } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', params.conversation_id)
+          .order('created_at', { ascending: true });
+
+        if (rowsErr) {
+          console.error('[MessageService] fallback simple messages query failed:', rowsErr);
+          return { data: null, error: rowsErr };
+        }
+
+        // Bulk fetch all sender profiles from user_profile when possible
+        const senderIds = Array.from(new Set((rows || []).map((r: any) => r.sender_id).filter(Boolean)));
+        let profilesMap: Record<string, any> = {};
+        if (senderIds.length) {
+          const { data: profiles } = await supabase
+            .from('user_profile')
+            .select('user_id as id, display_name, avatar_url')
+            .in('user_id', senderIds as string[]);
+          profilesMap = (profiles || []).reduce((acc: any, p: any) => { acc[p.id] = p; return acc; }, {});
+        }
+
+        const normalizedFallback = (rows || []).map((m: any) => ({
+          ...m,
+          message: m.message_text || m.content || m.body || m.message,
+          sender: profilesMap[m.sender_id] || null,
+        }));
+
+        return { data: normalizedFallback, error: null };
+      }
+
       return { data: null, error };
     }
 
-    // Normalize message content field to `message` for UI
-    const normalized = (data || []).map((m: any) => ({ ...m, message: m.message_text || m.content || m.message }));
+    // Normalize message content field to `message` for UI and include sender profile when available
+    const normalized = (data || []).map((m: any) => ({ ...m, message: m.message_text || m.content || m.body || m.message, sender: m.sender || null }));
 
     return { data: normalized, error: null };
   } catch (err) {
@@ -542,7 +631,24 @@ export function subscribeToMessages(
         }
 
         console.log('[MessageService] Message passed all filters, calling onMessage callback');
-        onMessage(message);
+
+        // If sender profile is not embedded, attempt a best-effort fetch so UI can show display name/avatar in realtime
+        if (!(message as any).sender || !(message as any).sender?.display_name) {
+          (async () => {
+            try {
+              const { data: profile } = await supabase.from('user_profile').select('user_id as id, display_name, avatar_url').eq('user_id', message.sender_id).maybeSingle();
+              if (profile) {
+                (message as any).sender = profile;
+              }
+            } catch (e) {
+              console.warn('[MessageService] Failed to fetch sender profile for realtime message', e);
+            } finally {
+              onMessage(message);
+            }
+          })();
+        } else {
+          onMessage(message);
+        }
       }
     )
     .subscribe();
@@ -777,6 +883,36 @@ export async function getConversations(user_id: string): Promise<{
       }
     } catch (e) {
       console.warn('[MessageService] Failed to merge message-derived conversations:', e);
+    }
+
+    // Additionally, include transaction-only conversation cards so meet-up proposals show even when no messages exist
+    try {
+      const { data: txs, error: txErr } = await supabase
+        .from('transactions')
+        .select('id, sender_id, receiver_id, buyer_id, seller_id, product_id, status, meetup_date, meetup_location, created_at')
+        .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id},buyer_id.eq.${user_id},seller_id.eq.${user_id}`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!txErr && txs && txs.length > 0) {
+        const existingIds = new Set(conversationRows.map((c: any) => String(c.id)));
+        const txDerived: any[] = [];
+        for (const tx of txs) {
+          const key = `tx:${tx.id}`;
+          if (!existingIds.has(String(key))) {
+            existingIds.add(String(key));
+            const buyer = tx.sender_id || tx.buyer_id || null;
+            const seller = tx.receiver_id || tx.seller_id || null;
+            txDerived.push({ id: key, buyer_id: buyer, seller_id: seller, product_id: tx.product_id, _derived_from_transaction: true, updated_at: tx.created_at });
+          }
+        }
+        if (txDerived.length > 0) {
+          conversationRows = conversationRows.concat(txDerived);
+          console.log('[MessageService] Merged transaction-derived conversations:', { added: txDerived.length });
+        }
+      }
+    } catch (e) {
+      console.warn('[MessageService] Failed to merge transaction-derived conversations:', e);
     }
 
     // Fetch messages for each conversation to get last_message and unread_count

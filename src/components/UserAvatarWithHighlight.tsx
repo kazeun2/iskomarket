@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { CreditScoreRing } from './CreditScoreRing';
+import { UsernameWithGlow } from './UsernameWithGlow';
 
 interface UserAvatarWithHighlightProps {
   user: {
@@ -12,6 +13,7 @@ interface UserAvatarWithHighlightProps {
     creditScore: number;
     rank?: number;
     role?: 'buyer' | 'seller';
+    glowEffect?: { name: string; active: boolean; expiresAt?: string } | null;
   };
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   showRankTag?: boolean;
@@ -176,7 +178,10 @@ export function UserAvatarWithHighlight({
           <TooltipContent side="bottom" className="max-w-xs">
             <div className="space-y-1">
               <p className="text-sm">
-                <span className="font-semibold">{name}</span> (@{username})
+                <span className="font-semibold">{name}</span>{' '}
+                <span className="text-sm text-muted-foreground">(
+                  <UsernameWithGlow username={username} glowEffect={user.glowEffect} showTimer={false} className="inline" />
+                )</span>
               </p>
               <p className="text-xs text-muted-foreground">
                 Credit Score: <span style={{ color: highlightStyle.color }}>{creditScore}/100</span>

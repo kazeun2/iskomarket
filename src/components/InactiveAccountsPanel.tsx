@@ -34,6 +34,7 @@ import {
 } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
+import { UsernameWithGlow } from './UsernameWithGlow';
 import { isExampleMode, filterExampleData } from "../utils/exampleMode";
 
 interface InactiveAccountsPanelProps {
@@ -299,7 +300,7 @@ export function InactiveAccountsPanel({
                               )
                             }
                           >
-                            {user.username}
+                            <UsernameWithGlow username={user.username} glowEffect={(user as any).glowEffect} showTimer={false} />
                           </p>
                           {getStatusBadge(user.status)}
                         </div>
@@ -589,7 +590,7 @@ export function InactiveAccountsPanel({
           <div className="space-y-4 py-4">
             <p className="text-sm">
               Are you sure you want to reactivate{" "}
-              <strong>{selectedUser?.username}</strong>'s
+              <strong><UsernameWithGlow username={selectedUser?.username || 'User'} glowEffect={selectedUser?.glowEffect} showTimer={false} /></strong>'s
               account?
             </p>
 
@@ -646,7 +647,7 @@ export function InactiveAccountsPanel({
               <strong className="text-red-600">
                 permanently delete
               </strong>{" "}
-              {selectedUser?.username}'s account?
+              <UsernameWithGlow username={selectedUser?.username || 'User'} glowEffect={selectedUser?.glowEffect} showTimer={false} />'s account?
             </p>
 
             <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
@@ -706,7 +707,7 @@ export function InactiveAccountsPanel({
           <div className="space-y-4 py-4">
             <p className="text-sm">
               Extend the grace period for{" "}
-              <strong>{selectedUser?.username}</strong>
+              <strong><UsernameWithGlow username={selectedUser?.username || 'User'} glowEffect={selectedUser?.glowEffect} showTimer={false} /></strong>
             </p>
 
             <div className="space-y-2">

@@ -8,9 +8,10 @@ import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { getPrimaryImage } from '../utils/images';
-import { updateProduct } from '../lib/services/products';
+import { updateProduct, deleteProduct as deleteProductService, deleteProductById } from '../lib/services/products';
 import { ChatModal } from './ChatModal';
 import { EditListingModal } from './EditListingModal';
+import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { TrustworthyBadge } from './TrustworthyBadge';
 import { CreditScoreBadge } from './CreditScoreBadge';
 import { CreditScoreRing } from './CreditScoreRing';
@@ -37,9 +38,14 @@ import { isExampleMode, filterExampleData } from '../utils/exampleMode';
 import { useChatOptional } from '../contexts/ChatContext';
 import { useOptionalOverlayManager } from '../contexts/OverlayManager';
 
+// Messaging: message cards + realtime subscription
+import { getMessageCards, subscribeToMessageCards, markMessageCardRead } from '../lib/services/messageCards';
+import { markAsRead } from '../services/messageService';
+
 import { DailySpinCard } from './DailySpinCard';
 import { SeasonAnnouncementCard } from './SeasonAnnouncementCard';
 import { UserProfileHeader } from './UserProfileHeader';
+import { MessageCard } from './MessageCard';
 
 
 interface UserDashboardProps {
@@ -92,6 +98,93 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
       chatContext.refreshConversations();
     }
   }, [activeTab, chatContext]);
+
+  // --- Message cards (dashboard list) - authoritative for messages tab
+  useEffect(() => {
+    if (!currentUser || !currentUser.id) return;
+
+    let unsub: (() => void) | null = null;
+    let mounted = true;
+
+    (async () => {
+      try {
+        const cards = await getMessageCards(currentUser.id);
+        if (!mounted) return;
+        // Normalize to the conversations shape the UI expects
+        const normalized = cards.map((c: any) => ({
+          conversation_id: c.conversation_id,
+          other_user_id: c.other_user_id,
+          other_user: c.other_user || null,
+          other_user_name: (c.other_user && (c.other_user.display_name || c.other_user.username)) || undefined,
+          other_user_avatar: c.other_user?.avatar_url || undefined,
+          product_id: c.product_id,
+          product_title: undefined,
+          conversation: c,
+          last_message: c.last_message,
+          last_message_at: c.last_message_at,
+          unread_count: c.unread_count,
+        }));
+
+        setConversations(normalized);
+        setTotalUnreadCount(normalized.reduce((s: number, n: any) => s + (n.unread_count || 0), 0));
+      } catch (e) {
+        console.warn('[UserDashboard] Failed to load message_cards:', e);
+      }
+
+      try {
+        unsub = subscribeToMessageCards(currentUser.id, (payload: any) => {
+          // payload.eventType is 'INSERT' | 'UPDATE' | 'DELETE'
+          const ev = (payload?.eventType || payload.event || '').toUpperCase();
+          const card = payload.new || payload.old;
+
+          if (!card) return;
+
+          // Build the updated list deterministically so we can also recompute unread totals
+          setConversations((prev: any[]) => {
+            let updated: any[];
+            switch (ev) {
+              case 'INSERT':
+              case 'UPDATE': {
+                const without = prev.filter((p) => p.conversation_id !== card.conversation_id);
+                updated = [{
+                  conversation_id: card.conversation_id,
+                  other_user_id: card.other_user_id,
+                  other_user: card.other_user || null,
+                  other_user_name: card.other_user ? (card.other_user.display_name || card.other_user.username) : undefined,
+                  other_user_avatar: card.other_user?.avatar_url || undefined,
+                  product_id: card.product_id,
+                  conversation: card,
+                  last_message: card.last_message,
+                  last_message_at: card.last_message_at,
+                  unread_count: card.unread_count,
+                }, ...without].sort((a, b) => new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime());
+                break;
+              }
+              case 'DELETE': {
+                updated = prev.filter((p) => p.conversation_id !== (payload.old && payload.old.conversation_id));
+                break;
+              }
+              default:
+                updated = prev;
+            }
+
+            // Recompute total unread count from updated list
+            const totalUnread = updated.reduce((s: number, n: any) => s + (n.unread_count || 0), 0);
+            setTotalUnreadCount(totalUnread);
+
+            return updated;
+          });
+        });
+      } catch (e) {
+        console.warn('[UserDashboard] Failed to subscribe to message_cards:', e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      if (unsub) unsub();
+    };
+  }, [currentUser?.id]);
 
   // Ensure we attempt an initial refresh when the context becomes available
   useEffect(() => {
@@ -185,6 +278,11 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
   
   const [products, setProducts] = useState<any[]>(isExampleMode(currentUser) ? filterExampleData(mockProducts, currentUser) : []);
   const [productsLoading, setProductsLoading] = useState(false);
+
+  // Delete dialog state (replaces window.confirm flows)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleteTargetName, setDeleteTargetName] = useState<string | undefined>(undefined);
 
   // Load real user's products when currentUser changes (and keep example mode behavior)
   React.useEffect(() => {
@@ -294,9 +392,9 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
     }
   };
 
-  const handleReply = (conversation: any) => {
+  const handleReply = async (conversation: any) => {
     console.log('[UserDashboard] Opening chat for conversation:', conversation);
-    
+
     // Extract other user from conversation
     const otherUserId = conversation.other_user_id;
     const otherUser = {
@@ -315,6 +413,17 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
       conversationId: conversation.conversation_id,
       productId: conversation.product_id,
     });
+
+    // Reset unread count on the card and mark messages as read for this conversation
+    try {
+      if (currentUser && currentUser.id && conversation.conversation_id) {
+        await markMessageCardRead(currentUser.id, conversation.conversation_id);
+        await markAsRead({ user_id: currentUser.id, conversation_id: conversation.conversation_id });
+      }
+    } catch (e) {
+      console.warn('[UserDashboard] Failed to clear unread/read state when opening conversation', e);
+    }
+
     setShowChat(true);
   };
 
@@ -352,11 +461,49 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
   };
 
   const handleDeleteProduct = (productId: number) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      setProducts(prevProducts => 
-        prevProducts.filter(product => String(product.id) !== String(productId))
-      );
+    const product = products.find(p => String(p.id) === String(productId));
+    setDeleteTargetId(productId);
+    setDeleteTargetName(product?.title || undefined);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async ({ permanently }: { permanently?: boolean } = {}) => {
+    if (!deleteTargetId) throw new Error('No product selected');
+
+    try {
+      const result = await deleteProductById(String(deleteTargetId), Boolean(permanently));
+
+      if (!result.ok) {
+        if ((result as any).reason === 'not_found') {
+          // Remove locally and show friendly message
+          setProducts(prev => prev.filter(p => String(p.id) !== String(deleteTargetId)));
+          toast.success('Product already removed. Your listing is no longer available.');
+          try { window.dispatchEvent(new CustomEvent('iskomarket:product-deleted', { detail: { id: String(deleteTargetId) } })); } catch (e) {}
+          return;
+        }
+
+        if ((result as any).reason === 'error') {
+          if ((result as any).permissionDenied) {
+            toast.error('You do not have permission to delete this product.');
+          } else {
+            toast.error('Failed to delete product. Please try again later.');
+          }
+        }
+
+        throw (result as any).error || new Error('Delete failed');
+      }
+
+      // Success
+      setProducts(prev => prev.filter(p => String(p.id) !== String(deleteTargetId)));
+      try { window.dispatchEvent(new CustomEvent('iskomarket:product-deleted', { detail: { id: String(result.id || deleteTargetId), product_id: undefined } })); } catch (e) {}
       toast.success('Product deleted successfully!');
+    } catch (err: any) {
+      console.error('Failed to delete product from dashboard', err);
+      // Re-throw so ConfirmDeleteDialog can display the error inline
+      throw err;
+    } finally {
+      setDeleteTargetId(null);
+      setDeleteTargetName(undefined);
     }
   };
 
@@ -821,7 +968,49 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
             <div className="grid gap-4 relative z-10">
               {conversations.map(conversation => {
                 const hasUnread = (conversation.unread_count || 0) > 0;
-                
+
+                // If the conversation appears to be transaction-derived, render MessageCard for clearer meetup info
+                const isTransaction = String(conversation.conversation_id || '').startsWith('transaction:') || !!conversation.product_id;
+
+                if (isTransaction) {
+                  // Map conversation shape into a lightweight transaction-like object for MessageCard
+                  const txLike = {
+                    id: String(conversation.conversation_id || conversation.product_id || `txn-${conversation.other_user_id}`),
+                    status: 'pending',
+                    meetup_date: conversation.last_message_at || null,
+                    meetup_location: undefined,
+                    created_at: conversation.last_message_at || new Date().toISOString(),
+                    product: conversation.product_id ? { id: conversation.product_id, title: conversation.product_title } : undefined,
+                    buyer: undefined,
+                    seller: undefined,
+                    sender_id: conversation.other_user_id, // best-effort
+                    receiver_id: undefined,
+                  } as any;
+
+                  return (
+                    <div key={String(conversation.conversation_id || conversation.product_id)}>
+                      <MessageCard
+                        transaction={txLike}
+                        currentUserId={String(currentUser?.id)}
+                        onOpen={(tx) => {
+                          // Convert tx to selectedMessage shape for ChatModal
+                          setSelectedMessage({
+                            id: tx.id,
+                            name: conversation.other_user_name || conversation.other_user_id,
+                            avatar: conversation.other_user_avatar,
+                            program: undefined,
+                            product: conversation.product_title,
+                            otherUser: { id: conversation.other_user_id, username: conversation.other_user_name },
+                            conversationId: conversation.conversation_id,
+                            productId: conversation.product_id,
+                          });
+                          setShowChat(true);
+                        }}
+                      />
+                    </div>
+                  );
+                }
+
                 return (
                   <Card 
                     key={conversation.conversation_id} 
@@ -1155,6 +1344,15 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
         onChange={iskoinChange}
         onClick={() => setShowRewardChest(true)}
       /> */}
+
+      {/* Confirm Delete Dialog for dashboard product deletions */}
+      <ConfirmDeleteDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => setShowDeleteDialog(open)}
+        productName={deleteTargetName}
+        onConfirm={(opts) => handleConfirmDelete(opts)}
+        showPermanentlyCheckbox={isAdmin}
+      />
     </div>
   );
 }

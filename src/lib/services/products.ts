@@ -913,20 +913,25 @@ export async function createProduct(product: any) {
     })();
 
     // Best-effort: insert a system log so the Admin Dashboard activity stream reflects product posts even when `activities` table is missing
+    // Fire-and-forget system log — do not await, treat as non-fatal
     (async () => {
       try {
         // Lazy import to avoid circular dependencies in some test environments
         const { insertSystemLog } = await import('../../services/systemLogService');
-        await insertSystemLog({
+        // Do not await here; use catch on the returned promise to avoid unhandled rejections
+        insertSystemLog({
           category: 'transaction',
           type: 'product',
           severity: 'SUCCESS',
           source: 'web',
           summary: 'Product Posted',
           details: { productId: fetched.id, title: fetched.title, sellerId: fetched.seller?.id, seller: fetched.seller?.username },
+        }).catch((e) => {
+          // insertSystemLog is non-throwing for known RLS errors, but guard anyway
+          console.warn('createProduct: system log insert failed (non-fatal):', e);
         });
       } catch (e) {
-        console.warn('createProduct: failed to insert system log (non-fatal):', e);
+        console.warn('createProduct: failed to import systemLogService (non-fatal):', e);
       }
     })();
 
@@ -1107,7 +1112,7 @@ export async function updateProduct(id: string, updates: Partial<Product>) {
     }
   }
 
-  const { data, error } = await supabase
+  const res = await supabase
     .from('products')
     .update(payload)
     .eq('id', id)
@@ -1117,6 +1122,152 @@ export async function updateProduct(id: string, updates: Partial<Product>) {
       category:categories(id, name, icon)
     `)
     .maybeSingle();
+
+  let { data, error } = res;
+
+  // If PostgREST complains about missing relationship/column (e.g., PGRST204 or 42703), fall back to a safe two-step approach:
+  //  - perform the update without nested selects
+  //  - then fetch the row with a simple select('*') and enrich seller/category in separate queries
+  if (error) {
+    const msg = (error?.message || '').toLowerCase();
+    if (error?.code === 'PGRST204' || error?.code === '42703' || msg.includes('could not find') || msg.includes('does not exist') || msg.includes('seller')) {
+      console.info('[products] Schema/relationship mismatch when selecting nested seller; performing safe update+fetch', { message: error?.message });
+
+      // Attempt update without nested select
+      const { error: updErr } = await supabase
+        .from('products')
+        .update(payload)
+        .eq('id', id);
+
+      if (updErr) {
+        // If the plain update failed, try server-side safe RPC which avoids nested selects and schema cache issues
+        console.info('[products] plain update failed; attempting safe_update_product RPC', { error: updErr?.message || '' });
+        try {
+          let rpcRes: any = null;
+          let rpcErr: any = null;
+
+          // Retry RPC a couple times with small backoff to tolerate transient schema cache issues
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            const call = await supabase.rpc('safe_update_product', { p_id: id, p_payload: payload as any });
+            rpcRes = call.data;
+            rpcErr = call.error;
+            if (!rpcErr) break;
+            console.warn(`[products] safe_update_product RPC attempt ${attempt} failed`, rpcErr);
+            if (attempt < 2) await new Promise((r) => setTimeout(r, 250 * attempt));
+          }
+
+          if (rpcErr) {
+            const rpcMsg = String(rpcErr?.message || '').toLowerCase();
+            console.error('[products] safe_update_product RPC failed after retries:', rpcErr);
+
+            // Detect common RPC failure reasons and provide clearer guidance
+            if (rpcMsg.includes('subquery must return only one column') || rpcMsg.includes('could not find') || rpcMsg.includes('does not exist') || rpcMsg.includes('seller')) {
+              throw new Error('Server schema/cache mismatch detected. Please restart the Supabase API (Project → Settings → API → Restart) or apply pending migrations, then try again.');
+            }
+
+            error = rpcErr;
+          } else if (!rpcRes) {
+            throw new Error(`Product not found or update not permitted: ${id}.`);
+          } else {
+            // Compose and normalize RPC result
+            const composed = rpcRes as any;
+            let seller: any = null;
+            if (composed.seller_id) {
+              try {
+                const { data: sellerRow } = await supabase
+                  .from('users')
+                  .select('id, username, avatar_url, credit_score, is_trusted_member')
+                  .eq('id', composed.seller_id)
+                  .maybeSingle();
+                seller = sellerRow || null;
+              } catch (e) { seller = null; }
+            }
+
+            let category: any = null;
+            if ((composed as any).category_id) {
+              try {
+                const { data: catRow } = await supabase
+                  .from('categories')
+                  .select('id, name, icon')
+                  .eq('id', (composed as any).category_id)
+                  .maybeSingle();
+                category = catRow || null;
+              } catch (e) { category = null; }
+            }
+
+            const images = normalizeImages((composed as any).images || (composed as any).image ? ((composed as any).images || [(composed as any).image]) : undefined);
+            const firstImage = (images && images.length > 0) ? images[0] : ((composed as any).image || '/placeholder.png');
+
+            return {
+              ...composed,
+              seller,
+              category,
+              images,
+              image: firstImage,
+            } as Product;
+          }
+        } catch (e) {
+          // If rpc attempt threw, capture it and continue to mapping below which will eventually throw
+          error = e as any;
+        }
+      } else {
+        // Fetch the updated row with a simple select and enrich
+        const { data: simpleRow, error: simpleErr } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (simpleErr) {
+          error = simpleErr;
+        } else if (!simpleRow) {
+          // No row found after update - treat as not found
+          throw new Error(`Product not found or update not permitted: ${id}. This may be caused by insufficient permissions or the product being removed.`);
+        } else {
+          // Best-effort enrichment for seller and category
+          let seller: any = null;
+          if (simpleRow.seller_id) {
+            try {
+              const { data: sellerRow } = await supabase
+                .from('users')
+                .select('id, username, avatar_url, credit_score, is_trusted_member')
+                .eq('id', simpleRow.seller_id)
+                .maybeSingle();
+              seller = sellerRow || null;
+            } catch (e) {
+              seller = null;
+            }
+          }
+
+          let category: any = null;
+          if (simpleRow.category_id) {
+            try {
+              const { data: catRow } = await supabase
+                .from('categories')
+                .select('id, name, icon')
+                .eq('id', simpleRow.category_id)
+                .maybeSingle();
+              category = catRow || null;
+            } catch (e) {
+              category = null;
+            }
+          }
+
+          const composed = { ...simpleRow, seller, category } as any;
+
+          // Normalize images on return to keep UI rendering consistent
+          const images = normalizeImages((composed as any).images || (composed as any).image ? ((composed as any).images || [(composed as any).image]) : undefined);
+          const firstImage = (images && images.length > 0) ? images[0] : ((composed as any).image || '/placeholder.png');
+
+          return {
+            ...composed,
+            images,
+            image: firstImage,
+          } as Product;
+        }
+      }
+    }
+  }
 
   // Map common PostgREST single-row coercion error to a clearer message
   if (error) {
@@ -1189,6 +1340,121 @@ export async function deleteProduct(id: string, reason?: string, hard: boolean =
 
   // Successful soft-delete: return the deleted row
   return row as any;
+}
+
+// New wrapper that makes the result explicit and easier to consume from UI code
+export type DeleteProductResult =
+  | { ok: true; id?: string }
+  | { ok: false; reason: 'not_found' | 'error'; error?: unknown; permissionDenied?: boolean };
+
+export async function deleteProductById(id: string, hard: boolean = false): Promise<DeleteProductResult> {
+  console.debug('deleteProductById: attempting delete for id:', id, { hard });
+  try {
+    const res = await deleteProduct(id, undefined, hard);
+    console.debug('deleteProductById: deleteProduct RPC returned', res);
+    if (!res) {
+      // No row matched the RPC — treat as not found, but try multiple direct fallbacks to cover different legacy columns
+      console.debug('deleteProductById: no matching row found (not_found) for id', id);
+
+      const fallbackFields = ['id', 'product_id', 'legacy_product_id', 'numeric_id', 'legacy_id'];
+      for (const field of fallbackFields) {
+        try {
+          // Skip numeric-field attempts when id is not numeric
+          if (field !== 'id') {
+            const asNum = Number(id);
+            if (Number.isNaN(asNum)) continue;
+            console.debug('deleteProductById: attempting fallback update using field', field, 'value', asNum);
+            const { data: upd, error: updErr } = await supabase
+              .from('products')
+              .update({ is_deleted: true, deletion_reason: `Deleted by user (fallback:${field})` })
+              .eq(field, asNum)
+              .select('id')
+              .maybeSingle();
+
+            if (updErr) {
+              console.debug('deleteProductById: fallback update error for field', field, updErr);
+            } else if (upd && (upd as any).id) {
+              console.debug('deleteProductById: fallback update succeeded for field', field, 'id', (upd as any).id);
+              return { ok: true as const, id: String((upd as any).id) };
+            }
+          } else {
+            console.debug('deleteProductById: attempting fallback update using id (uuid) for', id);
+            const { data: upd, error: updErr } = await supabase
+              .from('products')
+              .update({ is_deleted: true, deletion_reason: 'Deleted by user (fallback:id)' })
+              .eq('id', id)
+              .select('id')
+              .maybeSingle();
+
+            if (updErr) {
+              console.debug('deleteProductById: fallback update error for id', updErr);
+            } else if (upd && (upd as any).id) {
+              console.debug('deleteProductById: fallback update succeeded for id', id);
+              return { ok: true as const, id: String((upd as any).id) };
+            }
+          }
+        } catch (e) {
+          console.debug('deleteProductById: fallback attempt threw for field', field, e);
+        }
+      }
+
+      // Development-only verification to help diagnose cases where a UI thinks the product was deleted but DB row remains
+      try {
+        if (process.env.NODE_ENV === 'development') {
+          const checks: any[] = [];
+
+          try {
+            const { data: byId } = await supabase.from('products').select('id,is_deleted,seller_id').eq('id', id).maybeSingle();
+            checks.push({ method: 'id', row: byId });
+          } catch (e) {
+            checks.push({ method: 'id', error: e });
+          }
+
+          const asNum = Number(id);
+          if (!Number.isNaN(asNum)) {
+            for (const numericCol of ['product_id', 'legacy_product_id', 'numeric_id', 'legacy_id']) {
+              try {
+                const { data } = await supabase.from('products').select('id,is_deleted,seller_id').eq(numericCol, asNum).maybeSingle();
+                checks.push({ method: numericCol, row: data });
+              } catch (e) {
+                checks.push({ method: numericCol, error: e });
+              }
+            }
+          }
+
+          console.debug('deleteProductById: verification checks for id', id, checks);
+        }
+      } catch (e) {
+        console.debug('deleteProductById: verification check threw', e);
+      }
+
+      return { ok: false as const, reason: 'not_found' };
+    }
+
+    // res is either { id } or a row object including id
+    const deletedId = (res.id ? String(res.id) : String(id));
+
+    // Development-only verification: confirm the row is marked as deleted
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const { data: verify } = await supabase.from('products').select('id,is_deleted').eq('id', deletedId).maybeSingle();
+          console.debug('deleteProductById: verification after delete (should be is_deleted=true):', verify);
+        } catch (e) {
+          console.debug('deleteProductById: verification after delete threw', e);
+        }
+      }
+    } catch (e) { /* ignore */ }
+
+    console.debug('deleteProductById: successful delete, id:', deletedId);
+    return { ok: true as const, id: deletedId };
+  } catch (err: any) {
+    console.error('deleteProductById: unexpected error', err);
+    // Map RLS/permission-like errors to a friendly reason when possible
+    const message = err?.message || '';
+    const isPermission = String(message).toLowerCase().includes('permission') || String(message).toLowerCase().includes('row-level security') || (err?.status === 403);
+    return { ok: false as const, reason: 'error' as const, error: err, permissionDenied: isPermission };
+  }
 }
 
 // Mark product as sold

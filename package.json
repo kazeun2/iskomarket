@@ -49,14 +49,18 @@
             "vaul": "^1.1.2"
       },
       "devDependencies": {
-            "@types/node": "^20.10.0",
+            "@playwright/test": "^1.40.0",
+            "@testing-library/react": "^16.3.1",
+            "@types/node": "^20.19.27",
+            "@types/react": "^19.2.7",
+            "@types/react-dom": "^19.2.3",
             "@vitejs/plugin-react-swc": "^3.10.2",
             "body-parser": "^1.20.2",
             "dotenv": "^17.2.3",
             "express": "^4.18.2",
             "typescript": "^5.9.3",
             "vite": "6.3.5",
-            "@playwright/test": "^1.40.0"
+            "vitest": "^4.0.16"
       },
       "scripts": {
             "start": "vite",
@@ -71,10 +75,10 @@
             "test:e2e:maintenance": "node scripts/e2e_maintenance_test.js",
             "test:e2e:remove-custom-title": "node scripts/e2e_remove_custom_title_test.js",
             "test:e2e:playwright": "playwright test tests/e2e/playwright --config=playwright.config.ts",
-        "test:e2e:reset": "playwright test tests/e2e/playwright/reset-complete.spec.ts --config=playwright.config.ts",
-        "test:e2e:reset:ci": "VITE_TEST_RESET_STUB=true VITE_TEST_RESET_OTP=11111111 npx playwright test tests/e2e/playwright/reset-complete.spec.ts --config=playwright.config.ts --project=chromium" ,
+            "test:e2e:reset": "playwright test tests/e2e/playwright/reset-complete.spec.ts --config=playwright.config.ts",
+            "test:e2e:reset:ci": "VITE_TEST_RESET_STUB=true VITE_TEST_RESET_OTP=11111111 npx playwright test tests/e2e/playwright/reset-complete.spec.ts --config=playwright.config.ts --project=chromium",
             "migrate:test": "node scripts/run_migration_test_db.js migrations/20260108-drop-custom-title.sql",
             "test": "vitest",
-        "check:products-flags": "node scripts/check_products_flags.js"
+            "check:products-flags": "node scripts/check_products_flags.js"
       }
 }

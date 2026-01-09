@@ -63,7 +63,7 @@ Tracks all buying/selling transactions.
 **Key Fields:**
 - `id` (UUID): Primary key
 - `buyer_id`, `seller_id`, `product_id`: Relationship keys
-- `amount`: Transaction amount
+- `amount` (optional): Transaction amount (may be omitted; fall back to product price when absent)
 - `status`: pending, confirmed, completed, cancelled, disputed
 - `meetup_location`, `meetup_date`: Meetup details
 - `meetup_confirmed_by_buyer/seller`: Confirmation flags

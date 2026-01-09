@@ -53,6 +53,7 @@ import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { getPrimaryImage } from "../utils/images";
+import { UsernameWithGlow } from './UsernameWithGlow';
 import { ActiveProductsModal } from './ActiveProductsModal';
 import {
   Dialog,
@@ -351,6 +352,12 @@ export function AdminDashboard({
       },
       // Back-compat / fallback when the productDetail wants to signal it was deleted elsewhere
       onProductDeleted: (id: number) => {
+        // Notify the global app so product lists can update immediately
+        try {
+          window.dispatchEvent(new CustomEvent('iskomarket:product-deleted', { detail: { id } }));
+        } catch (e) {
+          console.warn('dispatch product-deleted event failed', e);
+        }
         setSelectedProductDetails(null);
       },
     });
@@ -1427,32 +1434,55 @@ Cavite State University`;
     }
 
     try {
-      const { deleteProduct } = await import('../lib/services/products');
-      await deleteProduct(String(product.id), deleteReason, false);
+      const { deleteProductById } = await import('../lib/services/products');
+      const res = await deleteProductById(String(product.id), false);
 
-      toast.success(`Product "${product.title}" has been deleted. Seller has been notified.`);
+      if (res.ok) {
+        toast.success(`Product "${product.title}" has been deleted. Seller has been notified.`);
 
-      // Clean up local UI
-      setDeleteReason("");
-      setShowDeleteProductModal(false);
-      setSelectedProduct(null);
+        // Clean up local UI
+        setDeleteReason("");
+        setShowDeleteProductModal(false);
+        setSelectedProduct(null);
 
-      // Hide any overlays if present
-      try { overlayManager?.hide(); } catch (e) { /* ignore */ }
+        // Hide any overlays if present
+        try { overlayManager?.hide(); } catch (e) { /* ignore */ }
 
-      // Insert audit log
-      try {
-        const { insertAdminAuditLog } = await import('../services/adminAuditService');
-        await insertAdminAuditLog({
-          admin_email: currentUser?.email || currentUser?.username || 'admin',
-          action: 'deleted',
-          target_type: 'product',
-          target_id: String(product.id),
-          target_title: product.title,
-          reason: deleteReason || null,
-        } as any);
-      } catch (e) {
-        console.error('Failed to insert admin audit log for product delete', e);
+        // Dispatch a product-deleted event so other clients update
+        try {
+          window.dispatchEvent(new CustomEvent('iskomarket:product-deleted', { detail: { id: res.id } }));
+        } catch (e) { /* ignore */ }
+
+        // Insert audit log
+        try {
+          const { insertAdminAuditLog } = await import('../services/adminAuditService');
+          await insertAdminAuditLog({
+            admin_email: currentUser?.email || currentUser?.username || 'admin',
+            action: 'deleted',
+            target_type: 'product',
+            target_id: String(res.id || product.id),
+            target_title: product.title,
+            reason: deleteReason || null,
+          } as any);
+        } catch (e) {
+          console.error('Failed to insert admin audit log for product delete', e);
+        }
+      } else {
+        if ((res as any).reason === 'not_found') {
+          toast.info('Product was already deleted.');
+
+          // Clean up UI similarly
+          setDeleteReason("");
+          setShowDeleteProductModal(false);
+          setSelectedProduct(null);
+
+          try { overlayManager?.hide(); } catch (e) { /* ignore */ }
+        } else if ((res as any).permissionDenied) {
+          toast.error('Permission denied: you are not allowed to delete this product.');
+        } else {
+          toast.error('Failed to delete product.');
+          console.error('handleDeleteProduct: unknown error result', res);
+        }
       }
     } catch (err: any) {
       const msg = err?.message || String(err);
@@ -1521,37 +1551,55 @@ Cavite State University`;
 
     try {
       // Call the service to delete (soft delete via RPC by default)
-      const { deleteProduct } = await import('../lib/services/products');
-      await deleteProduct(String(product.id), reason, false);
+      const { deleteProductById } = await import('../lib/services/products');
+      const res = await deleteProductById(String(product.id), false);
 
-      toast.success(`Product "${product.title}" has been deleted`, {
-        description: `Seller ${product.seller?.username || product.seller_id} has been notified.`,
-      });
+      if (res.ok) {
+        toast.success(`Product "${product.title}" has been deleted`, {
+          description: `Seller ${product.seller?.username || product.seller_id} has been notified.`,
+        });
 
-      // Clear local UI state and close any overlays
-      setProductDeleteReason("");
-      setSelectedProduct(null);
-      setSelectedProductDetails(null);
+        // Clear local UI state and close any overlays
+        setProductDeleteReason("");
+        setSelectedProduct(null);
+        setSelectedProductDetails(null);
 
-      // If an overlay is visible (e.g., delete overlay), hide it
+        // Dispatch product-deleted event
+        try {
+          window.dispatchEvent(new CustomEvent('iskomarket:product-deleted', { detail: { id: res.id } }));
+        } catch (e) { /* ignore */ }
 
-      // Insert audit log
-      try {
-        const { insertAdminAuditLog } = await import('../services/adminAuditService');
-        await insertAdminAuditLog({
-          admin_email: currentUser?.email || currentUser?.username || 'admin',
-          action: 'deleted',
-          target_type: 'product',
-          target_id: String(product.id),
-          target_title: product.title,
-          reason: reason || null,
-        } as any);
-      } catch (e) {
-        console.error('Failed to insert admin audit log for product delete', e);
+        // Insert audit log
+        try {
+          const { insertAdminAuditLog } = await import('../services/adminAuditService');
+          await insertAdminAuditLog({
+            admin_email: currentUser?.email || currentUser?.username || 'admin',
+            action: 'deleted',
+            target_type: 'product',
+            target_id: String(res.id || product.id),
+            target_title: product.title,
+            reason: reason || null,
+          } as any);
+        } catch (e) {
+          console.error('Failed to insert admin audit log for product delete', e);
+        }
+      } else {
+        if ((res as any).reason === 'not_found') {
+          toast.info('Product was already deleted.');
+
+          setProductDeleteReason("");
+          setSelectedProduct(null);
+          setSelectedProductDetails(null);
+        } else if ((res as any).permissionDenied) {
+          toast.error('Permission denied: you are not allowed to delete this product.');
+        } else {
+          toast.error('Failed to delete product.');
+          console.error('handleMarketplaceProductDelete: unknown error result', res);
+        }
       }
+
       try { overlayManager.hide(); } catch (e) { /* ignore */ }
 
-      // Realtime subscription should propagate the DELETE event to other clients and the ActiveProductsModal
     } catch (err: any) {
       const msg = err?.message || String(err);
       toast.error(`Failed to delete product: ${msg}`);
@@ -2817,7 +2865,7 @@ Cavite State University`;
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-medium">
-                            {user.username}
+                            <UsernameWithGlow username={user.username} glowEffect={user.glowEffect} showTimer={false} />
                           </p>
                           <Badge
                             className={
@@ -2887,7 +2935,7 @@ Cavite State University`;
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-medium">
-                            {user.username}
+                            <UsernameWithGlow username={user.username} glowEffect={user.glowEffect} showTimer={false} />
                           </p>
                           <Badge className="bg-green-100 text-green-800 border-green-300">
                             active
@@ -3150,7 +3198,7 @@ Cavite State University`;
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-2">{report.reason}</p>
                                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                  <span>Reported by: {report.reportedBy.username}</span>
+                                  <span>Reported by: <UsernameWithGlow username={report.reportedBy.username} glowEffect={(report.reportedBy as any)?.glowEffect} showTimer={false} /></span>
                                   <span>•</span>
                                   <span>{new Date(report.date).toLocaleDateString()}</span>
                                 </div>
@@ -3178,7 +3226,7 @@ Cavite State University`;
                                 <div className="flex items-start gap-3">
                                   <Avatar className="h-12 w-12 ring-2 ring-emerald-500/20"><AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">{(((report.reportedUser as any)?.username) || ((report.reportedUser as any)?.name) || 'U').charAt(0).toUpperCase()}</AvatarFallback></Avatar>
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1"><h5 className="text-gray-900 dark:text-gray-100">{report.reportedUser.username}</h5><Badge className="bg-red-500 text-white border-0 text-xs px-2 py-0.5">Reported</Badge></div>
+                                    <div className="flex items-center gap-2 mb-1"><h5 className="text-gray-900 dark:text-gray-100"><UsernameWithGlow username={report.reportedUser.username} glowEffect={(report.reportedUser as any)?.glowEffect} showTimer={false} /></h5><Badge className="bg-red-500 text-white border-0 text-xs px-2 py-0.5">Reported</Badge></div>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">{allUsers.find(u => u.username === report.reportedUser.username)?.program || 'Student'}</p>
                                   </div>
                                 </div>

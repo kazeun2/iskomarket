@@ -171,6 +171,67 @@ app.get('/dev/latest-otp', async (req, res) => {
   }
 })
 
+// Dev helper: hard-delete an account (development only)
+app.post('/dev/delete-account', async (req, res) => {
+  const { userId } = req.body || {};
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '');
+
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  if (!token) return res.status(401).json({ error: 'Missing auth token' });
+
+  try {
+    // Verify token belongs to the requesting user
+    const clientWithToken = createClient(SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+    const { data: userData, error: userErr } = await clientWithToken.auth.getUser();
+    if (userErr || !userData?.user || userData.user.id !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: 'Dev server not configured with admin keys. Set SUPABASE_SERVICE_ROLE_KEY.' });
+    }
+
+    // Delete dependent rows similar to production route
+    await supabaseAdmin.from('products').delete().eq('seller_id', userId);
+    await supabaseAdmin.from('messages').delete().or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
+    await supabaseAdmin.from('conversations').delete().or(`user_a.eq.${userId},user_b.eq.${userId}`);
+    await supabaseAdmin.from('orders').delete().or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+    await supabaseAdmin.from('reviews').delete().or(`author_id.eq.${userId},target_id.eq.${userId}`);
+
+    // Remove avatar files
+    try {
+      const { data: files } = await supabaseAdmin.storage.from('avatars').list(`${userId}`, { limit: 100 });
+      if (files) {
+        const filePaths = files.map((f) => `${userId}/${f.name}`);
+        if (filePaths.length > 0) await supabaseAdmin.storage.from('avatars').remove(filePaths);
+      }
+    } catch (storageErr) {
+      console.warn('Failed to clean storage objects for user:', userId, storageErr);
+    }
+
+    const { error: profileErr } = await supabaseAdmin.from('users').delete().eq('id', userId);
+    if (profileErr) {
+      console.error('Failed to delete users row:', profileErr);
+      return res.status(500).json({ error: 'Failed to delete user profile' });
+    }
+
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+    } catch (err) {
+      console.error('Failed to delete auth user:', err);
+      return res.status(500).json({ error: 'Failed to delete auth user' });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Dev delete-account error:', err);
+    return res.status(500).json({ error: err?.message || String(err) });
+  }
+});
+
 const port = parseInt(process.env.DEV_SERVER_PORT || '9999', 10);
 const server = app.listen(port, () => {
   console.log(`Dev create-user server running on http://localhost:${port}`);

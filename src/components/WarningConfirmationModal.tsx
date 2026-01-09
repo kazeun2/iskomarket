@@ -3,6 +3,7 @@ import { Send, X, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { UsernameWithGlow } from './UsernameWithGlow';
 
 interface WarningConfirmationModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface WarningConfirmationModalProps {
   user: {
     username: string;
     inactiveDays: number;
+    glowEffect?: { name: string; active: boolean; expiresAt?: string } | null;
   } | null;
 }
 
@@ -43,7 +45,7 @@ export function WarningConfirmationModal({
           {/* User Info */}
           <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
             <div>
-              <p className="font-medium">{user.username}</p>
+              <p className="font-medium"><UsernameWithGlow username={user.username} glowEffect={user.glowEffect} showTimer={false} /></p>
               <p className="text-xs text-muted-foreground">
                 {user.username.toLowerCase()}@cvsu.edu.ph
               </p>

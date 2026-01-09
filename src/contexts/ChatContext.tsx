@@ -271,6 +271,66 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     };
   }, [user?.id]);
 
+  // Listen for transaction-created events dispatched by meetup flow and upsert conversation
+  useEffect(() => {
+    if (!user?.id || typeof window === 'undefined') return;
+
+    const handler = async (e: any) => {
+      try {
+        const tx = e?.detail;
+        if (!tx) return;
+
+        console.log('[ChatProvider] Received transaction-created event:', tx);
+
+        const convId = `transaction:${tx.id}`;
+        const otherUserId = tx.sender_id === user.id ? tx.receiver_id : tx.sender_id;
+        const lastText = tx.meetup_date ? `Meet-up scheduled: ${tx.meetup_date}` : 'Meet-up proposed';
+        const lastAt = tx.created_at || new Date().toISOString();
+
+        setConversations((prev) => {
+          const existing = prev.find((c) => c.conversation_id === convId || (c.other_user_id === otherUserId && c.product_id === tx.product?.id));
+          if (existing) {
+            return prev.map((p) =>
+              p.conversation_id === existing.conversation_id
+                ? { ...p, last_message: lastText, last_message_at: lastAt }
+                : p
+            );
+          }
+
+          const newConv = {
+            conversation_id: convId,
+            other_user_id: otherUserId,
+            last_message: lastText,
+            last_message_at: lastAt,
+            unread_count: 0,
+            product_id: tx.product?.id,
+            other_user_name: tx.buyer?.username || tx.seller?.username || 'Someone',
+            product_title: tx.product?.title
+          };
+
+          return [newConv, ...prev];
+        });
+
+        // Attempt a full refresh to reconcile data with server and ensure counts are reflected
+        try {
+          const { data, error } = await getConversations(user.id);
+          if (!error && Array.isArray(data)) {
+            setConversations(data);
+            const unreadCount = data.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+            setTotalUnreadCount(unreadCount);
+          }
+        } catch (err) {
+          console.warn('[ChatProvider] Failed to refresh conversations after transaction event', err);
+        }
+      } catch (err) {
+        console.error('[ChatProvider] Error handling transaction-created event', err);
+      }
+    };
+
+    window.addEventListener('iskomarket:transaction-created', handler as any);
+    return () => window.removeEventListener('iskomarket:transaction-created', handler as any);
+  }, [user?.id]);
+
   const refreshConversations = async () => {
     const userId = user?.id || (user as any)?.user?.id;
     if (!userId) {

@@ -201,7 +201,7 @@ import {
 } from './lib/services/transactions'
 
 // Create and confirm
-const transaction = await createTransaction(productId, buyerId, sellerId, amount)
+const transaction = await createTransaction(productId, buyerId, sellerId)
 await confirmTransaction(transaction.id, userId, 'buyer')
 ```
 

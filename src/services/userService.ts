@@ -14,6 +14,7 @@ export interface User {
   avatar_url?: string;
   frame_effect?: string;
   glow_effect?: string;
+  glow_expiry?: string;
 
   created_at?: string;
   updated_at?: string;
@@ -275,6 +276,68 @@ export function subscribeToUsers(callback: (users: User[]) => void) {
   return () => {
     supabase.removeChannel(channel);
   };
+}
+
+/**
+ * Increment counters atomically using a DB RPC (increment_user_counters)
+ * Returns the updated counters and tier if RPC is available.
+ */
+export async function incrementUserCounters(userId: string, iskonsDelta = 0, spinsDelta = 0) {
+  try {
+    const { data, error } = await supabase.rpc('increment_user_counters', {
+      p_user_id: userId,
+      p_iskons_delta: iskonsDelta,
+      p_spins_delta: spinsDelta,
+    });
+
+    if (error) {
+      console.error('Error incrementing user counters:', error);
+      return { data: null, error };
+    }
+
+    // RPC may return an array of rows depending on Postgres/Supabase config
+    const row = Array.isArray(data) ? data[0] : data;
+    return { data: row, error: null };
+  } catch (err) {
+    console.error('Unexpected error incrementing counters:', err);
+    return { data: null, error: err };
+  }
+}
+
+/**
+ * Recalculate user's tier server-side using RPC
+ */
+export async function recalcUserTier(userId: string) {
+  try {
+    const { data, error } = await supabase.rpc('recalculate_user_tier', { p_user_id: userId });
+    if (error) {
+      console.error('Error recalculating user tier:', error);
+      return { data: null, error };
+    }
+    return { data: Array.isArray(data) ? data[0] : data, error: null };
+  } catch (err) {
+    console.error('Unexpected error recalculating tier:', err);
+    return { data: null, error: err };
+  }
+}
+
+/**
+ * Subscribe to a single user's row changes (realtime)
+ * callback receives the updated record (payload.record)
+ */
+export function subscribeToUserChanges(userId: string, callback: (record: Partial<User>) => void) {
+  const channel = supabase
+    .channel(`user:${userId}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
+      (payload: any) => {
+        if (payload?.record) callback(payload.record as Partial<User>);
+      }
+    )
+    .subscribe();
+
+  return () => supabase.removeChannel(channel);
 }
 
 /**

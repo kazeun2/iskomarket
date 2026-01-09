@@ -1507,19 +1507,6 @@ const handleRegister = async (e: React.FormEvent) => {
                       />
                     </button>
 
-                    {import.meta.env.DEV && (
-                      <div className="mt-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => debugAuthUser()}
-                          className="text-xs text-gray-600 hover:underline"
-                          style={{ background: 'transparent', border: 'none' }}
-                        >
-                          Debug auth user (dev)
-                        </button>
-                      </div>
-                    )}
-
                   </div>
                 </form>
               </div>

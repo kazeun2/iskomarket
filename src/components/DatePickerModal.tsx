@@ -8,10 +8,13 @@ import { toast } from 'sonner';
 interface DatePickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDateSelected: (date: Date) => void;
+  // Passes selected date and optionally the chosen/fixed location (seller-provided)
+  onDateSelected: (date: Date, location?: string) => void;
+  // When provided, the modal will use this fixed location and hide the selector
+  fixedLocation?: string;
 }
 
-export function DatePickerModal({ isOpen, onClose, onDateSelected }: DatePickerModalProps) {
+export function DatePickerModal({ isOpen, onClose, onDateSelected, fixedLocation }: DatePickerModalProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   // Minimum date: December 1, 2025
@@ -23,10 +26,11 @@ export function DatePickerModal({ isOpen, onClose, onDateSelected }: DatePickerM
       return;
     }
 
-    onDateSelected(selectedDate);
+    const finalLocation = fixedLocation ?? undefined;
+    onDateSelected(selectedDate, finalLocation);
     onClose();
     toast.success('Meet-up date proposed!', {
-      description: `You've proposed ${selectedDate.toLocaleDateString()}`
+      description: `You've proposed ${selectedDate.toLocaleDateString()}${finalLocation ? ` at ${finalLocation}` : ''}`
     });
   };
 
@@ -83,7 +87,7 @@ export function DatePickerModal({ isOpen, onClose, onDateSelected }: DatePickerM
           <Button
             onClick={handleConfirm}
             disabled={!selectedDate}
-            className="flex-1"
+            className="flex-1 bg-emerald-600 text-emerald-50 hover:bg-emerald-700 disabled:bg-muted disabled:text-muted-foreground disabled:hover:bg-muted dark:bg-emerald-600 dark:text-emerald-50"
           >
             <Check className="h-4 w-4 mr-2" />
             Confirm Date

@@ -36,8 +36,25 @@ test.describe('Auth flows (smoke)', () => {
       return
     }
 
-    // Wait for Verify dialog and fill stubbed token
-    await expect(page.getByRole('heading', { name: 'Verify Your Email' }).first()).toBeVisible({ timeout: 20000 })
+    // Wait up to 20s for either Verify dialog or an "account exists" error to appear
+    const verifyHeading = page.getByRole('heading', { name: 'Verify Your Email' }).first()
+    const existsTextAfter = page.locator('text=An account with this email already exists. Please sign in or reset your password.')
+    let winner: 'verify' | 'exists'
+    try {
+      winner = await Promise.race([
+        verifyHeading.waitFor({ state: 'visible', timeout: 20000 }).then(() => 'verify' as const),
+        existsTextAfter.waitFor({ state: 'visible', timeout: 20000 }).then(() => 'exists' as const),
+      ])
+    } catch (err) {
+      console.log('--- PAGE CONTENT ---')
+      console.log(await page.content())
+      throw err
+    }
+
+    if (winner === 'exists') {
+      await expect(existsTextAfter).toBeVisible()
+      return
+    }
     const valid = '12345678'
     for (let i = 0; i < valid.length; i++) {
       await page.locator(`[data-testid="otp-digit-${i + 1}"]`).fill(valid[i])

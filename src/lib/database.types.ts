@@ -231,8 +231,8 @@ export interface Database {
       transactions: {
         Row: {
           id: string
-          buyer_id: string
-          seller_id: string
+          sender_id: string
+          receiver_id: string
           product_id: string
           amount: number
           status: string
@@ -253,8 +253,8 @@ export interface Database {
         }
         Insert: {
           id?: string
-          buyer_id: string
-          seller_id: string
+          sender_id: string
+          receiver_id: string
           product_id: string
           amount: number
           status?: string
@@ -275,8 +275,8 @@ export interface Database {
         }
         Update: {
           id?: string
-          buyer_id?: string
-          seller_id?: string
+          sender_id?: string
+          receiver_id?: string
           product_id?: string
           amount?: number
           status?: string

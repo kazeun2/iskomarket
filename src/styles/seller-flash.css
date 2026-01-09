@@ -1,0 +1,87 @@
+/* Seller flash overlay */
+.seller-flash-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  pointer-events: none; /* enable only card clicks */
+}
+
+.seller-flash-overlay.backdrop {
+  background: rgba(0,0,0,0.18);
+  transition: opacity .2s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seller-flash-overlay.show.backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Card */
+.seller-flash-card {
+  pointer-events: auto;
+  background: #fff;
+  border: 2px solid #0f8b4a;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(20,30,20,0.12);
+  width: min(760px, 94%);
+  max-height: 80vh;
+  overflow: auto;
+  transform: translateY(8px) scale(.98);
+  opacity: 0;
+  transition: transform .22s cubic-bezier(.2,.9,.2,1), opacity .22s ease;
+}
+
+/* Visible */
+.seller-flash-overlay.show .seller-flash-card {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+/* Card content */
+.seller-info {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  align-items: flex-start;
+}
+.seller-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #9ad9b7;
+  color: #fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:20px;
+  flex-shrink:0;
+  border: 3px solid rgba(0,0,0,0.06);
+}
+.seller-meta { flex:1; }
+.seller-username { font-weight:700; color:#165d37; margin-bottom:4px; display:flex; gap:8px; align-items:center; }
+.seller-badge { background:#ff8a3d; color:#fff; padding:4px 8px; border-radius:12px; font-size:12px; font-weight:700; }
+
+/* Bio and rating */
+.seller-bio { color:#2f4f3a; margin:6px 0 10px; font-size:14px; }
+.seller-rating { color:#f4b400; font-weight:700; font-size:13px; }
+
+/* Products list (compact cards) */
+.seller-products { display:grid; gap:8px; grid-template-columns:1fr; padding: 0 18px 18px; }
+.product-box { border:1px solid #dbeee0; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; background:#fff; font-size:14px; color:#1f4b33; }
+
+/* Small screen tweak */
+@media (min-width: 720px) {
+  .seller-info { padding: 22px; }
+  .seller-avatar { width:72px; height:72px; font-size:22px; }
+  .seller-flash-card { width: 720px; }
+  .seller-products { grid-template-columns: 1fr 1fr; gap:12px; }
+}
+
+/* Dismiss hint */
+.seller-flash-dismiss { font-size:12px; color:#666; padding:8px 12px; text-align:center; border-top:1px solid #eee; }

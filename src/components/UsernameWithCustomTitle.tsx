@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
+import { UsernameWithGlow } from './UsernameWithGlow';
 
 interface UsernameWithCustomTitleProps {
   username: string;
@@ -23,7 +24,7 @@ export function UsernameWithCustomTitle({
   // Custom title feature removed - only render username now
   return (
     <div className={`flex ${className}`}>
-      <span>{username}</span>
+      <UsernameWithGlow username={username} showTimer={false} className="inline" />
     </div>
   );
 }

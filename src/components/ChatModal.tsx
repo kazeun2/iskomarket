@@ -17,6 +17,7 @@ import {
   Check,
   XCircle,
 } from "lucide-react";
+import { getPendingTransactions, subscribeToTransaction, confirmTransaction, cancelMeetup, getTransaction, completeTransaction } from '../lib/services/transactions';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import {
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { getPrimaryImage } from "../utils/images";
@@ -36,6 +38,8 @@ import { RateThisUserModal } from "./RateThisUserModal";
 import { ProductDetail } from "./ProductDetail";
 import { UsernameWithGlow } from "./UsernameWithGlow";
 import { getCollegeFrameStyles } from "./CollegeFrameBackground";
+import { updateCreditScore } from "../lib/services/users"; // Persist credit score changes
+
 import {
   formatOnlineStatus,
   formatRelativeTime,
@@ -50,6 +54,7 @@ import {
   getOrCreateConversation,
   findConversationBetween,
 } from "../services/messageService";
+import { agreeMeetupAndNotify } from "../lib/actions/meetup";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatOptional } from "../contexts/ChatContext";
 
@@ -64,6 +69,7 @@ interface Message {
   type?: "text" | "product";
   created_at: string;
   is_read: boolean;
+  sender?: { id: string; display_name?: string | null; avatar_url?: string | null } | null;
 }
 
 interface ChatModalProps {
@@ -96,23 +102,28 @@ interface ChatModalProps {
     deliveryOptions?: string[];
   };
   onRequestEdit?: (product: any) => void;
+  onSellerClick?: (seller: any) => void; // Optional handler to open SellerProfile at app level
 }
 
 interface Transaction {
-  id?: number;
+  id?: string;
   meetupDate?: Date; // Store as Date object for easier calculations
   meetupLocation?: string;
   buyerConfirmed: boolean;
   sellerConfirmed: boolean;
   status:
     | "pending"
-    | "proposed" // Date selected, awaiting confirmation
+    | "confirmed"
     | "scheduled" // Confirmed, countdown to meetup
+    | "proposed" // Date selected, awaiting confirmation
     | "meetup_day_passed" // 7-day window to confirm completion
     | "completed"
+    | "cancelled"
     | "unsuccessful"
-    | "appealed"; // Reopened after unsuccessful
+    | "appealed"
+    | "disputed"; // Reopened after unsuccessful
   proposedAt?: Date; // When the date was proposed
+  proposedBy?: string; // Who proposed the meetup (user id)
   confirmedAt?: Date; // When the other user confirmed
   meetupDayReachedAt?: Date; // When the meetup day was reached
   unsuccessfulAt?: Date; // When marked unsuccessful
@@ -133,8 +144,9 @@ export function ChatModal({
   product,
   onRequestEdit,
   zIndex = 9999,
+  onSellerClick,
 }: ChatModalProps) {
-  const { user } = useAuth(); // Get authenticated user
+  const { user, refreshUser } = useAuth(); // Get authenticated user and refresh helper
   const chatContext = useChatOptional(); // Get chat context for refreshing conversations
   // Start with any already-known user id to avoid temporary nulls
   const [authUserId, setAuthUserId] = useState<string | null>(user?.id ?? null);
@@ -194,7 +206,7 @@ export function ChatModal({
   const [isSending, setIsSending] = useState(false); // Prevent duplicate sends
   const [isLoadingMessages, setIsLoadingMessages] =
     useState(true); // Loading state
-  const [transaction, setTransaction] = useState<Transaction>({
+  const [transaction, setTransaction] = useState<Transaction & { buyerId?: string; sellerId?: string; proposedAt?: Date }>({
     buyerConfirmed: false,
     sellerConfirmed: false,
     status: "pending",
@@ -238,8 +250,18 @@ export function ChatModal({
     return undefined;
   };
   
-  // Debug logging
-  console.log('ChatModal currentUserId:', { currentUserId, authUserId, userExists: !!user, 'user.id': user?.id, currentUserExists: !!currentUser, 'currentUser.id': currentUser?.id });
+  // Debug logging (dev-only): log only when a debug flag is enabled and when identity info changes
+  useEffect(() => {
+    if (!(window as any).__ISKOMARKET_DEBUG__) return;
+    console.debug('ChatModal currentUserId:', {
+      currentUserId,
+      authUserId,
+      userExists: !!user,
+      'user.id': user?.id,
+      currentUserExists: !!currentUser,
+      'currentUser.id': currentUser?.id,
+    });
+  }, [currentUserId, authUserId, user?.id, currentUser?.id]);
 
   // Start with only product card (NO auto-welcome message yet)
   // When opened from notifications, product card should be right-aligned (MY product)
@@ -247,13 +269,13 @@ export function ChatModal({
   const initialMessages: Message[] = product
     ? [
         {
-          id: "product-card",
+          id: `product-card-${product.id}`,
           // Use explicit seller id when available; do NOT fall back to recipient (avoids mis-attribution)
           sender_id: resolveProductSellerId(product, false) ?? undefined,
           receiver_id: recipientIdStr ?? undefined,
           timestamp: "6:10 PM",
           type: "product",
-          created_at: "2023-10-01T18:10:00Z",
+          created_at: product.postedDate || new Date().toISOString(),
           is_read: false,
         },
       ]
@@ -262,8 +284,16 @@ export function ChatModal({
   const [messages, setMessages] =
     useState<Message[]>(initialMessages);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const bannerTimeoutRef = useRef<NodeJS.Timeout>();
+  const bannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dialogContentRef = useRef<HTMLElement | null>(null);
+
+  // Alias to reuse existing date picker hook for meetup proposal button in provided structure
+  const setShowMeetupProposal = setShowDatePicker;
+
+  // Local UI state used by the provided structure
+  const [textareaHeight, setTextareaHeight] = useState<string | number>("auto");
+  const canMarkAsDone = transaction.status !== "scheduled" && !isMarkedAsDone;
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -273,7 +303,40 @@ export function ChatModal({
     });
   }, [messages]);
 
+  // Auto-welcome behavior: when the chat is opened and there are no text messages, the OTHER user sends a single automated welcome once per open
+  const autoWelcomeSentRef = useRef(false);
+  useEffect(() => {
+    if (!isOpen) {
+      autoWelcomeSentRef.current = false;
+      return;
+    }
+
+    // Only send when first message (no text messages) and we haven't already sent it in this open
+    if (isFirstMessage && !autoWelcomeSentRef.current) {
+      autoWelcomeSentRef.current = true;
+      // Show typing indicator from other user briefly then insert message
+      setShowTypingIndicator(true);
+      setTimeout(() => {
+        setShowTypingIndicator(false);
+        const autoWelcome: Message & { is_automated?: boolean } = {
+          id: `auto-welcome-${Date.now()}`,
+          message: "Hi! Thank you for messaging! I'll get back to you as soon as possible!",
+          sender_id: recipientIdStr || 'system',
+          receiver_id: currentUserId || undefined,
+          timestamp: 'Just now',
+          type: 'text',
+          created_at: new Date().toISOString(),
+          is_read: true,
+          is_automated: true,
+        };
+        setMessages((prev) => [...prev, autoWelcome]);
+      }, 1500);
+    }
+  }, [isOpen, isFirstMessage, recipientIdStr, currentUserId]);
+
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const txUnsubRef = useRef<(() => void) | null>(null); // unsubscribe fn for transaction realtime subscription
+
 
   // Load messages from Supabase when modal opens and resolve or create a conversation
   useEffect(() => {
@@ -341,22 +404,24 @@ export function ChatModal({
       });
 
       if (data && data.length > 0) {
-        // Convert Supabase messages to UI format
+        // Convert Supabase messages to UI format (include sender profile when available)
         const formattedMessages: Message[] = data.map((msg: any) => ({
           id: msg.id,
-          message: msg.message || (msg as any).message_text || (msg as any).content || '(No text)',
+          message: msg.message || (msg as any).message_text || (msg as any).content || msg.body || '(No text)',
           sender_id: msg.sender_id,
           receiver_id: msg.receiver_id,
           timestamp: formatRelativeTime(msg.created_at),
           type: 'text',
           created_at: msg.created_at,
           is_read: msg.is_read,
+          // embed sender profile if available
+          sender: msg.sender || null,
         }));
 
         // Insert product card at top if needed
         if (product && !formattedMessages.some((m) => m.type === 'product')) {
           formattedMessages.unshift({
-            id: 'product-card',
+            id: `product-card-${product.id}`,
             message: undefined as any,
             // don't fall back to recipient for seller
             sender_id: resolveProductSellerId(product, false) ?? undefined,
@@ -376,6 +441,57 @@ export function ChatModal({
         setIsFirstMessage(
           uniqueMessages.filter((m) => m.type === 'text').length === 0,
         );
+
+        // Check for any existing transaction for this product and subscribe to realtime updates
+        try {
+          if (product?.id && currentUserId) {
+            const pendingTx = await getPendingTransactions(currentUserId);
+            // Use canonical column names `sender_id` and `receiver_id` when looking up transactions
+            const found = pendingTx?.find((t: any) => String(t.product_id) === String(product.id) && (String(t.sender_id) === String(currentUserId) || String(t.receiver_id) === String(currentUserId)));
+            if (found) {
+              // Map DB row to local Transaction shape (preserve buyer/seller ids for role detection)
+              setTransaction((prev) => ({
+                ...prev,
+                id: found.id,
+                meetupLocation: found.meetup_location || prev.meetupLocation,
+                meetupDate: found.meetup_date ? new Date(found.meetup_date) : prev.meetupDate,
+                buyerConfirmed: !!found.meetup_confirmed_by_buyer,
+                sellerConfirmed: !!found.meetup_confirmed_by_seller,
+                status: (found.status as Transaction['status']) || prev.status,
+                buyerId: found.sender_id ?? prev.buyerId,
+                sellerId: found.receiver_id ?? prev.sellerId,
+              }));
+
+              // Subscribe to realtime updates for this transaction so both parties see changes immediately
+              const unsub = subscribeToTransaction(found.id, (updated: any) => {
+                setTransaction((prev) => ({
+                  ...prev,
+                  meetupLocation: updated.meetup_location || prev.meetupLocation,
+                  meetupDate: updated.meetup_date ? new Date(updated.meetup_date) : prev.meetupDate,
+                  buyerConfirmed: !!updated.meetup_confirmed_by_buyer,
+                  sellerConfirmed: !!updated.meetup_confirmed_by_seller,
+                  status: (updated.status as Transaction['status']) || prev.status,
+                  buyerId: updated.sender_id ?? prev.buyerId,
+                  sellerId: updated.receiver_id ?? prev.sellerId,
+                }));
+
+                // Show a brief status banner so users notice the update
+                if (updated.meetup_location) {
+                  setStatusBannerMessage(`Meet-up scheduled at ${updated.meetup_location}`);
+                  setStatusBannerType('success');
+                  setShowStatusBanner(true);
+                  clearTimeout(bannerTimeoutRef.current as any);
+                  bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+                }
+              });
+
+              // Save unsubscribe so we can cleanup later
+              txUnsubRef.current = unsub;
+            }
+          }
+        } catch (e) {
+          console.warn('[ChatModal] Failed to lookup/subscribe transaction:', e);
+        }
       } else {
         // No messages yet, just show product card if available (ensure dedupe)
         const uniqueInitial = Array.from(new Map(initialMessages.map((m) => [m.id, m])).values());
@@ -418,13 +534,14 @@ export function ChatModal({
 
         const formattedMessage: Message = {
           id: newMsg.id,
-          message: newMsg.message || newMsg.message_text || newMsg.content || '',
+          message: newMsg.message || newMsg.message_text || newMsg.content || newMsg.body || '',
           sender_id: newMsg.sender_id,
           receiver_id: newMsg.receiver_id,
           timestamp: formatRelativeTime(newMsg.created_at),
           type: 'text',
           created_at: newMsg.created_at,
           is_read: newMsg.is_read,
+          sender: newMsg.sender || null,
         };
 
         setMessages((prev) => {
@@ -441,6 +558,95 @@ export function ChatModal({
           markAsRead({ user_id: currentUserId, sender_id: newMsg.sender_id });
         }
 
+        // If this message carries a meetup transaction id or is an automated meetup notification, fetch transaction details and show banner
+        try {
+          if (newMsg.transaction_id || newMsg.automation_type === 'meetup_request') {
+            const txId = newMsg.transaction_id || (newMsg as any).transaction_id;
+            if (txId) {
+              getTransaction(String(txId)).then((tx) => {
+                if (tx) {
+                  setTransaction((prev) => ({
+                    ...prev,
+                    id: tx.id,
+                    meetupDate: tx.meetup_date ? new Date(tx.meetup_date) : prev.meetupDate,
+                    meetupLocation: tx.meetup_location ?? prev.meetupLocation,
+                    status: (tx as any).status || prev.status,
+                    buyerId: (tx as any).sender_id ?? prev.buyerId,
+                    sellerId: (tx as any).receiver_id ?? prev.sellerId,
+                    proposedAt: tx.created_at ? new Date(tx.created_at) : prev.proposedAt,
+                    proposedBy: newMsg.sender_id ?? prev.proposedBy,
+                  }));
+
+                  // Show appointment banner to both parties
+                  const dt = tx.meetup_date ? new Date(tx.meetup_date) : null;
+                  if (dt) {
+                    setStatusBannerMessage(`📅 Scheduled Meet-up: ${dt.toDateString()} – Awaiting confirmation from other user…`);
+                    setStatusBannerType('info');
+                    setShowStatusBanner(true);
+                    clearTimeout(bannerTimeoutRef.current as any);
+                    bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 9000);
+                  }
+                }
+              }).catch((e) => console.warn('[ChatModal] getTransaction failed on message event', e));
+            }
+          }
+
+          // Completed confirmation received from other user
+          if (newMsg.automation_type === 'completed_confirmation') {
+            setTransaction((prev) => ({ ...prev, otherUserCompletedConfirmation: true }));
+
+            // If both users have marked completed locally, finalize via backend
+            setTimeout(async () => {
+              setTransaction((prev) => {
+                // If conversation is marked done locally, skip automations like finalizing completion
+                if (isMarkedAsDone) {
+                  console.info('[ChatModal] Skipping completeTransaction because conversation is marked done');
+                  return prev;
+                }
+
+                if (prev.userCompletedConfirmation && prev.otherUserCompletedConfirmation && prev.id) {
+                  (async () => {
+                    try {
+                      await completeTransaction(String(prev.id));
+                      setShowRatingModal(true);
+                      setStatusBannerMessage('✅ Transaction completed — you can rate this user now');
+                      setStatusBannerType('success');
+                      setShowStatusBanner(true);
+                    } catch (e) {
+                      console.error('Failed to complete transaction after both confirmations', e);
+                    }
+                  })();
+                }
+                return prev;
+              });
+            }, 50);
+          }
+
+          // Appeal notification from other user
+          if (newMsg.automation_type === 'appeal') {
+            setTransaction((prev) => ({ ...prev, otherUserAppealed: true }));
+            // If both appealed, reopen
+            setTimeout(() => {
+              setTransaction((prev) => {
+                if (prev.userAppealed && prev.otherUserAppealed) {
+                  return {
+                    ...prev,
+                    status: 'meetup_day_passed',
+                    meetupDayReachedAt: new Date(),
+                    userCompletedConfirmation: false,
+                    otherUserCompletedConfirmation: false,
+                    userAppealed: false,
+                    otherUserAppealed: false,
+                  };
+                }
+                return prev;
+              });
+            }, 50);
+          }
+        } catch (e) {
+          console.warn('[ChatModal] post-message processing failed', e);
+        }
+
         // Auto-scroll to bottom
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -452,6 +658,16 @@ export function ChatModal({
       unsubscribe();
     };
   }, [isOpen, conversationId, currentUserId, recipientIdStr]);
+
+  // Cleanup transaction subscription on conversation/product changes or when the modal unmounts
+  useEffect(() => {
+    return () => {
+      if (txUnsubRef.current) {
+        try { txUnsubRef.current(); } catch (e) { console.warn('Failed to unsubscribe transaction channel', e); }
+        txUnsubRef.current = null;
+      }
+    };
+  }, [conversationId, product?.id]);
 
   // Update user activity when modal is open
   useEffect(() => {
@@ -531,7 +747,7 @@ export function ChatModal({
       const lineHeight = 20; // approximate line height
       const padding = 24; // top + bottom padding (12px each)
       const minHeight = 44; // 1 line
-      const maxHeight = 62; // ~3 lines for desktop
+      const maxHeight = 120; // allow more vertical growth as requested
 
       // Calculate new height based on content, bounded by min/max
       const newHeight = Math.min(
@@ -539,6 +755,7 @@ export function ChatModal({
         maxHeight,
       );
       textareaRef.current.style.height = `${newHeight}px`;
+      setTextareaHeight(`${newHeight}px`);
     }
   }, [newMessage]);
 
@@ -598,6 +815,14 @@ export function ChatModal({
     setIsSending(true);
 
     const messageText = newMessage.trim();
+
+    // Enforce max length on the sending side too
+    if (messageText.length > 1000) {
+      toast.error('Message too long (maximum 1000 characters)');
+      setIsSending(false);
+      return;
+    }
+
     setNewMessage(""); // Clear input immediately for better UX
 
     // Local mutable conversation id to avoid reassigning a const from state
@@ -673,9 +898,8 @@ export function ChatModal({
 
       if (error) {
         console.error("Error sending message:", error);
-        toast.error("Failed to send message", {
-          description: error.message || "Please try again",
-        });
+        // Friendly user-facing error -- avoid exposing raw DB errors
+        toast.error("Could not send message. Please try again.");
 
         // Remove optimistic bubble
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -734,52 +958,29 @@ export function ChatModal({
           console.warn('[ChatModal] sendMessage response missing conversation_id', { data, conversationId });
         }
 
-        setMessages((prev) =>
-          prev.map((msg) =>
+        setMessages((prev) => {
+          const replaced = prev.map((msg) =>
             msg.id === tempId
-              ? {
+              ? ({
                   id: data.id,
                   message: data.message,
                   sender_id: data.sender_id,
                   receiver_id: data.receiver_id,
-                  timestamp: formatRelativeTime(
-                    data.created_at,
-                  ),
+                  timestamp: formatRelativeTime(data.created_at),
                   type: "text",
                   created_at: data.created_at,
                   is_read: data.is_read,
-                }
+                  sender: (data as any).sender || null,
+                } as Message)
               : msg,
-          ),
-        );
+          );
 
-        // ➤ SEND AUTO-WELCOME MESSAGE (only on first message from user)
-        if (isFirstMessage) {
-          setIsFirstMessage(false);
+          // Deduplicate in case the realtime subscription already inserted the same DB message
+          const unique = Array.from(new Map(replaced.map((m) => [m.id, m])).values());
+          return unique;
+        });
 
-          // Show typing indicator for the other user
-          setShowTypingIndicator(true);
 
-          // Send auto-welcome after a short delay (simulate typing)
-          setTimeout(() => {
-            setShowTypingIndicator(false);
-
-            // Use a UI message type that allows `is_automated` without changing DB types
-            const autoWelcomeMessage: Message & { is_automated?: boolean } = {
-              id: `auto-welcome-${Date.now()}`,
-              message: "Hi! Thank you for messaging! I'll get back to you as soon as possible!",
-              sender_id: recipientIdStr || "system", // From the OTHER user
-              receiver_id: senderId,
-              timestamp: "Just now",
-              type: "text",
-              created_at: new Date().toISOString(),
-              is_read: true,
-              is_automated: true, // mark as automated for distinct styling
-            };
-
-            setMessages((prev) => [...prev, autoWelcomeMessage]);
-          }, 1500); // 1.5 second delay to show typing
-        }
       }
     } catch (error) {
       console.error(error);
@@ -796,6 +997,9 @@ export function ChatModal({
     }, 100);
   };
 
+  // Alias for button handler (placed after declaration to avoid 'used before declaration' errors)
+  const handleSend = handleSendMessage;
+
   const handleKeyPress = (e: any) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -803,9 +1007,22 @@ export function ChatModal({
     }
   };
 
-  const handleMarkAsDone = () => {
+  const handleMarkAsDone = async () => {
     setIsMarkedAsDone(true);
-    
+
+    // Persist flag on conversation so backend automations can ignore this thread
+    try {
+      if (conversationId) {
+        const { error } = await (await import('../lib/supabase')).supabase
+          .from('conversations')
+          .update({ is_done: true })
+          .eq('id', conversationId);
+        if (error) console.warn('[ChatModal] Failed to persist conversation is_done flag', error);
+      }
+    } catch (e) {
+      console.warn('[ChatModal] Error setting conversation is_done', e);
+    }
+
     // Reset PROPOSED status if it exists
     if (transaction.status === "proposed") {
       setTransaction((prev) => ({
@@ -817,7 +1034,7 @@ export function ChatModal({
         sellerConfirmed: false,
       }));
     }
-    
+
     setStatusBannerMessage(
       "🗂️ Conversation Marked as Done – Meet-up scheduling disabled.",
     );
@@ -826,9 +1043,22 @@ export function ChatModal({
     toast.success("Conversation marked as done");
   };
 
-  const handleCancelDone = () => {
+  const handleCancelDone = async () => {
     setIsMarkedAsDone(false);
-    
+
+    // Persist flag on conversation to re-enable automations
+    try {
+      if (conversationId) {
+        const { error } = await (await import('../lib/supabase')).supabase
+          .from('conversations')
+          .update({ is_done: false })
+          .eq('id', conversationId);
+        if (error) console.warn('[ChatModal] Failed to clear conversation is_done flag', error);
+      }
+    } catch (e) {
+      console.warn('[ChatModal] Error clearing conversation is_done', e);
+    }
+
     // Allow user to choose new meet-up date after canceling done status
     setStatusBannerMessage(
       "🔄 Conversation restored to active state.",
@@ -857,15 +1087,99 @@ export function ChatModal({
     setShowDatePicker(true);
   };
 
-  const handleDateSelected = (date: Date) => {
-    setTransaction({
-      ...transaction,
+  // When opening the DatePicker, if the product specifies a meetupLocation (seller chose it at posting), pass it to the date picker so the user can't change it
+  const renderDatePicker = () => (
+    <DatePickerModal
+      isOpen={showDatePicker}
+      onClose={() => setShowDatePicker(false)}
+      onDateSelected={handleDateSelected}
+      fixedLocation={product?.meetupLocation}
+    />
+  );
+  const handleDateSelected = async (date: Date, location?: string) => {
+    // Optimistically update the UI
+    setTransaction((prev) => ({
+      ...prev,
       meetupDate: date,
+      meetupLocation: location ?? prev.meetupLocation,
       status: "proposed",
       proposedAt: new Date(),
-    });
+      proposedBy: currentUserId ?? undefined,
+    }));
     setShowDatePicker(false);
-    // Don't show any banner or toast
+
+    if (!product?.id) {
+      toast.error('Unable to schedule meet-up: missing product information');
+      return;
+    }
+
+    // Determine buyer/seller ids for the action. Prefer explicit product.seller_id when available.
+    const sellerId = resolveProductSellerId(product, true);
+    const buyerId = String(currentUserId ?? '')
+
+    if (!sellerId || !buyerId) {
+      toast.error('Unable to determine buyer or seller for the meet-up');
+      return;
+    }
+
+    try {
+      const chosenLocation = product?.meetupLocation ?? location ?? transaction.meetupLocation ?? 'TBD';
+
+      console.log('[ChatModal] proposing meetup', {
+        productId: String(product.id),
+        buyerId,
+        sellerId: String(sellerId),
+        meetupLocation: chosenLocation,
+        meetupDate: date.toISOString(),
+      })
+
+      const tx = await agreeMeetupAndNotify({
+        productId: String(product.id),
+        buyerId: buyerId,
+        sellerId: String(sellerId),
+        meetupLocation: chosenLocation,
+        meetupDate: date.toISOString(),
+      });
+
+      // Update local state with authoritative transaction id & server-supplied meetup info if returned
+      if (tx && tx.id) {
+        setTransaction((prev) => ({
+          ...prev,
+          id: tx.id,
+          meetupLocation: (tx as any).meetup_location ?? prev.meetupLocation,
+          meetupDate: (tx as any).meetup_date ? new Date((tx as any).meetup_date) : prev.meetupDate,
+          buyerId: (tx as any).sender_id ?? prev.buyerId,
+          sellerId: (tx as any).receiver_id ?? prev.sellerId,
+        }));
+      }
+
+      // Refresh conversations and show success banner + toast
+      try { await chatContext.refreshConversations(); } catch (e) { /* non-fatal */ }
+
+      const meetupLoc = (tx && (tx as any).meetup_location) || transaction.meetupLocation || product?.meetupLocation || 'TBD'
+      setStatusBannerMessage(`📅 Scheduled Meet-up: ${date.toDateString()} at ${meetupLoc} – Awaiting confirmation from other user…`);
+      setStatusBannerType('info');
+      setShowStatusBanner(true);
+      clearTimeout(bannerTimeoutRef.current as any);
+      bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+      toast.success('Meet-up date proposed!');
+
+      // Broadcast an event for other open clients to pick up immediately
+      try { window.dispatchEvent(new CustomEvent('iskomarket:transaction-created', { detail: tx })); } catch (e) { /* ignore */ }
+    } catch (e: any) {
+      console.error('[ChatModal] agreeMeetupAndNotify failed', e);
+      // Show a visible error banner so users notice the failure
+      const errMsg = (e && (e.message || e.error || JSON.stringify(e))) || 'Unknown server error';
+      setStatusBannerMessage(`Failed to propose meet-up: ${errMsg}`);
+      setStatusBannerType('error');
+      setShowStatusBanner(true);
+      clearTimeout(bannerTimeoutRef.current as any);
+      bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 9000);
+
+      toast.error('Failed to propose meet-up');
+      // Optionally revert optimistic state
+      setTransaction((prev) => ({ ...prev, meetupDate: undefined, status: 'pending', proposedBy: undefined }));
+    }
   };
 
   const handleOpenRatingModal = () => {
@@ -892,15 +1206,32 @@ export function ChatModal({
     setShowRatingModal(true);
   };
 
-  const handleRatingSubmit = (
+  const handleRatingSubmit = async (
     rating: number,
     review: string,
   ) => {
-    // In real implementation: submit rating to backend
-    toast.success("Rating submitted successfully", {
-      description: "You earned +2 credit points",
-    });
-    setShowRatingModal(false);
+    if (!rating || rating <= 0) {
+      toast.error('Invalid rating');
+      return;
+    }
+
+    try {
+      // Persist rating/review in backend if needed (omitted here) and award credit to rater
+      if (currentUserId) {
+        await updateCreditScore(String(currentUserId), 1, 'Left a review', 'increase');
+        // Refresh auth profile so UI shows updated credit score immediately
+        if (typeof refreshUser === 'function') await refreshUser();
+      }
+
+      toast.success('Review submitted successfully!', {
+        description: '+1 credit point awarded for leaving a review',
+      });
+    } catch (err: any) {
+      console.error('Error updating credit score:', err);
+      toast.error('Failed to update credit score');
+    } finally {
+      setShowRatingModal(false);
+    }
   };
 
   const handleProductClick = () => {
@@ -1030,20 +1361,22 @@ export function ChatModal({
             proposedAt: undefined,
           }));
           setIsMarkedAsDone(true);
-          toast.info("Meet-up proposal expired", {
-            description: "No confirmation received within 3 days. Conversation marked as done.",
-          });
-        }
-      }
 
-      // STATUS: scheduled → Check if meetup day has arrived
-      if (transaction.status === "scheduled" && transaction.meetupDate) {
-        if (isMeetupDayReached(transaction.meetupDate) && !transaction.meetupDayReachedAt) {
-          setTransaction((prev) => ({
-            ...prev,
-            status: "meetup_day_passed",
-            meetupDayReachedAt: new Date(),
-          }));
+          // Notify the other user via an automated message
+          (async () => {
+            try {
+              await sendMessage({
+                sender_id: String(currentUserId),
+                receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
+                product_id: String(product?.id),
+                message: 'Meet-up proposal expired — conversation marked as done',
+                automation_type: 'auto_mark_done',
+              });
+            } catch (e) {
+              // Non-fatal
+              console.warn('Failed to send auto mark-as-done message', e);
+            }
+          })();
         }
       }
 
@@ -1107,156 +1440,74 @@ export function ChatModal({
 
   // ======== TRANSACTION ACTION HANDLERS ========
 
-  const handleConfirmMeetup = () => {
-    // Mark current user as confirmed
-    setTransaction((prev) => {
-      const newBuyerConfirmed = true; // In production, check if current user is buyer
-      const newSellerConfirmed = prev.sellerConfirmed || false; // Keep other user's status
-      
-      // Check if both confirmed - transition to SCHEDULED
-      if (newBuyerConfirmed && newSellerConfirmed) {
-        toast.success("Meet-up confirmed by both parties!", {
-          description: "Countdown to meet-up day has started.",
-        });
-        return {
-          ...prev,
-          buyerConfirmed: newBuyerConfirmed,
-          sellerConfirmed: newSellerConfirmed,
-          status: "scheduled",
-          confirmedAt: new Date(),
-        };
-      } else {
-        // Only current user confirmed, waiting for other
-        toast.success("You confirmed the meet-up", {
-          description: "Waiting for the other user to confirm...",
-        });
-        return {
-          ...prev,
-          buyerConfirmed: newBuyerConfirmed,
-        };
-      }
-    });
+  const handleConfirmMeetup = async () => {
+    if (!transaction.id) {
+      toast.error('No transaction to confirm');
+      return;
+    }
 
-    // TODO: In production, send confirmation to backend
-    // Simulate other user confirming after delay (REMOVE IN PRODUCTION)
-    setTimeout(() => {
-      setTransaction((prev) => {
-        if (prev.buyerConfirmed && !prev.sellerConfirmed) {
-          toast.success("Other user confirmed!", {
-            description: "Meet-up is now scheduled.",
-          });
-          return {
-            ...prev,
-            sellerConfirmed: true,
-            status: "scheduled",
-            confirmedAt: new Date(),
-          };
-        }
-        return prev;
-      });
-    }, 2000);
+    const role = String(currentUserId) === String(transaction.buyerId) ? 'buyer' : 'seller';
+
+    try {
+      await confirmTransaction(String(transaction.id), String(currentUserId), role as 'buyer' | 'seller');
+      // Optimistic update; subscription will provide authoritative updates
+      setTransaction((prev) => ({ ...prev, buyerConfirmed: role === 'buyer' ? true : prev.buyerConfirmed, sellerConfirmed: role === 'seller' ? true : prev.sellerConfirmed }));
+      toast.success('You confirmed the meet-up — waiting for other user');
+    } catch (e: any) {
+      console.error('Failed to confirm meetup', e);
+      toast.error('Failed to confirm meet-up');
+    }
   };
 
-  const handleMarkCompleted = () => {
-    setTransaction((prev) => {
-      const newUserConfirmed = true;
-      const newOtherUserConfirmed = prev.otherUserCompletedConfirmation || false;
-      
-      // Check if both confirmed - transition to COMPLETED
-      if (newUserConfirmed && newOtherUserConfirmed) {
-        toast.success("Transaction completed!", {
-          description: "Both parties confirmed completion.",
-        });
-        return {
-          ...prev,
-          userCompletedConfirmation: newUserConfirmed,
-          otherUserCompletedConfirmation: newOtherUserConfirmed,
-          status: "completed",
-        };
-      } else {
-        // Only current user confirmed
-        toast.success("You marked as completed", {
-          description: "Waiting for other user to confirm...",
-        });
-        return {
-          ...prev,
-          userCompletedConfirmation: newUserConfirmed,
-        };
-      }
-    });
+  const handleMarkCompleted = async () => {
+    // Optimistically mark current user as completed and notify via chat message
+    setTransaction((prev) => ({ ...prev, userCompletedConfirmation: true }));
 
-    // TODO: In production, send to backend
-    // Simulate other user confirming (REMOVE IN PRODUCTION)
-    setTimeout(() => {
-      setTransaction((prev) => {
-        if (prev.userCompletedConfirmation && !prev.otherUserCompletedConfirmation) {
-          toast.success("Other user confirmed!", {
-            description: "Transaction is now complete. You can rate this user.",
-          });
-          return {
-            ...prev,
-            otherUserCompletedConfirmation: true,
-            status: "completed",
-          };
-        }
-        return prev;
+    if (!transaction.id) {
+      toast.error('No transaction to confirm');
+      return;
+    }
+
+    try {
+      await sendMessage({
+        sender_id: String(currentUserId),
+        receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
+        product_id: String(product?.id),
+        message: 'Completed confirmation',
+        transaction_id: String(transaction.id),
+        automation_type: 'completed_confirmation',
       });
-    }, 2000);
+
+      toast.success('Marked as completed — waiting for other user');
+    } catch (e: any) {
+      console.error('Failed to send completed confirmation message', e);
+      toast.error('Failed to mark as completed');
+    }
   };
 
-  const handleAppeal = () => {
-    setTransaction((prev) => {
-      const newUserAppealed = true;
-      const newOtherUserAppealed = prev.otherUserAppealed || false;
-      
-      // Check if both appealed - reopen transaction
-      if (newUserAppealed && newOtherUserAppealed) {
-        toast.success("Transaction reopened", {
-          description: "Both users appealed. You have 7 days to confirm completion.",
-        });
-        return {
-          ...prev,
-          status: "meetup_day_passed",
-          meetupDayReachedAt: new Date(), // Restart 7-day window
-          userCompletedConfirmation: false,
-          otherUserCompletedConfirmation: false,
-          userAppealed: false,
-          otherUserAppealed: false,
-        };
-      } else {
-        // Only current user appealed
-        toast.success("You submitted an appeal", {
-          description: "Waiting for other user to appeal...",
-        });
-        return {
-          ...prev,
-          status: "appealed",
-          userAppealed: newUserAppealed,
-        };
-      }
-    });
+  const handleAppeal = async () => {
+    setTransaction((prev) => ({ ...prev, userAppealed: true, status: 'appealed' }));
 
-    // TODO: In production, send to backend
-    // Simulate other user appealing (REMOVE IN PRODUCTION)
-    setTimeout(() => {
-      setTransaction((prev) => {
-        if (prev.userAppealed && !prev.otherUserAppealed) {
-          toast.success("Other user also appealed!", {
-            description: "Transaction reopened with new 7-day window.",
-          });
-          return {
-            ...prev,
-            otherUserAppealed: true,
-            status: "meetup_day_passed",
-            meetupDayReachedAt: new Date(),
-            userCompletedConfirmation: false,
-            otherUserCompletedConfirmation: false,
-            userAppealed: false,
-          };
-        }
-        return prev;
+    if (!transaction.id) {
+      toast.error('No transaction to appeal');
+      return;
+    }
+
+    try {
+      await sendMessage({
+        sender_id: String(currentUserId),
+        receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
+        product_id: String(product?.id),
+        message: 'Appeal submitted',
+        transaction_id: String(transaction.id),
+        automation_type: 'appeal',
       });
-    }, 2000);
+
+      toast.success('Appeal submitted — waiting for other user');
+    } catch (e: any) {
+      console.error('Failed to send appeal message', e);
+      toast.error('Failed to submit appeal');
+    }
   };
 
   // Calculate banner background based on type
@@ -1276,431 +1527,403 @@ export function ChatModal({
     }
   };
 
+  // Chat header component (theme-aware, solid green)
+  type ChatHeaderProps = {
+    otherUser?: any;
+    product?: any;
+    onClose: () => void;
+  };
+
+  function ChatHeader({ otherUser, product, onClose }: ChatHeaderProps) {
+    const initials = (otherUser?.username || recipientName || 'UN').split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase();
+    return (
+      <header className="flex items-center gap-3 shrink-0 bg-emerald-600 text-emerald-50 dark:bg-emerald-700 px-4 py-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold">{initials}</div>
+        <div className="flex flex-1 flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold leading-tight truncate">{otherUser?.username ?? recipientName}</span>
+            {isTopFiveBuyer(otherUser) && <PriorityBadge size="sm" variant="compact" showIcon={true} />}
+          </div>
+          <span className="text-xs opacity-80 line-clamp-1">{product?.title}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded-full p-1 hover:bg-emerald-500/60 transition"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </header>
+    );
+  }
+
+  // Chat body : message list + optional meetup banner
+  type ChatBodyProps = {
+    messages: Message[];
+    currentUserId?: string | null;
+    meetup?: { date?: string | undefined; location?: string | undefined } | null;
+    showTypingIndicator?: boolean;
+    messagesEndRef?: React.RefObject<HTMLDivElement>;
+  };
+
+  function ChatBody({ messages, currentUserId, meetup, showTypingIndicator, messagesEndRef }: ChatBodyProps) {
+    const formattedMeetup = meetup?.date ? new Date(meetup.date).toLocaleString() : null;
+
+    return (
+      <div className="flex flex-1 flex-col bg-muted dark:bg-muted/80">
+        {formattedMeetup && (
+          <div className="mx-4 mt-3 mb-1 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900 shadow-sm dark:bg-amber-900 dark:text-amber-50">
+            <div className="font-semibold">Meet‑up proposed: {formattedMeetup}</div>
+            {meetup?.location && <div className="opacity-80">{meetup.location}</div>}
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+          {messages.map((msg, idx) => (
+            <div key={msg?.id ?? `msg-${idx}`}>
+              <MessageBubble message={msg} currentUserId={currentUserId} />
+            </div>
+          ))}
+
+          {showTypingIndicator && (
+            <div className="mt-2">
+              <div className="inline-flex items-center rounded-full bg-muted/30 px-3 py-1 text-xs">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-600 mr-1" style={{ animation: 'typingDot 1.4s ease-in-out 0s infinite' }} />
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-600 mr-1" style={{ animation: 'typingDot 1.4s ease-in-out 0.2s infinite' }} />
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-600" style={{ animation: 'typingDot 1.4s ease-in-out 0.4s infinite' }} />
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    );
+  }
+
+  // Chat footer (simple input bar)
+  type ChatFooterProps = {
+    value: string;
+    onChange: (v: string) => void;
+    onSend: () => void;
+    sending: boolean;
+    onShowDatePicker: () => void;
+    onMarkAsDone: () => void;
+    canMarkAsDone: boolean;
+    isMarkedAsDone?: boolean;
+    onCancelDone?: () => void;
+  };
+
+  function ChatFooter({ value, onChange, onSend, sending, onShowDatePicker, onMarkAsDone, canMarkAsDone, isMarkedAsDone, onCancelDone }: ChatFooterProps) {
+    const handleSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!value.trim() || sending) return;
+      onSend();
+    };
+
+    return (
+      <footer className="shrink-0 border-t border-border bg-background px-3 py-3 dark:bg-background">
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          {/* Mark as Done toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (isMarkedAsDone) {
+                  onCancelDone && onCancelDone();
+                } else {
+                  onMarkAsDone();
+                }
+              }}
+              title={isMarkedAsDone ? 'Cancel Mark as Done' : 'Mark as done'}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/30 disabled:opacity-50"
+              disabled={!canMarkAsDone && !isMarkedAsDone}
+            >
+              {isMarkedAsDone ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+            </button>
+
+            {/* Explicit Cancel Done text button for clarity */}
+            {isMarkedAsDone && (
+              <button type="button" onClick={() => onCancelDone && onCancelDone()} className="text-xs text-muted-foreground hover:underline">Cancel Done</button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onShowDatePicker}
+            title={isMarkedAsDone ? 'Meet-up scheduling is disabled while conversation is marked done' : 'Choose meet-up date'}
+            disabled={!!isMarkedAsDone}
+            className={`flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/30 ${isMarkedAsDone ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            📎
+          </button>
+
+          <div className="flex-1 relative">
+            <Textarea
+              ref={textareaRef}
+              value={value}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                onChange(e.target.value);
+              }}
+              placeholder="Type your message..."
+              rows={2}
+              maxLength={1000}
+              aria-describedby="chat-message-counter"
+              className="flex-1 rounded-xl border border-border bg-input-background px-4 py-2 text-sm text-foreground outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:bg-slate-900"
+              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!value.trim() || sending || value.length > 1000) return;
+                  onSend();
+                }
+              }}
+            />
+            <div id="chat-message-counter" className="absolute right-2 bottom-1 text-xs text-muted-foreground">{value.length}/1000</div>
+          </div>
+
+          <button type="submit" disabled={!value.trim() || sending || value.length > 1000} className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-emerald-50 hover:bg-emerald-600 disabled:opacity-50">➤</button>
+        </form>
+      </footer>
+    );
+  }
+
+  // Simple, flat message bubble for chat (no extra shadows or nested card surface)
+  type MessageBubbleProps = { message: Message; currentUserId?: string | null };
+  function MessageBubble({ message, currentUserId }: MessageBubbleProps) {
+    // Defensive: sometimes the message array may contain null/undefined entries (external sources / race conditions)
+    if (!message) return null;
+
+    const isOwn = message?.sender_id === currentUserId;
+
+
+    const content = message.message ?? (message as any).message_text ?? (message as any).content ?? '';
+    const dateText = message.timestamp ?? formatRelativeTime(message.created_at ?? new Date().toISOString());
+
+    const formattedTime = dateText;
+
+    return (
+      <div className={`w-full flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+        <div className="flex flex-col gap-1 max-w-[80%]">
+          <div className={`${isOwn ? 'ml-auto' : 'mr-auto'} ${isOwn ? 'bg-emerald-600 text-emerald-50' : 'bg-card text-card-foreground dark:bg-slate-800 dark:text-slate-50'} rounded-2xl px-3 py-2 text-sm`}>{content}</div>
+          <span className="mt-0.5 text-[10px] text-muted-foreground">{formattedTime}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Slim meetup banner (appears at top of message list)
+  function MeetupBanner({ date, proposedAt, location }: { date?: Date; proposedAt?: Date; location?: string }) {
+    if (!date) return null;
+    const formatted = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const daysLeft = proposedAt ? `${3 - Math.floor((new Date().getTime() - proposedAt.getTime()) / (1000 * 60 * 60 * 24))} days left for confirmation` : '';
+    return (
+      <div className="mx-4 mt-3 mb-1 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900 shadow-sm">
+        <div className="font-semibold">Meet‑up Proposed: {formatted}</div>
+        <div className="opacity-80">{location} • {daysLeft}</div>
+      </div>
+    );
+  }
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    if (!isOpen) return;
+
+    // Dev-only diagnostics: log computed styles for dialog and chat panel to catch white slabs
+    const t = setTimeout(() => {
+      try {
+        const el = dialogContentRef.current as HTMLElement | null;
+        const panel = el?.querySelector('[data-slot="chat-panel"]') as HTMLElement | null;
+        const htmlDark = document.documentElement.classList.contains('dark') || document.documentElement.getAttribute('data-theme') === 'dark';
+        // Use info so it shows up in regular console output during dev
+        console.info('[ChatModal:dev-diagnostics] isOpen:', isOpen, 'htmlDark:', htmlDark);
+
+        if (el) {
+          const s = getComputedStyle(el);
+          console.info('[ChatModal:dev-diagnostics] DialogContent computed:', {
+            background: s.background,
+            backgroundColor: s.backgroundColor,
+            backgroundImage: s.backgroundImage,
+            boxShadow: s.boxShadow,
+          });
+        } else console.info('[ChatModal:dev-diagnostics] DialogContent ref not found');
+
+        if (panel) {
+          const sp = getComputedStyle(panel);
+          console.info('[ChatModal:dev-diagnostics] chat-panel computed:', {
+            background: sp.background,
+            backgroundColor: sp.backgroundColor,
+            boxShadow: sp.boxShadow,
+          });
+        } else console.info('[ChatModal:dev-diagnostics] chat-panel not found');
+      } catch (e) {
+        console.info('[ChatModal:dev-diagnostics] failed to read styles', e);
+      }
+    }, 50);
+
+    return () => clearTimeout(t);
+  }, [isOpen]);
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          className="w-full max-w-[700px] h-[650px] flex flex-col p-0 rounded-2xl shadow-elev-3 gap-0 overflow-hidden bg-white"
-          style={{
-            zIndex,
-            animation:
-              "scaleIn 180ms cubic-bezier(0.16, 1, 0.3, 1)",
-          }}
+          ref={dialogContentRef as any}
+          className="flex flex-col w-full sm:max-w-2xl max-w-[95vw] p-0 overflow-hidden bg-background text-foreground shadow-lg border border-border rounded-2xl"
+          style={{ zIndex, animation: "scaleIn 180ms cubic-bezier(0.16, 1, 0.3, 1)", background: 'transparent', backgroundColor: 'transparent', backgroundImage: 'none', height: '75vh', maxHeight: '75vh' }}
           aria-describedby="chat-description"
         >
+          <div data-slot="chat-panel" className="flex flex-col h-full rounded-3xl bg-background shadow-lg border border-border overflow-hidden"> 
+            {/* Accessibility: provide a DialogTitle (sr-only) for screen readers */}
+            <DialogTitle className="sr-only">Chat with {otherUser?.username ?? recipientName}</DialogTitle>
           {/* Header - Fixed with Green Background */}
-          <div
-            className="px-4 py-4 flex-shrink-0 bg-gradient-to-r from-green-600 to-green-700 dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223]"
-            style={{
-              ...(() => {
-                const frameStyles = getCollegeFrameStyles(
-                  otherUser?.frameEffect,
-                  document.documentElement.classList.contains(
-                    "dark",
-                  ),
-                );
-                if (frameStyles) {
-                  return {
-                    background: frameStyles.bg,
-                    borderColor: frameStyles.border,
-                  };
-                }
-                return {};
-              })(),
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10 ring-2 ring-white/30">
-                  <AvatarFallback className="bg-white/20 dark:bg-[var(--card)] text-white">
-                    {recipientName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <DialogTitle className="text-base truncate text-white">
-                    {recipientName}
-                  </DialogTitle>
-                  <div className="flex items-center gap-1.5 text-xs text-white/85 mt-0.5">
-                    {onlineStatus.isOnline ? (
-                      <>
-                        <span className="inline-block w-2 h-2 rounded-full bg-[#1ecb4f] shadow-[0_0_4px_rgba(30,203,79,0.5)]" />
-                        <span>{onlineStatus.statusText}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="inline-block w-2 h-2 rounded-full bg-[#93a79c]" />
-                        <span>{onlineStatus.statusText}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-white hover:bg-white/10 dark:hover:bg-[var(--card)]"
-                onClick={onClose}
-                aria-label="Close dialog"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          {/* Chat Header */}
+          <ChatHeader otherUser={otherUser} product={product} onClose={onClose} />
 
-          {/* Hidden description for accessibility */}
-          <DialogDescription className="sr-only" id="chat-description">
-            Chat conversation with {recipientName}
-          </DialogDescription>
-
-          {/* Status Banners */}
-          {(showStatusBanner || transaction.meetupDate) && (
-            <div className="flex-shrink-0">
-              {/* PROPOSED STATUS - Awaiting confirmation (3-day countdown) */}
-              {transaction.status === "proposed" && transaction.meetupDate && transaction.proposedAt && (
-                <div className={`px-4 py-3 border-b ${getBannerStyles()} transition-all duration-300`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        📅 Meet-up Proposed:{" "}
-                        <strong>
-                          {transaction.meetupDate.toLocaleDateString("en-US", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </strong>
-                      </p>
-                      <p className="text-xs mt-1 opacity-80">
-                        {has3DaysPassed(transaction.proposedAt)
-                          ? "⚠️ Confirmation period expired"
-                          : `⏳ ${3 - Math.floor((new Date().getTime() - transaction.proposedAt.getTime()) / (1000 * 60 * 60 * 24))} days left for confirmation`}
-                      </p>
-                    </div>
-                    {!has3DaysPassed(transaction.proposedAt) && (
-                      <Button
-                        onClick={handleConfirmMeetup}
-                        size="sm"
-                        className="ml-3 bg-green-600 hover:bg-green-700"
-                      >
-                        Confirm
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* SCHEDULED STATUS - Countdown to meetup day */}
-              {transaction.status === "scheduled" && transaction.meetupDate && (
-                <div className={`px-4 py-3 border-b ${getBannerStyles()} transition-all duration-300`}>
-                  <p className="text-sm">
-                    📅 Confirmed Meet-up:{" "}
-                    <strong>
-                      {transaction.meetupDate.toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </strong>
-                  </p>
-                  <p className="text-xs mt-1 opacity-80">
-                    {isMeetupDayReached(transaction.meetupDate)
-                      ? "✅ Meet-up day has arrived!"
-                      : `⏳ ${getDaysRemaining(transaction.meetupDate)} days left before scheduled meet-up`}
-                  </p>
-                </div>
-              )}
-
-              {/* MEETUP_DAY_PASSED STATUS - 7-day window to confirm completion */}
-              {transaction.status === "meetup_day_passed" && transaction.meetupDayReachedAt && (
-                <div className={`px-4 py-3 border-b ${getBannerStyles()} transition-all duration-300`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        {has7DaysPassed(transaction.meetupDayReachedAt)
-                          ? "⚠️ Completion window expired"
-                          : `⏳ ${7 - Math.floor((new Date().getTime() - transaction.meetupDayReachedAt.getTime()) / (1000 * 60 * 60 * 24))} days left to confirm transaction result`}
-                      </p>
-                      <p className="text-xs mt-1 opacity-80">
-                        {transaction.userCompletedConfirmation
-                          ? "✓ You confirmed. Waiting for other user..."
-                          : "Click Completed if transaction succeeded"}
-                      </p>
-                    </div>
-                    {!transaction.userCompletedConfirmation && !has7DaysPassed(transaction.meetupDayReachedAt) && (
-                      <Button
-                        onClick={handleMarkCompleted}
-                        size="sm"
-                        className="ml-3 bg-green-600 hover:bg-green-700"
-                      >
-                        Completed
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* UNSUCCESSFUL STATUS - Appeal window */}
-              {transaction.status === "unsuccessful" && transaction.unsuccessfulAt && (
-                <div className={`px-4 py-3 border-b bg-red-50 dark:bg-gradient-to-br dark:from-[#5a0000] dark:to-[#2a0000] border-red-200 dark:border-red-900/20 text-red-900 dark:text-red-100 transition-all duration-300`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm">
-                        ❌ Transaction Unsuccessful
-                      </p>
-                      <p className="text-xs mt-1 opacity-80">
-                        {has7DaysPassed(transaction.unsuccessfulAt)
-                          ? "Appeal period has expired"
-                          : transaction.userAppealed
-                            ? "✓ You appealed. Waiting for other user..."
-                            : `${7 - Math.floor((new Date().getTime() - transaction.unsuccessfulAt.getTime()) / (1000 * 60 * 60 * 24))} days left to appeal`}
-                      </p>
-                    </div>
-                    {!transaction.userAppealed && !has7DaysPassed(transaction.unsuccessfulAt) && (
-                      <Button
-                        onClick={handleAppeal}
-                        size="sm"
-                        variant="destructive"
-                        className="ml-3"
-                      >
-                        Appeal
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* COMPLETED STATUS */}
-              {transaction.status === "completed" && (
-                <div className={`px-4 py-3 border-b bg-green-100 dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border-green-300 dark:border-[#14b8a6]/20 text-green-900 dark:text-green-100 transition-all duration-300`}>
-                  <p className="text-sm">
-                    ✅ Transaction Completed Successfully!
-                  </p>
-                  <p className="text-xs mt-1 opacity-80">
-                    You can now rate this user
-                  </p>
-                </div>
-              )}
-
-              {/* Temporary banner - Status messages (excluding meetup statuses) */}
-              {showStatusBanner &&
-                !statusBannerMessage.includes("scheduled") &&
-                !statusBannerMessage.includes("Meet-up") && (
-                  <div
-                    className={`px-4 py-3 border-b ${getBannerStyles()} transition-all duration-300 animate-in fade-in slide-in-from-top-2`}
-                  >
-                    <p className="text-sm">
-                      {statusBannerMessage}
-                    </p>
-                  </div>
-                )}
-            </div>
-          )}
-
-          {/* Messages Area - Scrollable */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 pb-28 min-h-0 bg-[#F3F7F5] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] relative" style={{ scrollPaddingBottom: '96px' }}>
-            <div className="space-y-3 max-w-full">
-              {Array.from(new Map(messages.map((m) => [m.id, m])).values()).map((message, index) => {
-                // Determine if this message is from the current user
-                const isMyMessage = message.sender_id === currentUserId;
-                if (index === 0) {
-                  console.log('ChatModal message comparison:', { 
-                    'message.sender_id': message.sender_id, 
-                    currentUserId, 
-                    isMyMessage,
-                    messageType: message.type
-                  });
-                }
-                const isLastUserMessage =
-                  isMyMessage && index === messages.length - 1;
-                const messagesSent = messages.filter(
-                  (m) => m.sender_id === currentUserId && m.type === "text"
-                ).length;
-
-                // Product card alignment logic:
-                // - If current user is the seller of the product: Card is on RIGHT
-                // - If current user is the buyer (product is not theirs): Card is on LEFT
-                const prodSellerId = resolveProductSellerId(product, false);
-                const isProductMine = product && (prodSellerId === currentUserId || (product.seller && product.seller.id === currentUserId));
-                const productCardIsMyMessage = isProductMine; // Product card aligns with who owns the product
+          {/* Product strip (compact, non-card UI) */}
+          {/* Meet-up / Status Banner */}
+          {transaction.meetupDate ? (
+            (() => {
+              const dt = new Date(transaction.meetupDate as any);
+              // Proposed — awaiting confirmation from other user
+              if (transaction.status === 'proposed' || transaction.status === 'pending') {
+                const proposer = transaction.proposedBy ?? transaction.buyerId ?? transaction.sellerId;
+                const isProposer = String(proposer) === String(currentUserId);
+                const isConfirmedForCurrent = String(currentUserId) === String(transaction.buyerId) ? transaction.buyerConfirmed : transaction.sellerConfirmed;
 
                 return (
-                  <div key={message.id ?? `msg-${index}-${message.created_at ?? index}`}>
-                    {/* Decide alignment: center product card if seller unknown; otherwise standard left/right */}
-                    <div
-                      className={`flex ${
-                        message.type === 'product' && !message.sender_id
-                          ? 'justify-center'
-                          : (message.type === 'product' ? productCardIsMyMessage : isMyMessage) ? 'justify-end' : 'justify-start'
-                      }`}
-                      style={{
-                        animation: (message.type === 'product' ? productCardIsMyMessage : isMyMessage)
-                          ? 'slideInRight 0.17s ease-out 0ms forwards'
-                          : 'slideInLeft 0.18s ease-out 0ms forwards',
-                        opacity: 0,
-                      }}
-                    >
-                      {message.type === 'product' && product ? (
-                        // Product Card Message - Centered if seller unknown, otherwise aligned
-                        <div className={`bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] rounded-lg border border-gray-200 dark:border-[#14b8a6]/20 p-3 w-full sm:max-w-[320px] md:max-w-[280px] mb-3 relative z-10 transition-shadow ${
-                          // If centered (no sender_id) don't apply corner-specific rounding
-                          message.sender_id ? (productCardIsMyMessage ? 'rounded-br-[4px]' : 'rounded-bl-[4px]') : 'rounded-[12px]'
-                        }`}>
-                          {product && (
-                            <ImageWithFallback
-                              src={getPrimaryImage(product)}
-                              alt={product.title}
-                              className="w-full h-40 object-contain p-2 rounded-md mb-2 bg-transparent"
-                            />
-                          )}
-                          <h4 className="text-sm mb-1 line-clamp-2">
-                            {product.title}
-                          </h4>
-                          <p className="text-green-600 dark:text-green-400 mb-1">
-                            ₱{product.price.toLocaleString()}
-                          </p>
-                          {product.meetupLocation && (
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-1">
-                              <span className="text-green-600 dark:text-green-400">
-                                📍
-                              </span>
-                              Preferred meetup: {" "}
-                              {product.meetupLocation}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {message.timestamp}
-                          </p>
-                        </div>
-                      ) : (
-                        // Regular Text Message
-                        <div
-                          className={`px-4 py-2.5 max-w-[85%] sm:max-w-[75%] ${
-                            ((message as any).is_automated)
-                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 italic rounded-md'
-                              : isMyMessage
-                                ? 'bg-gradient-to-r from-green-600 to-green-700 text-white rounded-[24px] rounded-br-[4px]'
-                                : 'bg-[#F3F7F5] text-gray-900 dark:bg-gray-800 dark:text-gray-100 rounded-[24px] rounded-bl-[4px] border border-transparent'
-                          }`}
-                        >
-                          <p
-                            className="text-sm whitespace-pre-wrap leading-relaxed break-words"
-                            style={{
-                              overflowWrap: 'anywhere',
-                              wordBreak: 'break-word',
-                              hyphens: 'auto',
-                            }}
-                          >
-                            {message.message}
-                          </p>
-                          <p
-                            className={`text-xs mt-1 ${
-                              isMyMessage
-                                ? "text-white/70"
-                                : "text-gray-500 dark:text-gray-400"
-                            }`}
-                          >
-                            {message.timestamp}
-                          </p>
-                        </div>
-                      )}
+                  <div className="w-full px-3 py-2 text-sm rounded-b-md bg-blue-50 text-blue-800 dark:bg-slate-900 dark:text-blue-200 flex items-center justify-between">
+                    <div>
+                      <strong>📅 Scheduled Meet-up:</strong> {dt.toDateString()} {transaction.meetupLocation ? `– ${transaction.meetupLocation}` : ''}
+                      <div className="text-xs text-muted-foreground">Awaiting confirmation from other user…</div>
                     </div>
-
-                    {/* Read indicators for user's messages */}
-                    {isLastUserMessage &&
-                      message.type === "text" && (
-                        <div className="flex justify-end mt-1">
-                          <div className="text-[10.5px] opacity-75 flex items-center gap-0.5">
-                            {messagesSent === 1 ? (
-                              // Sent (single check)
-                              <span className="text-[#a6b3ad]">
-                                ✓
-                              </span>
-                            ) : messagesSent === 2 ? (
-                              // Delivered (double check)
-                              <span className="text-[#a6b3ad]">
-                                ✓✓
-                              </span>
-                            ) : (
-                              // Seen (double check with emerald glow)
-                              <span
-                                className="text-[#0c8f4a]"
-                                style={{
-                                  textShadow:
-                                    "0 0 4px rgba(12,143,74,0.25)",
-                                }}
-                              >
-                                ✓✓
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                    <div className="flex items-center gap-2">
+                      {!isConfirmedForCurrent && !isProposer && (
+                        <button onClick={() => {
+                          // Kick off confirm flow
+                          if (!transaction.id) return;
+                          const role = String(currentUserId) === String(transaction.buyerId) ? 'buyer' : 'seller';
+                          confirmTransaction(String(transaction.id), String(currentUserId), role as 'buyer' | 'seller')
+                            .then(() => {
+                              toast.success('Meet‑up confirmed');
+                            })
+                            .catch((e) => { console.error(e); toast.error('Failed to confirm meet-up'); });
+                        }} className="text-xs bg-emerald-600 text-emerald-50 px-2 py-1 rounded-md hover:bg-emerald-700">Confirm</button>
                       )}
+
+                      <button onClick={async () => {
+                        if (!transaction.id) return;
+                        try {
+                          await cancelMeetup(String(transaction.id), String(currentUserId));
+                          setTransaction((prev) => ({ ...prev, meetupDate: undefined, meetupLocation: undefined, status: 'pending', buyerConfirmed: false, sellerConfirmed: false }));
+                          setStatusBannerMessage('Meet‑up cancelled – you can choose another date');
+                          setStatusBannerType('info');
+                          setShowStatusBanner(true);
+                          clearTimeout(bannerTimeoutRef.current as any);
+                          bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+                          toast.success('Meet‑up cancelled');
+                        } catch (e: any) {
+                          console.error('Failed to cancel meetup', e);
+                          toast.error('Failed to cancel meet‑up');
+                        }
+                      }} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded-md hover:bg-red-100 dark:bg-red-900 dark:text-red-50">Cancel</button>
+                    </div>
                   </div>
                 );
-              })}
+              }
 
-              {/* Typing Indicator */}
-              {showTypingIndicator && (
-                <div
-                  className="flex justify-start"
-                  style={{
-                    animation:
-                      "slideInLeft 0.18s ease-out forwards",
-                  }}
-                >
-                  <div className="px-4 py-2 h-[26px] rounded-[30px] bg-[var(--glass-bg)] dark:bg-[var(--card)] backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 flex items-center gap-1">
-                    <span
-                      className="inline-block w-1.5 h-1.5 rounded-full bg-[#0c8f4a]"
-                      style={{
-                        animation: "typingDot 1.4s ease-in-out 0s infinite",
-                      }}
-                    />
-                    <span
-                      className="inline-block w-1.5 h-1.5 rounded-full bg-[#0c8f4a]"
-                      style={{
-                        animation: "typingDot 1.4s ease-in-out 0.2s infinite",
-                      }}
-                    />
-                    <span
-                      className="inline-block w-1.5 h-1.5 rounded-full bg-[#0c8f4a]"
-                      style={{
-                        animation: "typingDot 1.4s ease-in-out 0.4s infinite",
-                      }}
-                    />
+              if (transaction.status === 'scheduled') {
+                const daysLeft = Math.max(0, getDaysRemaining(dt));
+                return (
+                  <div className="w-full px-3 py-2 text-sm rounded-b-md bg-amber-50 text-amber-800 dark:bg-amber-900 dark:text-amber-50 flex items-center justify-between">
+                    <div>
+                      <strong>⏳</strong> {daysLeft} day{daysLeft !== 1 ? 's' : ''} left before the scheduled meet-up
+                    </div>
+                    <div className="text-xs text-muted-foreground">Countdown in progress</div>
+                  </div>
+                );
+              }
+
+              if (transaction.status === 'meetup_day_passed') {
+                // Calculate days remaining for the 7-day post-meetup confirmation window
+                const start = transaction.meetupDayReachedAt ? new Date(transaction.meetupDayReachedAt) : new Date();
+                const daysLeft = Math.max(0, 7 - getDaysRemaining(start));
+                return (
+                  <div className="w-full px-3 py-2 text-sm rounded-b-md bg-amber-50 text-amber-800 dark:bg-amber-900 dark:text-amber-50 flex items-center justify-between">
+                    <div>
+                      <strong>⏳</strong> {daysLeft} day{daysLeft !== 1 ? 's' : ''} left to confirm transaction result
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={handleMarkCompleted} className="text-xs bg-emerald-600 text-emerald-50 px-2 py-1 rounded-md hover:bg-emerald-700">Completed</button>
+                      <button onClick={handleAppeal} className="text-xs bg-yellow-50 text-yellow-800 px-2 py-1 rounded-md hover:bg-yellow-100">Appeal</button>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (transaction.status === 'unsuccessful') {
+                return (
+                  <div className="w-full px-3 py-2 text-sm rounded-b-md bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-50">
+                    Transaction unsuccessful — appeal available
+                  </div>
+                );
+              }
+
+              return null;
+            })()
+          ) : (
+            showStatusBanner && (
+              <div className={`w-full px-3 py-2 text-sm rounded-b-md ${statusBannerType === 'success' ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-50' : statusBannerType === 'error' ? 'bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-50' : 'bg-blue-50 text-blue-800 dark:bg-slate-900 dark:text-blue-200'}`}>
+                {statusBannerMessage}
+              </div>
+            )
+          )}
+
+          {product && (
+            <section className="shrink-0 border-b border-border bg-background px-3 py-2 flex items-center justify-between gap-2">
+              <div onClick={handleProductClick} className="flex items-center gap-3 min-w-0 cursor-pointer">
+                <div className="h-12 w-12 rounded-md overflow-hidden bg-muted">
+                  <ImageWithFallback src={getPrimaryImage(product)} alt={product.title} className="h-full w-full object-cover" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold truncate">{product.title}</div>
+                  <div className="text-sm text-muted-foreground">₱{Number(product.price ?? 0).toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Transaction brief / meetup actions */}
+              {transaction?.meetupDate && (
+                <div className="ml-2 flex-shrink-0 text-right">
+                  <div className="text-xs text-muted-foreground">{new Date(transaction.meetupDate).toLocaleDateString()}</div>
+                  <div className="mt-1 flex items-center gap-2">
+                    {transaction?.buyerConfirmed && transaction?.sellerConfirmed ? (
+                      <button type="button" onClick={handleOpenRatingModal} className="text-xs bg-emerald-50 text-emerald-800 px-2 py-1 rounded-md hover:bg-emerald-100 dark:bg-emerald-900 dark:text-emerald-50">Both Confirmed</button>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">Awaiting confirmation</div>
+                    )}
                   </div>
                 </div>
               )}
+            </section>
+          )}
 
-              <div ref={messagesEndRef} />
-            </div>
 
-            {/* Inline styles for animations */}
+
+
+          {/* Messages Area - Scrollable */}
+          <main className="flex-1 overflow-y-auto min-h-0 px-3 py-4 space-y-3 bg-muted dark:bg-muted/80 [&>*]:bg-transparent [&>*]:border-none [&>*]:shadow-none">
+            {/* ChatBody inserted below (new, flat layout) */}
+            <ChatBody
+              messages={messages.filter((m) => m.type !== 'product')}
+              currentUserId={currentUserId}
+              meetup={{ date: transaction.meetupDate ? transaction.meetupDate.toISOString() : undefined, location: transaction.meetupLocation }}
+              showTypingIndicator={showTypingIndicator}
+              messagesEndRef={messagesEndRef}
+            />
+
+
+            <div ref={messagesEndRef} />
+
+            {/* Typing animation keyframes */}
             <style>{`
-              @keyframes slideInLeft {
-                from {
-                  opacity: 0;
-                  transform: translateY(4px);
-                }
-                to {
-                  opacity: 1;
-                  transform: translateY(0);
-                }
-              }
-
-              @keyframes slideInRight {
-                from {
-                  opacity: 0;
-                  transform: scale(0.95);
-                }
-                to {
-                  opacity: 1;
-                  transform: scale(1);
-                }
-              }
-
               @keyframes typingDot {
                 0%, 60%, 100% {
                   transform: scale(0.8);
@@ -1712,117 +1935,27 @@ export function ChatModal({
                 }
               }
             `}</style>
-          </div>
+          </main>
 
-          {/* Message Input - Fixed at Bottom with Messenger-style layout */}
-          <div className="px-4 py-4 border-t border-border flex-shrink-0 bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223]">
-            <div className="flex gap-2 items-end">
-              {/* Left buttons */}
-              <div className="flex gap-1 flex-shrink-0">
-                {/* Choose Meet-up Button */}
-                {!transaction.meetupDate && !isMarkedAsDone && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleOpenDatePicker}
-                    className="h-10 w-10 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
-                    title="Choose meet-up date"
-                    aria-label="Choose meet-up date"
-                  >
-                    <Calendar className="h-5 w-5" />
-                  </Button>
-                )}
+          {/* Footer */}
+          <ChatFooter
+            value={newMessage}
+            onChange={setNewMessage}
+            onSend={handleSend}
+            sending={isSending}
+            onShowDatePicker={() => setShowMeetupProposal(true)}
+            onMarkAsDone={handleMarkAsDone}
+            canMarkAsDone={canMarkAsDone}
+            isMarkedAsDone={isMarkedAsDone}
+            onCancelDone={handleCancelDone}
+          />
 
-                {/* Mark as Done / Cancel Done Button */}
-                {!isMarkedAsDone ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleMarkAsDone}
-                    disabled={transaction.status === "scheduled"}
-                    className={`h-10 w-10 ${
-                      transaction.status === "scheduled"
-                        ? "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
-                        : "text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20"
-                    }`}
-                    title={
-                      transaction.status === "scheduled"
-                        ? "Locked during scheduled meet-up"
-                        : "Mark conversation as done"
-                    }
-                    aria-label="Mark conversation as done"
-                  >
-                    <Check className="h-5 w-5" />
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleCancelDone}
-                    disabled={transaction.status === "scheduled"}
-                    className={`h-10 w-10 ${
-                      transaction.status === "scheduled"
-                        ? "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
-                        : "text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                    }`}
-                    title={
-                      transaction.status === "scheduled"
-                        ? "Locked during scheduled meet-up"
-                        : "Cancel done status"
-                    }
-                    aria-label="Cancel done status"
-                  >
-                    <XCircle className="h-5 w-5" />
-                  </Button>
-                )}
-              </div>
-
-              {/* Text Input - grows to fill space */}
-              <textarea
-                ref={textareaRef}
-                placeholder="Type your message..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={handleKeyPress}
-                rows={1}
-                className="flex-1 resize-none overflow-y-auto rounded-[20px] px-3 py-3 text-sm
-                  bg-[#F3F7F5] dark:bg-[#1E1E1E] 
-                  border border-[#C7DCC3]
-                  focus:outline-none focus:border-[#1A7F37] focus:shadow-[0_0_6px_rgba(26,127,55,0.28)]
-                  transition-all duration-200 ease-out
-                  placeholder:text-gray-500 dark:placeholder:text-gray-400
-                  min-h-[44px] max-h-[62px] sm:max-h-[72px]"
-                style={{
-                  lineHeight: "20px",
-                  scrollbarWidth: "thin",
-                  scrollbarColor: "#C7DCC3 transparent",
-                }}
-              />
-
-              {/* Send Button - right side */}
-              <Button
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim() || isSending}
-                size="icon"
-                className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Send message"
-                type="button"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
+        </div>
+        </DialogContent> 
       </Dialog>
 
       {/* Date Picker Modal */}
-      {showDatePicker && (
-        <DatePickerModal
-          isOpen={showDatePicker}
-          onClose={() => setShowDatePicker(false)}
-          onDateSelected={handleDateSelected}
-        />
-      )}
+      {renderDatePicker()}
 
       {/* Rating Modal */}
       {showRatingModal && (
@@ -1861,6 +1994,8 @@ export function ChatModal({
               // We don't have an app-level edit modal in this context, so leave to future enhancement.
             }, 0);
           }}
+          // Forward seller click action to app-level handler so the SellerProfile modal opens the same way
+          onSellerClick={onSellerClick}
         />
       )}
     </>

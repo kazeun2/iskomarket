@@ -177,13 +177,15 @@ export async function getUserTransactionCount(userId: string) {
   const { data: purchases } = await supabase
     .from('transactions')
     .select('id', { count: 'exact' })
-    .eq('buyer_id', userId)
+    // support both legacy buyer_id and canonical sender_id
+    .or(`sender_id.eq.${userId},buyer_id.eq.${userId}`)
     .eq('status', 'completed')
 
   const { data: sales } = await supabase
     .from('transactions')
     .select('id', { count: 'exact' })
-    .eq('seller_id', userId)
+    // support both legacy seller_id and canonical receiver_id
+    .or(`receiver_id.eq.${userId},seller_id.eq.${userId}`)
     .eq('status', 'completed')
 
   return {
@@ -215,8 +217,9 @@ export async function canReviewUser(reviewerId: string, reviewedUserId: string, 
   const { data: transaction } = await supabase
     .from('transactions')
     .select('id')
-    .or(`buyer_id.eq.${reviewerId},seller_id.eq.${reviewerId}`)
-    .or(`buyer_id.eq.${reviewedUserId},seller_id.eq.${reviewedUserId}`)
+    // match either legacy buyer/seller or sender/receiver columns
+    .or(`sender_id.eq.${reviewerId},buyer_id.eq.${reviewerId}`)
+    .or(`receiver_id.eq.${reviewedUserId},seller_id.eq.${reviewedUserId}`)
     .eq('status', 'completed')
     .limit(1)
     .single()

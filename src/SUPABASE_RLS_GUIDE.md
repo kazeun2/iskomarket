@@ -19,6 +19,12 @@ CREATE POLICY "Users can send messages in their conversations"
   ON public.messages FOR INSERT
   WITH CHECK (
     auth.uid() = sender_id
+
+⚠️ Note: If you recently migrated column names (buyer_id/seller_id → sender_id/receiver_id), run the `migrations/20260109-add-meetup-columns-to-transactions.sql` migration and then restart the Supabase API (Project → Settings → API → Restart) so PostgREST refreshes its schema cache. After restarting, re-generate types locally with:
+
+```bash
+supabase gen types typescript --schema public > src/lib/database.types.ts
+```
     AND EXISTS (
       SELECT 1 FROM public.conversations
       WHERE conversations.id = conversation_id

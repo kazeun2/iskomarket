@@ -19,16 +19,17 @@
           - generic [ref=e33]: CvSU Email Address
           - generic [ref=e34]:
             - img [ref=e35]
-            - textbox "your.name@cvsu.edu.ph" [ref=e38]: test+signup@cvsu.edu.ph
-        - generic [ref=e39]:
-          - generic [ref=e40]: Password
-          - generic [ref=e41]:
-            - img [ref=e42]
-            - textbox "Enter your password" [ref=e45]
-            - button [ref=e46]:
-              - img [ref=e47]
-        - button "Sign In to IskoMarket" [ref=e50]
-        - generic [ref=e51]:
-          - button "Forgot your password?" [ref=e52] [cursor=pointer]: Forgot your password?
-          - button "Debug auth user (dev)" [ref=e54]
+            - textbox "your.name@cvsu.edu.ph" [ref=e38]: test+seller@example.com
+          - generic [ref=e39]:
+            - img [ref=e40]
+            - generic [ref=e42]: Please use your CvSU email address (@cvsu.edu.ph)
+        - generic [ref=e43]:
+          - generic [ref=e44]: Password
+          - generic [ref=e45]:
+            - img [ref=e46]
+            - textbox "Enter your password" [ref=e49]: Aa123456
+            - button [ref=e50]:
+              - img [ref=e51]
+        - button "Sign In to IskoMarket" [active] [ref=e54] [cursor=pointer]
+        - button "Forgot your password?" [ref=e56] [cursor=pointer]: Forgot your password?
 ```

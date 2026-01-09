@@ -6,13 +6,13 @@ interface State {
   info?: React.ErrorInfo | null;
 }
 
-export class ErrorBoundary extends React.Component<{}, State> {
-  constructor(props: {}) {
+class _ErrorBoundary extends React.Component<any, State> {
+  constructor(props: any) {
     super(props);
     this.state = { hasError: false, error: null, info: null };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
@@ -39,3 +39,5 @@ export class ErrorBoundary extends React.Component<{}, State> {
     return this.props.children;
   }
 }
+
+export const ErrorBoundary: React.ComponentType<any> = _ErrorBoundary as unknown as React.ComponentType<any>;

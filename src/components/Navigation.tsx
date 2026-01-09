@@ -229,17 +229,17 @@ export function Navigation({
                   title={item.label}
                   onMouseEnter={(e) => {
                     if (!isActive && isDarkMode) {
-                      const icon = e.currentTarget.querySelector('svg');
+                      const icon = e.currentTarget.querySelector('svg') as SVGElement | null;
                       if (icon) {
-                        (icon as HTMLElement).style.filter = 'none';
+                        (icon as SVGElement).style.filter = 'none';
                       }
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive && isDarkMode) {
-                      const icon = e.currentTarget.querySelector('svg');
+                      const icon = e.currentTarget.querySelector('svg') as SVGElement | null;
                       if (icon) {
-                        (icon as HTMLElement).style.filter = 'none';
+                        (icon as SVGElement).style.filter = 'none';
                       }
                     }
                   }}
@@ -280,17 +280,17 @@ export function Navigation({
                 onClick={onOpenNotifications}
                 onMouseEnter={(e) => {
                   if (isDarkMode) {
-                    const icon = e.currentTarget.querySelector('svg');
+                    const icon = e.currentTarget.querySelector('svg') as SVGElement | null;
                     if (icon) {
-                      (icon as HTMLElement).style.filter = 'none';
+                      (icon as SVGElement).style.filter = 'none';
                     }
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (isDarkMode) {
-                    const icon = e.currentTarget.querySelector('svg');
+                    const icon = e.currentTarget.querySelector('svg') as SVGElement | null;
                     if (icon) {
-                      (icon as HTMLElement).style.filter = 'drop-shadow(0 0 4px rgba(20, 184, 166, 0.4))';
+                      (icon as SVGElement).style.filter = 'drop-shadow(0 0 4px rgba(20, 184, 166, 0.4))';
                     }
                   }
                 }}
@@ -323,17 +323,17 @@ export function Navigation({
                 }
                 onMouseEnter={(e) => {
                   if (isDarkMode) {
-                    const icon = e.currentTarget.querySelector('svg');
+                    const icon = e.currentTarget.querySelector('svg') as SVGElement | null;
                     if (icon) {
-                      (icon as HTMLElement).style.filter = 'drop-shadow(0 0 8px rgba(20, 184, 166, 0.7))';
+                      (icon as SVGElement).style.filter = 'drop-shadow(0 0 8px rgba(20, 184, 166, 0.7))';
                     }
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (isDarkMode) {
-                    const icon = e.currentTarget.querySelector('svg');
+                    const icon = e.currentTarget.querySelector('svg') as SVGElement | null;
                     if (icon) {
-                      (icon as HTMLElement).style.filter = 'drop-shadow(0 0 4px rgba(20, 184, 166, 0.4))';
+                      (icon as SVGElement).style.filter = 'drop-shadow(0 0 4px rgba(20, 184, 166, 0.4))';
                     }
                   }
                 }}
@@ -373,6 +373,7 @@ export function Navigation({
                         currentUser?.creditScore || 70,
                       rank: currentUser?.rank,
                       role: currentUser?.role || "buyer",
+                      glowEffect: currentUser?.glowEffect,
                     }}
                     size="sm"
                     showRankTag={false}
@@ -800,18 +801,58 @@ export function Navigation({
                   return;
                 }
 
-                // Password is correct - deactivate account
-                toast.success("Account deactivated", {
-                  description: "Log in within 30 days to restore it.",
-                });
-                setShowPasswordVerificationModal(false);
-                setPassword("");
-                setPasswordError("");
+                // Password is correct - call server to hard-delete the account
+                try {
+                  const supabase = getSupabase();
+                  const session = await supabase.auth.getSession();
+                  const token = session.data?.session?.access_token;
 
-                // Log out and redirect to login
-                setTimeout(() => {
-                  onSignOut();
-                }, 500);
+                  // Use dev server route when running in Vite dev mode
+                  const endpoint = (import.meta && import.meta.env && import.meta.env.DEV) ? '/dev/delete-account' : '/api/delete-account';
+
+                  const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ userId: currentUser?.id })
+                  });
+
+                  // Parse body safely — some responses might be empty or not JSON
+                  let json: any = null;
+                  let text: string | null = null;
+                  const contentType = res.headers.get('content-type') || '';
+                  if (contentType.includes('application/json')) {
+                    try {
+                      json = await res.json();
+                    } catch (err) {
+                      // fallback to text if JSON parsing fails
+                      text = await res.text();
+                    }
+                  } else {
+                    text = await res.text();
+                  }
+
+                  if (!res.ok) {
+                    if (res.status === 404) {
+                      throw new Error('Delete endpoint not found (404). If running locally, start the dev server: `npm run dev:server` and ensure SUPABASE_SERVICE_ROLE_KEY is set.');
+                    }
+                    const message = json?.message || json?.error || text || res.statusText || `Request failed with status ${res.status}`;
+                    throw new Error(message);
+                  }
+
+                  toast.success('Account deleted successfully');
+                  setShowPasswordVerificationModal(false);
+                  setPassword('');
+                  setPasswordError('');
+
+                  // sign out and redirect
+                  setTimeout(() => onSignOut(), 500);
+                } catch (err: any) {
+                  console.error('Failed to delete account:', err);
+                  toast.error(err?.message || 'Failed to delete account. Try again later.');
+                }
               }}
               className="flex-1"
               style={{

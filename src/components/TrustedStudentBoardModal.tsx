@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
+import { UsernameWithGlow } from './UsernameWithGlow';
 import { Avatar, AvatarFallback } from "./ui/avatar";
 
 interface TrustedStudent {
@@ -112,7 +113,7 @@ export function TrustedStudentBoardModal({
 
                       {/* Username */}
                       <div className="text-sm truncate w-full">
-                        {student.username}
+                        <UsernameWithGlow username={student.username} glowEffect={student.glowEffect} showTimer={false} />
                       </div>
 
                       {/* Course/Program */}

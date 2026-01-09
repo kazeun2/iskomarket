@@ -109,6 +109,14 @@ export function subscribeToSystemLogs(callback: (logs: SystemLogUI[]) => void) {
   };
 }
 
+/**
+ * insertSystemLog
+ *
+ * Note: `system_logs` may have Row Level Security (RLS) enabled in some
+ * environments. The anon/auth roles may not be allowed to INSERT. Logging
+ * failures (RLS/permission errors) are treated as non-fatal and should not
+ * block primary user actions (e.g., posting products).
+ */
 export async function insertSystemLog(row: Omit<SystemLogRow, 'id' | 'created_at'>) {
   try {
     const { data, error } = await supabase
@@ -118,6 +126,17 @@ export async function insertSystemLog(row: Omit<SystemLogRow, 'id' | 'created_at
       .single();
 
     if (error) {
+      // Detect common permission / RLS related messages and treat them as non-fatal
+      const msg = String((error as any)?.message || '').toLowerCase();
+      const isRls = msg.includes('row-level') || msg.includes('row level') || msg.includes('violates row-level') || msg.includes('permission') || (error as any)?.status === 403;
+
+      if (isRls) {
+        // Warn but do not escalate
+        console.warn('System log insert failed (non-fatal - possible RLS/permission):', error);
+        return { data: null, error: null };
+      }
+
+      // Otherwise surface as an error for debugging but still do not throw
       console.error('Error inserting system log:', error);
       return { data: null, error };
     }
@@ -139,8 +158,9 @@ export async function insertSystemLog(row: Omit<SystemLogRow, 'id' | 'created_at
 
     return { data: ui, error: null };
   } catch (error) {
-    console.error('Unexpected error inserting system log:', error);
-    return { data: null, error };
+    // Unexpected exceptions in logging should not block user flows; surface as a warning
+    console.warn('Unexpected error inserting system log (non-fatal):', error);
+    return { data: null, error: null };
   }
 }
 

@@ -96,7 +96,8 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
                     avatar: formData.avatar,
                     creditScore: currentUser?.creditScore || 70,
                     rank: currentUser?.rank,
-                    role: currentUser?.role || 'buyer'
+                    role: currentUser?.role || 'buyer',
+                    glowEffect: currentUser?.glowEffect
                   }}
                   size="xl"
                   showRankTag={true}

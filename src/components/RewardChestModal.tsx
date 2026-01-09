@@ -49,11 +49,13 @@ interface RewardChestModalProps {
   isAdmin?: boolean;
   isDarkMode?: boolean;
   meetupLocations?: string[];
+  onFeaturedProductAdd?: (productData: any) => void;
   onTrustedStudentAdd?: (studentData: any) => void;
   onGlowNameActivate?: (glowData: any) => void;
-}
+  onCollegeFrameActivate?: (frameData: any) => void;
+} 
 
-export function RewardChestModal({ 
+export const RewardChestModal = ({ 
   isOpen, 
   onClose, 
   userIskoins, 
@@ -65,9 +67,11 @@ export function RewardChestModal({
   isAdmin = false,
   isDarkMode = true,
   meetupLocations = [],
+  onFeaturedProductAdd,
   onTrustedStudentAdd,
-  onGlowNameActivate
-}: RewardChestModalProps) {
+  onGlowNameActivate,
+  onCollegeFrameActivate
+}: RewardChestModalProps) => {
   const [redeemedRewardId, setRedeemedRewardId] = useState<string | null>(null);
   const [showChestAnimation, setShowChestAnimation] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);

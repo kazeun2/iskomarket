@@ -65,6 +65,7 @@ import { EditListingModal } from "./components/EditListingModal";
 import { updateProduct, isCvSUProduct } from './lib/services/products';
 import { submitReport, uploadReportProof, updateReportProofs } from './services/reportService';
 import { UserDashboard } from "./components/UserDashboard";
+import { updateUser, incrementUserCounters, subscribeToUserChanges, recalcUserTier } from './services/userService';
 import { AdminDashboard } from "./components/AdminDashboard";
 import { PostProduct } from "./components/PostProduct";
 import { AuthPage } from "./auth/AuthPage";
@@ -609,6 +610,7 @@ export default function App() {
   const [products, setProducts] = useState([]); // Initialize empty, will be set based on example mode
   const [lastProductsSync, setLastProductsSync] = useState<string | null>(null);
   const lastProductsSyncRef: any = useRef(null);
+  const userRealtimeUnsubRef: any = useRef(null);
   const [visibilityCounts, setVisibilityCounts] = useState<{primary?: number; view?: number; raw?: number} | null>(null);
 
   const [forACauseItems, setForACauseItems] = useState([]); // Initialize empty, will be set based on example mode
@@ -803,12 +805,19 @@ export default function App() {
       closeEditModal();
     } catch (err: any) {
       console.error('Failed to update listing', err);
-      toast.error(err?.message || 'Failed to update product');
+      const msg = String(err?.message || '').toLowerCase();
+      if (msg.includes('could not find') || msg.includes('seller') || msg.includes('schema')) {
+        toast.error('Server schema error while saving; attempting a safe server-side save. If this persists, please refresh and try again.');
+      } else {
+        toast.error(err?.message || 'Failed to update product');
+      }
     }
   };
   const [showRewardChestModal, setShowRewardChestModal] =
     useState(false);
   const [userIskoins, setUserIskoins] = useState(0); // Iskoins from user data
+  const [userSpins, setUserSpins] = useState(0);
+  const [userTier, setUserTier] = useState<string | null>(null);
   const [userSpinsLeft, setUserSpinsLeft] = useState(1); // Mock spins
   const [userRechargesLeft, setUserRechargesLeft] = useState(0); // Mock recharges
   const [iskoinChange, setIskoinChange] = useState<
@@ -1192,6 +1201,43 @@ export default function App() {
     };
   }, [currentUser]);
 
+  // Listen for global product-deleted events and remove the product from the canonical list
+  // Use a top-level effect so hooks ordering stays consistent
+  useEffect(() => {
+    const handler = (e: any) => {
+      const id = e?.detail?.id;
+      const productId = e?.detail?.product_id;
+      if (!id && !productId) return;
+      try {
+        setProducts((prev) => prev.filter((p: any) => {
+          const matchId = id ? (String(p.id) !== String(id) && String(p.product_id) !== String(id)) : true;
+          const matchProductId = productId ? (String(p.id) !== String(productId) && String(p.product_id) !== String(productId)) : true;
+          return matchId && matchProductId;
+        }));
+
+        // As a robust follow-up, trigger an immediate canonical refresh so any visibility mismatches are reconciled promptly.
+        (async () => {
+          try {
+            const productsService = await import('./lib/services/products');
+            const fresh = await productsService.getProductsWithFallback();
+            if (Array.isArray(fresh)) {
+              lastProductsSyncRef.current = Date.now();
+              setLastProductsSync(new Date().toISOString());
+              setProducts(fresh || []);
+            }
+          } catch (err) {
+            console.warn('Failed to refetch products after delete event', err);
+          }
+        })();
+      } catch (err) {
+        console.warn('Failed to remove product from list after delete event', err);
+      }
+    };
+
+    window.addEventListener('iskomarket:product-deleted', handler as EventListener);
+    return () => window.removeEventListener('iskomarket:product-deleted', handler as EventListener);
+  }, []);
+
   const toggleTheme = () => {
     setIsDarkMode((prev) => !prev);
   };
@@ -1388,10 +1434,26 @@ export default function App() {
     }
   }
 
+  const normalizeUser = (user: any) => {
+    if (!user) return user;
+    const glow = (user.glow_expiry || user.glow_effect) ? {
+      name: user.glow_effect || null,
+      active: user.glow_expiry ? new Date(user.glow_expiry) > new Date() : true,
+      expiresAt: user.glow_expiry || null
+    } : null;
+    return { ...user, glowEffect: glow };
+  };
+
   const handleAuthentication = async (userData: any) => {
     // Ensure user has a credit score
     // Admin accounts start at 100, normal users start at 70
     const defaultCreditScore = userData.isAdmin ? 100 : 70;
+    const glowEffectFromData = (userData && (userData.glow_expiry || userData.glow_effect)) ? {
+      name: userData.glow_effect || null,
+      active: userData.glow_expiry ? new Date(userData.glow_expiry) > new Date() : false,
+      expiresAt: userData.glow_expiry || null
+    } : null;
+
     const userWithScore = {
       ...userData,
       creditScore: userData.creditScore || defaultCreditScore,
@@ -1400,12 +1462,35 @@ export default function App() {
       suspensionCount: userData.suspensionCount || 0,
       messagingBanned: userData.messagingBanned || false,
       messagingBanExpires: userData.messagingBanExpires || null,
+      glowEffect: glowEffectFromData,
     };
 
     setIsAuthenticated(true);
-    setCurrentUser(userWithScore);
+    setCurrentUser(normalizeUser(userWithScore));
     setUserType(userWithScore.isAdmin ? "admin" : "student");
     setUserIskoins(userWithScore.iskoins); // Update userIskoins state with actual user data
+    setUserSpins(userWithScore.spin_count ?? userWithScore.total_spins ?? 0);
+    setUserTier(userWithScore.tier || null);
+
+    // Setup realtime subscription to keep iskons/spins/tier in sync across sessions
+    if (userRealtimeUnsubRef.current) {
+      try { userRealtimeUnsubRef.current(); } catch(_) { /* ignore */ }
+    }
+    if (userWithScore?.id) {
+      userRealtimeUnsubRef.current = subscribeToUserChanges(userWithScore.id, (record) => {
+        // Merge into currentUser and update local counters
+        setCurrentUser(prev => {
+          if (!prev) return prev;
+          const merged = { ...prev, ...record };
+          return normalizeUser(merged);
+        });
+
+        if ((record as any)?.iskoins !== undefined) setUserIskoins(Number((record as any).iskoins));
+        if ((record as any)?.spin_count !== undefined) setUserSpins(Number((record as any).spin_count));
+        else if ((record as any)?.total_spins !== undefined) setUserSpins(Number((record as any).total_spins));
+        if ((record as any)?.tier !== undefined) setUserTier(String((record as any).tier));
+      });
+    }
 
     // Verify session/auth identity matches the provided profile to avoid stale-cached users
     try {
@@ -1417,12 +1502,19 @@ export default function App() {
           try {
             const { data: profile } = await supabase.from('users').select('*').eq('id', authUser.id).single();
             if (profile) {
+              const glowFromProfile = (profile && (profile.glow_expiry || profile.glow_effect)) ? {
+                name: profile.glow_effect || null,
+                active: profile.glow_expiry ? new Date(profile.glow_expiry) > new Date() : false,
+                expiresAt: profile.glow_expiry || null
+              } : null;
+
               const profileWithScore = {
                 ...profile,
                 creditScore: profile.credit_score ?? userWithScore.creditScore ?? defaultCreditScore,
-                iskoins: profile.iskoins ?? userWithScore.iskoins
+                iskoins: profile.iskoins ?? userWithScore.iskoins,
+                glowEffect: glowFromProfile
               };
-              setCurrentUser(profileWithScore);
+              setCurrentUser(normalizeUser(profileWithScore));
             }
           } catch (e) {
             console.error('Failed to fetch authoritative profile for session user:', e);
@@ -1479,9 +1571,20 @@ export default function App() {
   };
 
   const handleProfileUpdate = (updatedUser: any) => {
-    setCurrentUser(updatedUser);
+    setCurrentUser(normalizeUser(updatedUser));
     // In a real app, you would also update the user data in your backend/database
   };
+
+  // Cleanup user realtime subscription on sign-out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      if (userRealtimeUnsubRef.current) {
+        try { userRealtimeUnsubRef.current(); } catch (_) {}
+        userRealtimeUnsubRef.current = null;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Handle Report Seller
   const handleReportSeller = (seller: any) => {
@@ -2596,11 +2699,13 @@ export default function App() {
             setSelectedProduct(updated);
           }}
           onProductDeleted={(productId) => {
-            setProducts((prev) => prev.filter((p: any) => String(p.id) !== String(productId)));
+            setProducts((prev) => prev.filter((p: any) => String(p.id) !== String(productId) && String(p.product_id) !== String(productId)));
             setSelectedProduct(null);
           }}
         />
       )}
+
+
 
       {/* App-level Edit Product Modal (opened when user requests edit from ProductDetail or Dashboard) */}
       <EditListingModal
@@ -3655,13 +3760,30 @@ export default function App() {
         <DailySpinModal
           isOpen={showDailySpinModal}
           onClose={() => setShowDailySpinModal(false)}
-            onSpinComplete={(reward) => {
+            onSpinComplete={async (reward) => {
             setUserSpinsLeft((prev) => Math.max(0, prev - 1));
 
-            // `reward` is a number returned by the spin (prize value)
+            // Optimistically update UI
             setUserIskoins((prev) => Number(prev) + reward); // REAL-TIME UPDATE
             setIskoinChange(reward); // Glow/animation effect
             setTimeout(() => setIskoinChange(undefined), 2000); // Reset animation
+
+            // Persist to server atomically (increment iskons, decrement spins)
+            try {
+              if (currentUser?.id) {
+                const result = await incrementUserCounters(String(currentUser.id), reward, -1);
+                if (result.error) throw result.error;
+                const row = result.data || (Array.isArray(result.data) ? result.data[0] : null);
+                if (row) {
+                  if (row.iskons !== undefined) setUserIskoins(Number(row.iskons));
+                  if (row.spin_count !== undefined) setUserSpins(Number(row.spin_count));
+                  if (row.total_spins !== undefined) setUserSpins(Number(row.total_spins));
+                }
+              }
+            } catch (err: any) {
+              console.error('Failed to persist spin result:', err);
+              toast.error(err?.message || 'Failed to persist spin result. Your iskoin balance may be out of sync.');
+            }
           }}
           availableSpins={userSpinsLeft}
           userCreditScore={currentUser?.creditScore || 100}
@@ -3675,13 +3797,29 @@ export default function App() {
           isOpen={showRewardChestModal}
           onClose={() => setShowRewardChestModal(false)}
           userIskoins={userIskoins}
-          onRedeem={(reward) => {
-            setUserIskoins(
-              (prev) => Number(prev) - reward.cost,
-            );
+          onRedeem={async (reward) => {
+            // Optimistic UI update
+            setUserIskoins((prev) => Number(prev) - reward.cost);
             setIskoinChange(-reward.cost);
             setTimeout(() => setIskoinChange(undefined), 2000);
             toast.success(`Redeemed: ${reward.title}`);
+
+            // Persist change to server (deduct iskoin cost)
+            try {
+              if (currentUser?.id) {
+                const result = await incrementUserCounters(String(currentUser.id), -reward.cost, 0);
+                if (result.error) throw result.error;
+                const row = result.data || (Array.isArray(result.data) ? result.data[0] : null);
+                if (row) {
+                  if (row.iskons !== undefined) setUserIskoins(Number(row.iskons));
+                if (row.spin_count !== undefined) setUserSpins(Number(row.spin_count));
+                if (row.total_spins !== undefined) setUserSpins(Number(row.total_spins));
+                }
+              }
+            } catch (err: any) {
+              console.error('Failed to persist redemption:', err);
+              toast.error(err?.message || 'Failed to persist redemption. Your iskoin balance may be out of sync.');
+            }
           }}
           onIskoinChange={(amount) => {
             setUserIskoins((prev) => prev + amount);
@@ -3737,16 +3875,47 @@ export default function App() {
             // Add to top of Trustworthy students list
             setTrustedStudents(prev => [newTrustedStudent, ...prev]);
           }}
-          onGlowNameActivate={(glowData) => {
-            // Update current user with glow effect
+          onGlowNameActivate={async (glowData) => {
+            // Persist glow effect (3 days) and update local state optimistically
+            const expiry = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
+            // Optimistic UI update
             setCurrentUser(prev => ({
               ...prev,
               glowEffect: {
                 active: true,
                 name: glowData.style,
-                expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+                expiresAt: expiry,
               }
             }));
+
+            try {
+              // Persist to backend using userService
+              if (currentUser?.id) {
+                const result = await updateUser(String(currentUser.id), { glow_effect: glowData.style, glow_expiry: expiry });
+                if (result.error) {
+                  throw result.error;
+                }
+
+                // Merge returned server user (if provided) and ensure glowEffect is mapped
+                if (result.data) {
+                  setCurrentUser(prev => ({
+                    ...prev,
+                    ...result.data,
+                    glowEffect: {
+                      name: String(result.data.glow_effect),
+                      active: result.data.glow_expiry ? new Date(result.data.glow_expiry) > new Date() : true,
+                      expiresAt: result.data.glow_expiry || expiry
+                    }
+                  }));
+                }
+
+                toast.success('Glow effect saved and active for 3 days');
+              }
+            } catch (e) {
+              console.error('Failed to persist glow effect:', e);
+              toast.error('Failed to save glow effect. It will still appear locally until you refresh.');
+            }
           }}
           onCollegeFrameActivate={(frameData) => {
             // Update current user with college frame
@@ -3790,6 +3959,7 @@ export default function App() {
             setChatOpen(false);
             openEditModalAfterClose(product);
           }}
+          onSellerClick={setSelectedSeller}
         />
       )}
 

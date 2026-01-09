@@ -6,6 +6,7 @@ import {
   Crown,
   GraduationCap,
 } from "lucide-react";
+import { UsernameWithGlow } from './UsernameWithGlow';
 import { motion } from "motion/react";
 import {
   Avatar,
@@ -299,7 +300,15 @@ export function UserProfileHeader({
                 {/* Username - Large & Bold (Premium) */}
                 <div className="space-y-0.5">
                   <h1 className="text-[34px] leading-[1.1] font-bold text-[#1a1a1a] dark:text-white tracking-[-0.02em]">
-                    {currentUser?.name || "User"}
+                    <UsernameWithGlow 
+                      username={currentUser?.username || currentUser?.name || 'User'}
+                      glowEffect={currentUser?.glowEffect}
+                      showTimer={true}
+                      currentUserId={currentUser?.id}
+                      ownerId={currentUser?.id}
+                      className="text-[34px] leading-[1.1] font-bold"
+                      showAtSign={false}
+                    />
                   </h1>
 
 

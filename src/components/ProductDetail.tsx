@@ -13,9 +13,15 @@ import { ChatModal } from './ChatModal';
 import { MeetupReminderModal } from './MeetupReminderModal';
 import { toast } from 'sonner';
 import { UsernameWithGlow } from './UsernameWithGlow';
+import { updateCreditScore } from '../lib/services/users';
+import { createTransaction, updateMeetupDetails, getPendingTransactions } from '../lib/services/transactions';
+import { agreeMeetupAndNotify } from '../lib/actions/meetup';
+import { sendMessage } from '../services/messageService';
+import { useAuth } from '../contexts/AuthContext';
 import { isExampleMode } from '../utils/exampleMode';
 import { EditListingModal } from './EditListingModal';
-import { updateProduct, deleteProduct as deleteProductService } from '../lib/services/products';
+import { updateProduct, deleteProduct as deleteProductService, deleteProductById } from '../lib/services/products';
+import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 
 interface ProductDetailProps {
   product: any;
@@ -53,6 +59,11 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
   const [showEditModal, setShowEditModal] = useState(false);
   // When opening the edit modal locally, hide the ProductDetail visually so the edit modal appears without the underlying overlay
   const [closingForEdit, setClosingForEdit] = useState(false);
+  // Delete confirmation dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Auth helper
+  const { refreshUser } = useAuth();
 
   // Derived role/ownership
   const isAdmin = userType === 'admin';
@@ -159,12 +170,41 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
     });
   };
 
-  const handleAgreeMeetup = () => {
+  const handleAgreeMeetup = async () => {
     setShowMeetupReminder(false);
     if (contentRef.current) contentRef.current.scrollTo({ top: 0, behavior: 'instant' });
-    requestAnimationFrame(() => {
-      setShowChat(true);
-    });
+
+    const meetupLocation =
+      displayProduct.location || displayProduct.meetupLocation || 'Main Gate, Cavite State University';
+
+    const buyerId = currentUser?.id;
+    const sellerId = displayProduct.seller?.id || displayProduct.seller_id;
+
+    try {
+      if (!buyerId || !sellerId) {
+        console.warn('Cannot persist meetup - missing buyer or seller id');
+        toast.error('Could not save meet-up details. Please try again.');
+        return;
+      }
+
+      await agreeMeetupAndNotify({
+        productId: String(displayProduct.id),
+        buyerId: String(buyerId),
+        sellerId: String(sellerId),
+        meetupLocation,
+      });
+
+      toast.success('Meet-up location saved and the seller has been notified');
+    } catch (err: any) {
+      // Log Supabase-friendly error info if available
+      console.error('Error persisting meetup details:', { message: err?.message || err, code: err?.code, details: err?.details || null });
+      toast.error(err?.message || 'Could not save meet-up details. Please try again.');
+    } finally {
+      // Open chat so users can continue conversation immediately
+      requestAnimationFrame(() => {
+        setShowChat(true);
+      });
+    }
   };
 
   const handleReport = () => {
@@ -182,19 +222,34 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
     setShowReportDialog(false);
   };
 
-  const handleRatingSubmit = () => {
+  const handleRatingSubmit = async () => {
     if (userRating === 0) {
       toast.error('Please select a rating');
       return;
     }
-    
-    toast.success('Thank you for rating this seller!', {
-      description: `Rating: ${userRating} star${userRating !== 1 ? 's' : ''}`
-    });
-    
-    setUserRating(0);
-    setRatingComment('');
-    setShowRatingDialog(false);
+
+    try {
+      // Persist the rating/review to backend (omitted here) and award a credit to the rater
+      if (currentUser && currentUser.id) {
+        await updateCreditScore(String(currentUser.id), 1, 'Submitted rating', 'increase');
+      }
+
+      // Refresh auth profile if available
+      if (typeof refreshUser === 'function') {
+        await refreshUser();
+      }
+
+      toast.success('Thank you for rating this seller!', {
+        description: `Rating: ${userRating} star${userRating !== 1 ? 's' : ''}`
+      });
+    } catch (err: any) {
+      console.error('Error updating credit score:', err);
+      toast.error('Failed to update credit score');
+    } finally {
+      setUserRating(0);
+      setRatingComment('');
+      setShowRatingDialog(false);
+    }
   };
 
 
@@ -425,7 +480,7 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
                     {/* Seller Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-gray-900 dark:text-gray-100">{displayProduct.seller.username || displayProduct.seller.name || 'MariaBendo'}</h4>
+                        <h4 className="text-gray-900 dark:text-gray-100"><UsernameWithGlow username={displayProduct.seller.username || displayProduct.seller.name || 'MariaBendo'} glowEffect={displayProduct.seller?.glowEffect} showTimer={false} /></h4>
                         <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 text-xs px-2 py-0.5">
                           Trustworthy Badge
                         </Badge>
@@ -548,32 +603,58 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={async () => {
-                    if (!canDelete) return;
-                    if (window.confirm('Are you sure you want to delete this product?')) {
-                      try {
-                        const res = await deleteProductService(String(displayProduct.id));
-                        if (!res) {
-                          // Product was already removed on the server; close and notify
-                          toast.success('Product removed (was already deleted)');
-                          onClose();
-                          if (typeof (onProductDeleted) === 'function') onProductDeleted(displayProduct.id);
-                          return;
-                        }
-
-                        toast.success('Product deleted successfully!');
-                        onClose();
-                        if (typeof (onProductDeleted) === 'function') onProductDeleted(res.id || displayProduct.id);
-                      } catch (err: any) {
-                        toast.error(err?.message || 'Failed to delete product');
-                      }
-                    }
-                  }}
+                  onClick={() => { if (!canDelete) return; setShowDeleteDialog(true); }}
                   title="Delete Product"
                   className="h-12 w-12 rounded-full border-gray-200/40 dark:border-gray-700/30 text-foreground hover:bg-[rgba(0,0,0,0.02)] dark:hover:bg-[var(--card)]/5 transition-all duration-200"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
+
+                <ConfirmDeleteDialog
+                  open={showDeleteDialog}
+                  onOpenChange={setShowDeleteDialog}
+                  productName={displayProduct?.title}
+                  onConfirm={async ({ permanently } = {}) => {
+                    try {
+                      console.debug('ProductDetail: deleting product', { id: displayProduct?.id, product_id: displayProduct?.product_id, permanently });
+                      const result = await deleteProductById(String(displayProduct.id), Boolean(permanently));
+                      console.debug('ProductDetail: deleteProductById result', result);
+
+                      if (!result.ok) {
+                        if ((result as any).reason === 'not_found') {
+                          // Product already removed on server — remove locally as well and inform the user
+                          console.debug('ProductDetail: delete returned not_found for id', displayProduct.id);
+                          setDisplayProduct((prev) => ({ ...prev, is_deleted: true }));
+                          toast.success('Product removed (was already deleted)');
+                          try { window.dispatchEvent(new CustomEvent('iskomarket:product-deleted', { detail: { id: String(displayProduct.id), product_id: displayProduct.product_id || null } })); } catch (e) {}
+                          onClose();
+                          if (typeof (onProductDeleted) === 'function') onProductDeleted(displayProduct.id);
+                          return;
+                        }
+
+                        // Permission or other error: surface as a failure
+                        if ((result as any).reason === 'error') {
+                          if ((result as any).permissionDenied) {
+                            toast.error('You do not have permission to delete this product.');
+                          } else {
+                            toast.error('Failed to delete product. Please try again later.');
+                          }
+                        }
+                        throw (result as any).error || new Error('Delete failed');
+                      }
+
+                      // Success: product deleted on server
+                      console.debug('ProductDetail: deleteProductById OK - dispatching event and closing', { id: result.id || displayProduct.id });
+                      toast.success('Product deleted successfully!');
+                      try { window.dispatchEvent(new CustomEvent('iskomarket:product-deleted', { detail: { id: result.id || displayProduct.id, product_id: displayProduct.product_id || null } })); } catch (e) {}
+                      onClose();
+                      if (typeof (onProductDeleted) === 'function') onProductDeleted(result.id || displayProduct.id);
+                    } catch (err: any) {
+                      console.error('ProductDetail: delete flow threw', err);
+                      throw err;
+                    }
+                  }}
+                />
               </>
             )}
 
@@ -775,6 +856,7 @@ return (
             otherUser={displayProduct.seller || product.seller}
             product={product}
             zIndex={12000}
+            onSellerClick={onSellerClick}
           />
         )}
       

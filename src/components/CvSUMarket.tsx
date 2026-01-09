@@ -570,19 +570,38 @@ export default function CvSUMarket({ onRequestEdit, userType }: { onRequestEdit?
           if (deleted && product?.product_id) {
             try {
               // Always attempt a soft-delete first to mark the product removed from public listings
-              const prodSoft = await deleteProduct(String(product.product_id), 'Deleted via admin (CvSU entry removal)', false);
-              console.debug('handleDeleteProduct: soft-delete result', { product_id: product.product_id, prodSoft });
+              const { deleteProductById } = await import('../lib/services/products');
+              const prodSoftRes = await deleteProductById(String(product.product_id), false);
+              console.debug('handleDeleteProduct: soft-delete result', { product_id: product.product_id, prodSoftRes });
 
-              if (permanently) {
-                // If the admin wanted permanent deletion, attempt hard delete next. Let errors here surface as a warning.
-                try {
-                  const prodHard = await deleteProduct(String(product.product_id), 'Deleted via admin (CvSU entry removal) - permanent', true);
-                  console.debug('handleDeleteProduct: hard-delete result', { product_id: product.product_id, prodHard });
-                } catch (err) {
-                  console.error('handleDeleteProduct: hard delete failed', { product_id: product.product_id, error: err });
-                  toast.warning('CvSU entry removed but permanent product deletion failed; please check server logs.');
+              if (!prodSoftRes.ok) {
+                if ((prodSoftRes as any).reason === 'not_found') {
+                  // Product already gone — not a hard failure for CvSU row deletion
+                  console.info('Canonical product already deleted for product_id', product.product_id);
+                } else if ((prodSoftRes as any).permissionDenied) {
+                  toast.warning('CvSU entry removed but product-level deletion was denied due to permissions.');
+                } else {
+                  toast.warning('CvSU entry removed but product-level deletion failed; please check server logs.');
                 }
-              }
+              } else {
+                // Dispatch deletion event so other clients remove the canonical product
+                try { window.dispatchEvent(new CustomEvent('iskomarket:product-deleted', { detail: { id: prodSoftRes.id } })); } catch (e) { /* ignore */ }
+
+                if (permanently) {
+                  // If the admin wanted permanent deletion, attempt hard delete next. Let errors here surface as a warning.
+                  try {
+                    const prodHard = await deleteProductById(String(product.product_id), true);
+                    console.debug('handleDeleteProduct: hard-delete result', { product_id: product.product_id, prodHard });
+
+                    if (!(prodHard as any).ok) {
+                      toast.warning('Permanent deletion attempted but failed; please check server logs.');
+                    }
+                  } catch (err) {
+                    console.error('handleDeleteProduct: hard delete failed', { product_id: product.product_id, error: err });
+                    toast.warning('CvSU entry removed but permanent product deletion failed; please check server logs.');
+                  }
+                } // end if (permanently)
+              } // end else (prodSoftRes.ok)
             } catch (err) {
               console.error('handleDeleteProduct: product-level delete failed', { product_id: product.product_id, error: err });
               // Inform the admin but do not roll back the cvsu deletion
@@ -720,11 +739,12 @@ export default function CvSUMarket({ onRequestEdit, userType }: { onRequestEdit?
 
         // If there was no CvSU row for this id, delete the product record directly
         console.debug('handleDeleteProduct: calling product-level delete RPC', { id: idStr });
-        const result = await deleteProduct(idStr, undefined, permanently);
-        console.debug('handleDeleteProduct: deleteProduct returned', { id: idStr, result });
+        const { deleteProductById } = await import('../lib/services/products');
+        const result = await deleteProductById(idStr, permanently);
+        console.debug('handleDeleteProduct: deleteProductById returned', { id: idStr, result });
 
         // If product RPC indicates the product was already deleted or did not exist, refresh and remove locally
-        if (!result) {
+        if (!(result as any).ok && (result as any).reason === 'not_found') {
           try {
             const fresh = await getCvSUProducts();
             if (Array.isArray(fresh)) {

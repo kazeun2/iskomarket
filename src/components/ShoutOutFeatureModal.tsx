@@ -11,6 +11,7 @@ import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { toast } from "sonner";
+import { UsernameWithGlow } from './UsernameWithGlow';
 
 interface ShoutOutFeatureModalProps {
   isOpen: boolean;
@@ -82,7 +83,7 @@ export function ShoutOutFeatureModal({
 
               {/* Username */}
               <div className="text-sm truncate w-full">
-                {currentUser?.username || "Username"}
+                <UsernameWithGlow username={currentUser?.username || "Username"} glowEffect={currentUser?.glowEffect} showTimer={false} className="inline" />
               </div>
 
               {/* Course/Program */}

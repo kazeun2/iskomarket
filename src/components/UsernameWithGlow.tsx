@@ -12,6 +12,8 @@ interface UsernameWithGlowProps {
   currentUserId?: number;
   ownerId?: number;
   className?: string;
+  /** Hide the leading @ when true (useful for profile headers) */
+  showAtSign?: boolean;
 }
 
 const GLOW_STYLES: Record<string, { color: string; shadow: string }> = {
@@ -35,7 +37,8 @@ export function UsernameWithGlow({
   showTimer = false,
   currentUserId,
   ownerId,
-  className = ''
+  className = '',
+  showAtSign = true,
 }: UsernameWithGlowProps) {
   const isActive = glowEffect?.active && glowEffect.expiresAt && new Date(glowEffect.expiresAt) > new Date();
   const glowStyle = isActive && glowEffect?.name ? GLOW_STYLES[glowEffect.name] : null;
@@ -62,7 +65,7 @@ export function UsernameWithGlow({
           ${className}
         `}
       >
-        @{username}
+        {typeof (showAtSign) === 'undefined' || showAtSign ? `@${username}` : username}
       </span>
       {shouldShowTimer && daysRemaining > 0 && (
         <span className="text-[10px] text-muted-foreground italic">
