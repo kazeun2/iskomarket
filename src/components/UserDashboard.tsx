@@ -100,6 +100,46 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
   }, [activeTab, chatContext]);
 
   // --- Message cards (dashboard list) - authoritative for messages tab
+  // Refresh when the user is available AND when the Messages tab is opened
+  const refreshMessageCards = async () => {
+    if (!currentUser || !currentUser.id) return;
+    try {
+      // Attempt to refresh via ChatContext first (if provided) for consistency
+      if (chatContext && chatContext.refreshConversations) {
+        try {
+          await chatContext.refreshConversations();
+          // After context refresh, re-query message_cards to avoid missing rows
+        } catch (e) {
+          console.warn('[UserDashboard] chatContext.refreshConversations failed (continuing):', e);
+        }
+      }
+
+      const cards = await getMessageCards(currentUser.id);
+      // Normalize to the conversations shape the UI expects
+      const normalized = (cards || []).map((c: any) => ({
+        conversation_id: c.conversation_id,
+        other_user_id: c.other_user_id,
+        other_user: c.other_user || null,
+        other_user_name: c.other_user?.display_name ?? undefined,
+        other_user_username: c.other_user?.username || undefined,
+        other_user_avatar: c.other_user?.avatar_url || undefined,
+        product_id: c.product_id,
+        product_title: undefined,
+        conversation: c,
+        last_message: c.last_message,
+        last_message_at: c.last_message_at,
+        unread_count: c.unread_count,
+      })).sort((a: any, b: any) => new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime());
+
+      setConversations(normalized);
+      setTotalUnreadCount(normalized.reduce((s: number, n: any) => s + (n.unread_count || 0), 0));
+    } catch (e) {
+      console.warn('[UserDashboard] Failed to load message_cards:', e);
+      setConversations([]);
+      setTotalUnreadCount(0);
+    }
+  };
+
   useEffect(() => {
     if (!currentUser || !currentUser.id) return;
 
@@ -108,28 +148,10 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
 
     (async () => {
       try {
-        const cards = await getMessageCards(currentUser.id);
-        if (!mounted) return;
-        // Normalize to the conversations shape the UI expects
-        const normalized = cards.map((c: any) => ({
-          conversation_id: c.conversation_id,
-          other_user_id: c.other_user_id,
-          other_user: c.other_user || null,
-          other_user_name: c.other_user?.display_name ?? undefined,
-          other_user_username: c.other_user?.username || undefined,
-          other_user_avatar: c.other_user?.avatar_url || undefined,
-          product_id: c.product_id,
-          product_title: undefined,
-          conversation: c,
-          last_message: c.last_message,
-          last_message_at: c.last_message_at,
-          unread_count: c.unread_count,
-        }));
-
-        setConversations(normalized);
-        setTotalUnreadCount(normalized.reduce((s: number, n: any) => s + (n.unread_count || 0), 0));
+        // Only load message cards when user opens the messages tab or on mount (defensive)
+        await refreshMessageCards();
       } catch (e) {
-        console.warn('[UserDashboard] Failed to load message_cards:', e);
+        console.warn('[UserDashboard] Failed to refresh message_cards on mount:', e);
       }
 
       try {
@@ -185,7 +207,14 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
       mounted = false;
       if (unsub) unsub();
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, activeTab]);
+
+  // When Messages tab is selected, proactively refresh message cards (helps when switching accounts or after actions)
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      refreshMessageCards();
+    }
+  }, [activeTab]);
 
   // Ensure we attempt an initial refresh when the context becomes available
   useEffect(() => {
@@ -957,7 +986,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => chatContext.refreshConversations()}
+                  onClick={() => refreshMessageCards()}
                   className="mx-auto"
                 >
                   Refresh
