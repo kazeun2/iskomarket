@@ -201,14 +201,12 @@ export async function getTransaction(transactionId: string) {
       let profiles: any[] = [];
       if (ids.length) {
         // Try lookup by id (newer schemas) then fallback to user_id
-        let profiles: any[] = [];
         const { data: psById } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').in('id', ids);
         if (psById && psById.length) profiles = psById;
         else {
           const { data: psByUserId } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').in('user_id', ids);
           profiles = psByUserId || [];
         }
-        profiles = ps || [];
       }
 
       const buyer = profiles.find((p) => p.id === simple.sender_id) || null;

@@ -30,6 +30,9 @@ Add this code after the "Season Summary" button and before `</CardContent>`:
 ```
 
 ## Notes
+- An active maintenance window will display a prominent status card at the top of the Quick Actions panel for admins with a **Cancel Maintenance** button.
+
+
 - The `showSystemAlert` state variable already exists (line 54)
 - The `SystemAlertModal` component is already imported (line 3)
 - The `AlertOctagon` icon is already imported (line 2)

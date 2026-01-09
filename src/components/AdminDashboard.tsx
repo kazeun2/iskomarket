@@ -65,6 +65,7 @@ import {
 import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
 import { InactiveAccountsPanel } from "./InactiveAccountsPanel";
+import { adminFlags } from "../config/adminFlags";
 import { WarningConfirmationModal } from "./WarningConfirmationModal";
 import { SeasonResetCountdown } from "./SeasonResetCountdown";
 import {
@@ -329,6 +330,35 @@ export function AdminDashboard({
       if (unsubscribe) unsubscribe();
     };
   }, [currentUser, logsPage]);
+
+  // Listen for maintenance window changes and fetch current active window
+  useEffect(() => {
+    if (isExampleMode(currentUser)) return;
+    let mounted = true;
+
+    let unsubscribe: (() => void) | null = null;
+
+    (async () => {
+      try {
+        const ms = await import('../services/maintenanceService');
+        const { data } = await ms.getActiveMaintenanceWindow();
+        if (!mounted) return;
+        setMaintenanceWindow(data || null);
+
+        unsubscribe = ms.subscribeToMaintenanceWindows((rows: any[] | null) => {
+          if (!mounted) return;
+          setMaintenanceWindow(rows && rows.length ? rows[0] : null);
+        });
+      } catch (e) {
+        console.warn('Failed to load maintenance window (non-fatal):', e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      if (unsubscribe) unsubscribe();
+    };
+  }, [currentUser]);
   const [showAuditLogs, setShowAuditLogs] = useState(false);
   const [adminAuditLogs, setAdminAuditLogs] = useState<AdminAuditUI[]>([]);
   const [selectedProductDetails, setSelectedProductDetails] =
@@ -578,6 +608,10 @@ export function AdminDashboard({
   const [showFullSeasonStats, setShowFullSeasonStats] =
     useState(false);
   const [showSystemAlert, setShowSystemAlert] = useState(false);
+  // Maintenance window state (active window shown to admins)
+  const [maintenanceWindow, setMaintenanceWindow] = useState<any | null>(null);
+  const [showCancelMaintenanceConfirmation, setShowCancelMaintenanceConfirmation] = useState(false);
+  const [isCancellingMaintenance, setIsCancellingMaintenance] = useState(false);
   const [appealSearchTerm, setAppealSearchTerm] = useState("");
   const [activitiesTab, setActivitiesTab] = useState("all");
   const [selectedActivity, setSelectedActivity] =
@@ -1862,41 +1896,51 @@ Cavite State University`;
           <Package className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
           <div className="text-sm text-muted-foreground">Active Products</div>
         </MinimalStatCard>
-        <MinimalStatCard
-          onClick={() => setSelectedStatModal("pendingReports")}
-        >
-          <AlertTriangle className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
-          <div className="text-sm text-muted-foreground">Pending Reports</div>
-        </MinimalStatCard>
-        <MinimalStatCard
-          onClick={() => setSelectedStatModal("todaysActivity")}
-        >
-          <TrendingUp className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
-          <div className="text-sm text-muted-foreground">Today's Activity</div>
-        </MinimalStatCard>
-        <MinimalStatCard
-          onClick={() => setSelectedStatModal("flaggedUsers")}
-        >
-          <Ban className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
-          <div className="text-sm text-muted-foreground">Flagged Users</div>
-        </MinimalStatCard>
-        <MinimalStatCard
-          onClick={() => setSelectedStatModal("appeals")}
-        >
-          <Mail className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
-          <div className="text-sm text-muted-foreground">Appeals</div>
-        </MinimalStatCard>
-        <MinimalStatCard
-          onClick={handleSeasonResetClick}
-          className="relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-950/40 dark:to-red-950/40 opacity-50" />
-          <div className="relative">
-            <RefreshCw className="h-6 w-6 text-orange-600 dark:text-orange-400 mx-auto mb-2" />
-            <div className="text-sm text-orange-900 dark:text-orange-200">Season Reset</div>
-          </div>
-          <div className="absolute inset-0 shadow-[0_0_20px_rgba(251,146,60,0.3)] dark:shadow-[0_0_20px_rgba(251,146,60,0.2)] pointer-events-none" />
-        </MinimalStatCard>
+        {adminFlags.pendingReports && (
+          <MinimalStatCard
+            onClick={() => setSelectedStatModal("pendingReports")}
+          >
+            <AlertTriangle className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
+            <div className="text-sm text-muted-foreground">Pending Reports</div>
+          </MinimalStatCard>
+        )}
+        {adminFlags.todaysActivity && (
+          <MinimalStatCard
+            onClick={() => setSelectedStatModal("todaysActivity")}
+          >
+            <TrendingUp className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
+            <div className="text-sm text-muted-foreground">Today's Activity</div>
+          </MinimalStatCard>
+        )}
+        {adminFlags.flaggedUsers && (
+          <MinimalStatCard
+            onClick={() => setSelectedStatModal("flaggedUsers")}
+          >
+            <Ban className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
+            <div className="text-sm text-muted-foreground">Flagged Users</div>
+          </MinimalStatCard>
+        )}
+        {adminFlags.appeals && (
+          <MinimalStatCard
+            onClick={() => setSelectedStatModal("appeals")}
+          >
+            <Mail className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
+            <div className="text-sm text-muted-foreground">Appeals</div>
+          </MinimalStatCard>
+        )}
+        {adminFlags.seasonReset && (
+          <MinimalStatCard
+            onClick={handleSeasonResetClick}
+            className="relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-950/40 dark:to-red-950/40 opacity-50" />
+            <div className="relative">
+              <RefreshCw className="h-6 w-6 text-orange-600 dark:text-orange-400 mx-auto mb-2" />
+              <div className="text-sm text-orange-900 dark:text-orange-200">Season Reset</div>
+            </div>
+            <div className="absolute inset-0 shadow-[0_0_20px_rgba(251,146,60,0.3)] dark:shadow-[0_0_20px_rgba(251,146,60,0.2)] pointer-events-none" />
+          </MinimalStatCard>
+        )}
       </div>
 
       {/* Main Content Tabs */}
@@ -1908,12 +1952,14 @@ Cavite State University`;
           >
             Overview
           </TabsTrigger>
-          <TabsTrigger
-            value="activities"
-            className="rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
-          >
-            Activities
-          </TabsTrigger>
+          {adminFlags.activitiesTab && (
+            <TabsTrigger
+              value="activities"
+              className="rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+            >
+              Activities
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -1982,7 +2028,8 @@ Cavite State University`;
             </Card>
 
             {/* Quick Actions */}
-            <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative p-6">
+            {adminFlags.quickActions ? (
+              <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative p-6">
               <div
                 className="absolute inset-0 pointer-events-none opacity-[0.015] rounded-[20px]"
                 style={{
@@ -2017,7 +2064,8 @@ Cavite State University`;
 
 
                 {/* Audit Logs - Light Indigo (Light) / Deep Navy (Dark) */}
-                <button
+                {adminFlags.auditLogs && (
+                  <button
                   className="group relative col-span-1 justify-start rounded-2xl px-4 py-3.5 transition-all duration-300 overflow-hidden inline-flex items-center cursor-pointer h-14
                     border border-white/50 dark:border-white/8
                     hover:scale-[1.015] hover:shadow-[0_0_0_3px_rgba(121,134,203,0.15)] dark:hover:shadow-[0_0_0_3px_rgba(200,255,220,0.1)]
@@ -2041,11 +2089,13 @@ Cavite State University`;
                     Audit Logs
                   </span>
                 </button>
+                )}
 
 
 
                 {/* Manage Inactive - Orange (Light) / Deep Brown (Dark) */}
-                <button
+                {adminFlags.manageInactive && (
+                  <button
                   className="group relative col-span-1 justify-start rounded-2xl px-4 py-3.5 transition-all duration-300 overflow-hidden inline-flex items-center cursor-pointer h-14
                     border border-white/50 dark:border-white/8
                     hover:scale-[1.015] hover:shadow-[0_0_0_3px_rgba(255,167,38,0.15)] dark:hover:shadow-[0_0_0_3px_rgba(200,255,220,0.1)]
@@ -2071,8 +2121,28 @@ Cavite State University`;
                     Manage Inactive
                   </span>
                 </button>
+                )}
 
 
+
+                {/* If there's an active maintenance window, show a prominent admin status card */}
+                {maintenanceWindow ? (
+                  <div className="col-span-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-between" role="status">
+                    <div className="flex-1 pr-4">
+                      <div className="font-medium text-yellow-900">Maintenance active: {maintenanceWindow.title}</div>
+                      <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{maintenanceWindow.message || 'Scheduled maintenance is currently active.'}</div>
+                      <div className="text-xs mt-2 text-muted-foreground">
+                        {maintenanceWindow.start_at ? new Date(maintenanceWindow.start_at).toLocaleString() : ''} — {maintenanceWindow.end_at ? new Date(maintenanceWindow.end_at).toLocaleString() : ''}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" className="text-sm" onClick={() => setShowCancelMaintenanceConfirmation(true)} disabled={isCancellingMaintenance}>
+                        {isCancellingMaintenance ? 'Cancelling...' : 'Cancel Maintenance'}
+                      </Button>
+                      <a href="/notifications" className="text-sm underline text-yellow-800">View Notifications</a>
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* System Alert - Red (Light) / Deep Red (Dark) */}
                 <button
@@ -2101,6 +2171,7 @@ Cavite State University`;
                 </button>
               </CardContent>
             </Card>
+            ) : null}
           </div>
         </TabsContent>
 
@@ -2153,7 +2224,8 @@ Cavite State University`;
           </div>
         </TabsContent>
 
-        <TabsContent value="activities" className="space-y-4">
+        {adminFlags.activitiesTab && (
+          <TabsContent value="activities" className="space-y-4">
           <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative">
             <div
               className="absolute inset-0 pointer-events-none opacity-[0.015] rounded-[20px]"
@@ -2725,6 +2797,7 @@ Cavite State University`;
             </CardContent>
           </Card>
         </TabsContent>
+        )}
       </Tabs>
 
       {/* Total Users Modal */}
@@ -4756,12 +4829,14 @@ Cavite State University`
 
 
       {/* Inactive Accounts Panel */}
-      <InactiveAccountsPanel
-        isOpen={showInactiveAccountsPanel}
-        onClose={() => setShowInactiveAccountsPanel(false)}
-        currentUser={currentUser}
-        onSendWarning={onSendWarning as any}
-      />
+      {adminFlags.manageInactive && (
+        <InactiveAccountsPanel
+          isOpen={showInactiveAccountsPanel}
+          onClose={() => setShowInactiveAccountsPanel(false)}
+          currentUser={currentUser}
+          onSendWarning={onSendWarning as any}
+        />
+      )}
 
 
       {/* Full Season Stats Modal removed */}
@@ -4771,6 +4846,53 @@ Cavite State University`
         isOpen={showSystemAlert}
         onClose={() => setShowSystemAlert(false)}
       />
+
+      {/* Cancel Maintenance Confirmation */}
+      <Dialog open={showCancelMaintenanceConfirmation} onOpenChange={() => setShowCancelMaintenanceConfirmation(false)}>
+        <DialogContent className="modal-standard sm:max-w-lg [&>button]:hidden">
+          <DialogHeader className="sticky top-0 bg-background z-50 pb-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              Cancel Maintenance
+            </DialogTitle>
+            <DialogDescription className="sr-only">Confirm cancel maintenance window</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="p-3 rounded-lg border bg-yellow-50 border-yellow-200">
+              <div className="font-medium text-yellow-900">Are you sure you want to cancel the active maintenance window?</div>
+              <div className="text-sm text-muted-foreground mt-2">This will immediately end maintenance and notify users that maintenance has been cancelled.</div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCancelMaintenanceConfirmation(false)}>No, keep maintenance</Button>
+              <Button className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground" onClick={async () => {
+                setIsCancellingMaintenance(true);
+                try {
+                  const ms = await import('../services/maintenanceService');
+                  if (maintenanceWindow && maintenanceWindow.id) {
+                    const res = await ms.cancelMaintenanceWindow(String(maintenanceWindow.id));
+                    if (res && res.error) {
+                      throw res.error;
+                    }
+                    // Optimistically clear local state; realtime subscription will update shortly
+                    setMaintenanceWindow(null);
+                    toast.success('Maintenance cancelled');
+                  }
+                } catch (e) {
+                  console.error('Failed to cancel maintenance:', e);
+                  toast.error('Failed to cancel maintenance');
+                } finally {
+                  setIsCancellingMaintenance(false);
+                  setShowCancelMaintenanceConfirmation(false);
+                }
+              }}>
+                {isCancellingMaintenance ? 'Cancelling...' : 'Cancel Maintenance'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Season Reset Modals */}
       <SeasonResetConfirmationModal

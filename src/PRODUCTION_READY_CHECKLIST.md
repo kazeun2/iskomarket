@@ -342,6 +342,10 @@ VITE_ENABLE_REGISTRATION=true
 VITE_ENABLE_DAILY_SPIN=true
 VITE_ENABLE_SEASONS=true
 VITE_MAINTENANCE_MODE=false
+
+# Maintenance Mode
+- Admins can schedule maintenance windows via the Admin Dashboard (Quick Actions → System Alert). This triggers a full-screen overlay for regular users and a top banner for admins while active.
+- Ensure the `migrations/20260106-add-maintenance-windows.sql` and `migrations/20260108-maintenance-windows-rls.sql` migrations are applied to enable the maintenance table and RLS policies.
 ```
 
 ---

@@ -52,6 +52,7 @@ import {
   subscribeToNotifications 
 } from "../lib/services/notifications";
 import { useAuth } from "../contexts/AuthContext";
+import { adminFlags } from "../config/adminFlags";
 import { isExampleMode } from "../utils/exampleMode";
 
 interface NavigationProps {
@@ -273,6 +274,7 @@ export function Navigation({
           {/* Right Side */}
           <div className="flex items-center space-x-4">
             {/* Notifications Button */}
+            {adminFlags.navbarNotifications && (
             <div className="relative">
               <button
                 data-notification-trigger
@@ -310,6 +312,7 @@ export function Navigation({
                 )}
               </button>
             </div>
+            )}
 
             {/* Theme Toggle */}
             <div className="hidden md:flex items-center">
@@ -417,6 +420,7 @@ export function Navigation({
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Feedback
                 </DropdownMenuItem>
+                {adminFlags.profileDeleteAccount && (
                 <DropdownMenuItem
                   onClick={() =>
                     setShowDeleteAccountModal(true)
@@ -428,6 +432,7 @@ export function Navigation({
                     Delete Account
                   </span>
                 </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator className={isDarkMode ? 'bg-[#14b8a6]/10' : 'bg-[#cfe8ce]'} />
                 <DropdownMenuItem
                   onClick={() => setShowGuidelines(true)}

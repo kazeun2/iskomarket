@@ -30,7 +30,7 @@ export async function getMessageCards(userId: string, limit: number = 100) {
       unread_count,
       created_at,
       updated_at,
-      other_user:other_user_id ( id, user_id, display_name, avatar_url, username )
+      other_user:other_user_id ( id, display_name, avatar_url )
     `)
     .eq('user_id', userId)
     .order('last_message_at', { ascending: false })

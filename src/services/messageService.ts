@@ -320,7 +320,7 @@ export async function getMessages(params: {
         is_read,
         transaction_id,
         automation_type,
-        sender:sender_id ( id, user_id, display_name, avatar_url, username )
+        sender:sender_id ( id, display_name, avatar_url )
       `)
       .eq('conversation_id', params.conversation_id)
       .order('created_at', { ascending: true });

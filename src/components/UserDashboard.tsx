@@ -115,7 +115,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
           conversation_id: c.conversation_id,
           other_user_id: c.other_user_id,
           other_user: c.other_user || null,
-          other_user_name: (c.other_user && (c.other_user.display_name || c.other_user.username)) || undefined,
+          other_user_name: c.other_user?.display_name ?? undefined,
           other_user_username: c.other_user?.username || undefined,
           other_user_avatar: c.other_user?.avatar_url || undefined,
           product_id: c.product_id,
@@ -1001,7 +1001,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
                             avatar: conversation.other_user_avatar,
                             program: undefined,
                             product: conversation.product_title,
-                            otherUser: { id: conversation.other_user_id, username: conversation.other_user_name },
+                            otherUser: { id: conversation.other_user_id, display_name: conversation.other_user_name },
                             conversationId: conversation.conversation_id,
                             productId: conversation.product_id,
                           });
@@ -1032,7 +1032,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <h3 className="font-medium truncate">{conversation.other_user_name || 'Unknown User'}</h3>
+                              <h3 className="font-medium truncate">{conversation.other_user?.display_name ?? 'Unknown User'}</h3>
                             </div>
                             <span className="text-sm text-muted-foreground flex-shrink-0">
                               {conversation.last_message_at ? new Date(conversation.last_message_at).toLocaleDateString() : ''}

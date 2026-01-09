@@ -76,21 +76,25 @@ ALTER TABLE public.messages
 
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints tc
-    JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-    WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = 'messages' AND kcu.column_name = 'sender_id'
-  ) THEN
+  -- Ensure messages.sender_id FK references user_profile(id); drop legacy and re-create using id
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'messages_sender_fk') THEN
+    ALTER TABLE public.messages DROP CONSTRAINT IF EXISTS messages_sender_fk;
+  END IF;
+  BEGIN
     ALTER TABLE public.messages ADD CONSTRAINT messages_sender_fk FOREIGN KEY (sender_id) REFERENCES public.user_profile(id) ON DELETE CASCADE;
-  END IF;
+  EXCEPTION WHEN others THEN
+    RAISE NOTICE 'Failed to add messages_sender_fk: %', SQLERRM;
+  END;
 
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints tc
-    JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-    WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = 'messages' AND kcu.column_name = 'receiver_id'
-  ) THEN
-    ALTER TABLE public.messages ADD CONSTRAINT messages_receiver_fk FOREIGN KEY (receiver_id) REFERENCES public.user_profile(id) ON DELETE CASCADE;
+  -- Ensure messages.receiver_id FK references user_profile(id); drop legacy and re-create using id
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'messages_receiver_fk') THEN
+    ALTER TABLE public.messages DROP CONSTRAINT IF EXISTS messages_receiver_fk;
   END IF;
+  BEGIN
+    ALTER TABLE public.messages ADD CONSTRAINT messages_receiver_fk FOREIGN KEY (receiver_id) REFERENCES public.user_profile(id) ON DELETE CASCADE;
+  EXCEPTION WHEN others THEN
+    RAISE NOTICE 'Failed to add messages_receiver_fk: %', SQLERRM;
+  END;
 END;$$;
 
 -- 3) Ensure message_cards has required columns and FKs to user_profile(id)
@@ -104,20 +108,44 @@ ALTER TABLE public.message_cards
 
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.table_constraints tc
-    JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-    WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = 'message_cards' AND kcu.column_name = 'user_id'
-  ) THEN
-    ALTER TABLE public.message_cards ADD CONSTRAINT message_cards_user_fk FOREIGN KEY (user_id) REFERENCES public.user_profile(id) ON DELETE CASCADE;
+  -- Ensure message_cards.user_id FK references user_profile(id); drop legacy and recreate
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'message_cards_user_fk') THEN
+    ALTER TABLE public.message_cards DROP CONSTRAINT IF EXISTS message_cards_user_fk;
   END IF;
+  BEGIN
+    ALTER TABLE public.message_cards ADD CONSTRAINT message_cards_user_fk FOREIGN KEY (user_id) REFERENCES public.user_profile(id) ON DELETE CASCADE;
+  EXCEPTION WHEN others THEN
+    RAISE NOTICE 'Failed to add message_cards_user_fk: %', SQLERRM;
+  END;
 
+  -- Ensure message_cards.other_user_id FK references user_profile(id); drop legacy and recreate
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'message_cards_other_user_fk') THEN
+    ALTER TABLE public.message_cards DROP CONSTRAINT IF EXISTS message_cards_other_user_fk;
+  END IF;
+  BEGIN
+    ALTER TABLE public.message_cards ADD CONSTRAINT message_cards_other_user_fk FOREIGN KEY (other_user_id) REFERENCES public.user_profile(id) ON DELETE CASCADE;
+  EXCEPTION WHEN others THEN
+    RAISE NOTICE 'Failed to add message_cards_other_user_fk: %', SQLERRM;
+  END;
+  -- Ensure messages.conversation_id FK references conversations(id)
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.table_constraints tc
     JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-    WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = 'message_cards' AND kcu.column_name = 'other_user_id'
+    WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = 'messages' AND kcu.column_name = 'conversation_id'
   ) THEN
-    ALTER TABLE public.message_cards ADD CONSTRAINT message_cards_other_user_fk FOREIGN KEY (other_user_id) REFERENCES public.user_profile(id) ON DELETE CASCADE;
+    ALTER TABLE public.messages ADD CONSTRAINT messages_conversation_fk FOREIGN KEY (conversation_id) REFERENCES public.conversations(id) ON DELETE CASCADE;
+  END IF;
+END;$$;
+
+-- Ensure message_cards.conversation_id FK references conversations(id)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
+    WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = 'message_cards' AND kcu.column_name = 'conversation_id'
+  ) THEN
+    ALTER TABLE public.message_cards ADD CONSTRAINT message_cards_conversation_fk FOREIGN KEY (conversation_id) REFERENCES public.conversations(id) ON DELETE CASCADE;
   END IF;
 END;$$;
 
