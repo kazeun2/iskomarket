@@ -2002,7 +2002,25 @@ Cavite State University`;
               </CardContent>
             </Card>
 
-            {/* System Alert - always visible */}
+            {/* Maintenance banner (admin POV) */}
+            {maintenanceIsActive && (
+              <section className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-900 shadow-sm mb-4">
+                <h3 className="text-base font-semibold text-amber-900">
+                  Scheduled maintenance
+                </h3>
+                <p className="mt-2">
+                  {maintenanceTitle ?? "Scheduled maintenance"}
+                </p>
+                <p className="mt-1">
+                  {maintenanceMessage ?? "IskoMarket will be undergoing scheduled maintenance and will be temporarily unavailable. We apologize for any inconvenience."}
+                </p>
+                <p className="mt-3 text-xs text-amber-800">
+                  We’ll return the site to normal automatically when maintenance ends.
+                </p>
+              </section>
+            )}
+
+            {/* System Alert - quick action (ALWAYS VISIBLE for admins) */}
             <div className="mb-4">
               <button
                 className="w-full rounded-[12px] py-3 px-4 bg-red-600 text-white hover:bg-red-700 font-medium"
@@ -2014,7 +2032,7 @@ Cavite State University`;
               </button>
             </div>
 
-            {/* Quick Actions */}
+            {/* Quick Actions (additional cards, gated by flag) */}
             {adminFlags.quickActions ? (
               <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative p-6">
               <div
@@ -2112,21 +2130,7 @@ Cavite State University`;
 
 
 
-                {/* If there's an active maintenance window, show a prominent admin status card */}
-                {maintenanceIsActive ? (
-                  <div className="col-span-2 p-3 rounded-lg bg-yellow-50 border border-yellow-200 flex items-center justify-between" role="status">
-                    <div className="flex-1 pr-4">
-                      <div className="font-medium text-yellow-900">Maintenance active: {maintenanceTitle}</div>
-                      <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{maintenanceMessage || 'Scheduled maintenance is currently active.'}</div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Button variant="outline" className="text-sm" onClick={() => setShowCancelMaintenanceConfirmation(true)} disabled={isCancellingMaintenance}>
-                        {isCancellingMaintenance ? 'Cancelling...' : 'Cancel Maintenance'}
-                      </Button>
-                      <a href="/notifications" className="text-sm underline text-yellow-800">View Notifications</a>
-                    </div>
-                  </div>
-                ) : null}
+
 
                 {/* System Alert - Red (Light) / Deep Red (Dark) */}
                 <button

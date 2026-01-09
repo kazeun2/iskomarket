@@ -726,7 +726,7 @@ export default function App() {
     };
   }, []);
 
-  // Maintenance manager (shows overlay or banner depending on role)
+  // Maintenance manager (shows overlay only for non-admins; admins see an in-dashboard banner)
   function MaintenanceManager() {
     // Use the new singleton-based maintenance status
     const { id, isActive, title, message } = useMaintenanceStatus()
@@ -735,10 +735,14 @@ export default function App() {
 
     if (!isActive) return null
 
-    // For admins we still show the banner (MaintenanceOverlay handles admin banner)
-    return (
-      <MaintenanceOverlay title={title} message={message || ''} currentWindowId={id} isAdmin={isAdmin} />
-    )
+    // Only show the fullscreen blocking overlay for non-admin users; admins render the banner inline inside AdminDashboard
+    if (!isAdmin) {
+      return (
+        <MaintenanceOverlay title={title} message={message || ''} currentWindowId={id} isAdmin={false} />
+      )
+    }
+
+    return null
   }
 
   // Floating widgets and modals state

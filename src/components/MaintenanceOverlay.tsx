@@ -47,7 +47,7 @@ export function MaintenanceOverlay({ title = 'System Maintenance', message = '',
 
   // Non-admin users: fullscreen lock
   return (
-    <div className="fixed inset-0 z-[1300] bg-white dark:bg-black/95 flex items-center justify-center p-6" style={{ pointerEvents: 'auto' }}>
+    <div className="fixed inset-0 z-[200000] bg-white dark:bg-black/95 flex items-center justify-center p-6" style={{ pointerEvents: 'auto' }}>
       <div className="max-w-3xl w-full rounded-lg border p-6 bg-white dark:bg-[#06110b] shadow-lg text-center select-none">
         <h2 className="text-2xl font-semibold mb-3">{title}</h2>
         <p className="text-sm text-muted-foreground mb-6 whitespace-pre-line">{message}</p>

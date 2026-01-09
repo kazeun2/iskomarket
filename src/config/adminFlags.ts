@@ -15,6 +15,8 @@ export const adminFlags = {
   quickActions: false,
   auditLogs: false,
   manageInactive: false,
+  // System Alert quick action is always available for admins
+  showSystemAlert: true,
 
   // Navbar / profile
   navbarNotifications: false,
