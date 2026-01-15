@@ -1940,7 +1940,7 @@ Cavite State University`;
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Season Calendar */}
-            <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative">
+            <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative">
               <div
                 className="absolute inset-0 pointer-events-none opacity-[0.015] rounded-[20px]"
                 style={{
@@ -1990,7 +1990,7 @@ Cavite State University`;
                 </div>
 
                 {/* Season Countdown */}
-                <div className="p-4 rounded-[12px] bg-white dark:bg-[#0F2820] border-2 border-gray-200 dark:border-gray-700">
+                <div className="p-4 rounded-[12px] bg-[var(--card)] dark:bg-[#0F2820] border-2 border-gray-200 dark:border-gray-700">
                   <div className="flex items-center gap-2 mb-2">
                     <Clock className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -2034,7 +2034,7 @@ Cavite State University`;
 
             {/* Quick Actions (additional cards, gated by flag) */}
             {adminFlags.quickActions ? (
-              <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative p-6">
+              <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative p-6">
               <div
                 className="absolute inset-0 pointer-events-none opacity-[0.015] rounded-[20px]"
                 style={{
@@ -2214,7 +2214,7 @@ Cavite State University`;
 
         {adminFlags.activitiesTab && (
           <TabsContent value="activities" className="space-y-4">
-          <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] backdrop-blur-sm overflow-hidden relative">
+          <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] overflow-hidden relative">
             <div
               className="absolute inset-0 pointer-events-none opacity-[0.015] rounded-[20px]"
               style={{
@@ -3137,7 +3137,7 @@ Cavite State University`;
             {activeUsersList.map((user) => (
               <Card
                 key={user.id}
-                className="cursor-pointer hover:shadow-xl transition-all border-2 rounded-[16px] border-[#cfe8ce] dark:border-[#14b8a6]/20 bg-white dark:bg-[var(--card)] shadow-lg dark:shadow-[0_0_20px_rgba(20,184,166,0.15)]"
+                className="cursor-pointer hover:shadow-xl transition-all border-2 rounded-[16px] border-[#cfe8ce] dark:border-[#14b8a6]/20 bg-[var(--card)] dark:bg-[var(--card)] shadow-lg dark:shadow-[0_0_20px_rgba(20,184,166,0.15)]"
                 style={{
                   boxShadow: "0 4px 16px rgba(0, 100, 0, 0.08)",
                 }}
@@ -3269,7 +3269,7 @@ Cavite State University`;
 
                             {/* Product Preview */}
                             {report.type === "product" && report.productDetails && (
-                              <div className="bg-white/60 dark:bg-gray-900/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-4 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-200 cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedProductDetails(report.productDetails); setShowProductDetailModal(true); setSelectedStatModal(null); }} title="Click to view product details">
+                              <div className="bg-[var(--card)]/60 dark:bg-gray-900/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-4 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-200 cursor-pointer" onClick={(e) => { e.stopPropagation(); setSelectedProductDetails(report.productDetails); setShowProductDetailModal(true); setSelectedStatModal(null); }} title="Click to view product details">
                                 <div className="flex gap-3">
                                   <ImageWithFallback src={report.productDetails.image} alt={report.productDetails.title} className="w-20 h-20 object-cover rounded-xl flex-shrink-0" />
                                   <div className="flex-1 min-w-0">
@@ -3539,7 +3539,7 @@ Cavite State University`;
                 placeholder="Search by username, email, or appeal ID..."
                 value={appealSearchTerm}
                 onChange={(e) => setAppealSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-[16px] border border-gray-300 dark:border-[#14b8a6]/20 bg-white dark:bg-[#0a1628] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-emerald-500/20 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 rounded-[16px] border border-gray-300 dark:border-[#14b8a6]/20 bg-[var(--card)] dark:bg-[#0a1628] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-emerald-500/20 transition-all"
               />
             </div>
           </div>
@@ -4689,7 +4689,7 @@ Cavite State University`
           {/* Filters */}
           <div className="flex gap-2 pb-4 border-b-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 mt-4">
             <select
-              className="flex h-12 rounded-[12px] border-2 px-4 py-2 text-sm bg-white dark:bg-[var(--card)] border-[#cfe8ce] dark:border-[#14b8a6]/20 text-[#006400] dark:text-[#4ade80] focus:outline-none focus:ring-2 focus:ring-[#006400] dark:focus:ring-[#14b8a6] hover:border-[#006400] dark:hover:border-[#14b8a6] transition-all duration-300 cursor-pointer backdrop-blur-sm hover:scale-[1.02] active:scale-[0.98]"
+              className="flex h-12 rounded-[12px] border-2 px-4 py-2 text-sm bg-[var(--card)] dark:bg-[var(--card)] border-[#cfe8ce] dark:border-[#14b8a6]/20 text-[#006400] dark:text-[#4ade80] focus:outline-none focus:ring-2 focus:ring-[#006400] dark:focus:ring-[#14b8a6] hover:border-[#006400] dark:hover:border-[#14b8a6] transition-all duration-300 cursor-pointer backdrop-blur-sm hover:scale-[1.02] active:scale-[0.98]"
               value={auditLogFilter.action}
               onChange={(e) =>
                 setAuditLogFilter({

@@ -31,7 +31,7 @@ export function WarningSuccessToast({ username, onClose }: WarningSuccessToastPr
       }`}
       style={{ maxWidth: '400px' }}
     >
-      <div className="bg-white dark:bg-card rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-green-200 dark:border-green-800 p-4">
+      <div className="bg-[var(--card)] dark:bg-card rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-green-200 dark:border-green-800 p-4">
         <div className="flex items-start gap-3">
           {/* Green checkmark icon */}
           <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">

@@ -39,7 +39,7 @@ export function ActivityDetailModal({ isOpen, onClose, activity }: ActivityDetai
     <>
       {/* Backdrop overlay */}
       <div
-        className="fixed inset-0 bg-white dark:backdrop-blur-sm z-[102] transition-opacity"
+        className="fixed inset-0 bg-black/40 dark:bg-black/60 z-[102] transition-opacity"
         onClick={onClose}
       />
 

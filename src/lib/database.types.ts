@@ -302,6 +302,9 @@ export interface Database {
           sender_id: string
           receiver_id: string
           message: string
+          message_text?: string | null
+          content?: string | null
+          body?: string | null
           product_id: string | null
           transaction_id: string | null
           is_read: boolean
@@ -309,12 +312,16 @@ export interface Database {
           is_automated: boolean
           automation_type: string | null
           created_at: string
+          conversation_id?: string | null
         }
         Insert: {
           id?: string
           sender_id: string
           receiver_id: string
           message: string
+          message_text?: string | null
+          content?: string | null
+          body?: string | null
           product_id?: string | null
           transaction_id?: string | null
           is_read?: boolean
@@ -322,18 +329,78 @@ export interface Database {
           is_automated?: boolean
           automation_type?: string | null
           created_at?: string
+          conversation_id?: string | null
         }
         Update: {
           id?: string
           sender_id?: string
           receiver_id?: string
           message?: string
+          message_text?: string | null
+          content?: string | null
+          body?: string | null
           product_id?: string | null
           transaction_id?: string | null
           is_read?: boolean
           read_at?: string | null
           is_automated?: boolean
           automation_type?: string | null
+          created_at?: string
+          conversation_id?: string | null
+        }
+      }
+      conversations: {
+        Row: {
+          id: string
+          product_id: string | null
+          buyer_id: string | null
+          seller_id: string | null
+          last_message_id: string | null
+          last_message_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          product_id?: string | null
+          buyer_id?: string | null
+          seller_id?: string | null
+          last_message_id?: string | null
+          last_message_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string | null
+          buyer_id?: string | null
+          seller_id?: string | null
+          last_message_id?: string | null
+          last_message_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          user_id: string
+          role: string | null
+          last_read_at: string | null
+          created_at: string
+        }
+        Insert: {
+          conversation_id: string
+          user_id: string
+          role?: string | null
+          last_read_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          user_id?: string
+          role?: string | null
+          last_read_at?: string | null
           created_at?: string
         }
       }

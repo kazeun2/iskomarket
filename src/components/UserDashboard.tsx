@@ -38,9 +38,10 @@ import { isExampleMode, filterExampleData } from '../utils/exampleMode';
 import { useChatOptional } from '../contexts/ChatContext';
 import { useOptionalOverlayManager } from '../contexts/OverlayManager';
 
-// Messaging: message cards + realtime subscription
+// Messaging: conversations + realtime subscription
 import { getMessageCards, subscribeToMessageCards, markMessageCardRead } from '../lib/services/messageCards';
 import { markAsRead } from '../services/messageService';
+import { listConversations as chatListConversations } from '../lib/chatService';
 
 import { DailySpinCard } from './DailySpinCard';
 import { SeasonAnnouncementCard } from './SeasonAnnouncementCard';
@@ -114,21 +115,21 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
         }
       }
 
-      const cards = await getMessageCards(currentUser.id);
-      // Normalize to the conversations shape the UI expects
-      const normalized = (cards || []).map((c: any) => ({
-        conversation_id: c.conversation_id,
-        other_user_id: c.other_user_id,
-        other_user: c.other_user || null,
-        other_user_name: c.other_user?.display_name ?? undefined,
-        other_user_username: c.other_user?.username || undefined,
-        other_user_avatar: c.other_user?.avatar_url || undefined,
-        product_id: c.product_id,
-        product_title: undefined,
+      // Prefer the chatService for a richer conversation + product view
+      const convs = await chatListConversations(currentUser.id);
+      const normalized = (convs || []).map((c: any) => ({
+        conversation_id: c.id,
+        other_user_id: c.otherUser?.id,
+        other_user: c.otherUser || null,
+        other_user_name: c.otherUser?.username ?? undefined,
+        other_user_username: c.otherUser?.username ?? undefined,
+        other_user_avatar: c.otherUser?.avatar_url ?? undefined,
+        product_id: c.product?.id,
+        product_title: c.product?.title,
         conversation: c,
-        last_message: c.last_message,
-        last_message_at: c.last_message_at,
-        unread_count: c.unread_count,
+        last_message: c.lastMessage?.body,
+        last_message_at: c.lastMessage?.created_at,
+        unread_count: 0,
       })).sort((a: any, b: any) => new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime());
 
       setConversations(normalized);

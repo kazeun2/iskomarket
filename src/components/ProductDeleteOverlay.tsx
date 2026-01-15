@@ -8,7 +8,7 @@ export function ProductDeleteOverlay({ product, initialReason = "", onClose, onC
 
   return (
     <div className="w-full max-w-[520px] p-4">
-      <div className="bg-white dark:bg-[#04121a] rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-[var(--card)] dark:bg-[#04121a] rounded-lg shadow-lg overflow-hidden">
         <div className="p-6 border-b flex items-center gap-3">
           <AlertCircle className="h-5 w-5 text-red-600" />
           <div>

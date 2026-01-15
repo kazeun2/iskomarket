@@ -17,11 +17,11 @@ describe('updateProduct fallback on relationship error', () => {
               select: (sel?: string) => {
                 // Simulate nested select failing with PGRST204
                 if (typeof sel === 'string' && sel.includes('seller:users!seller_id')) {
-                  return Promise.resolve({ data: null, error: { code: 'PGRST204', message: "Could not find the 'seller' column of 'products' in the schema cache" } })
+                  return { maybeSingle: () => Promise.resolve({ data: null, error: { code: 'PGRST204', message: "Could not find the 'seller' column of 'products' in the schema cache" } }) }
                 }
 
                 // Fallback update (no select) -> success
-                return Promise.resolve({ data: null, error: null })
+                return { maybeSingle: () => Promise.resolve({ data: null, error: null }) }
               }
             })
           }),

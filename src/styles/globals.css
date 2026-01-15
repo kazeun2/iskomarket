@@ -13,10 +13,10 @@
   --iskomarket-pure-white: #ffffff;
 
   /* Updated theme colors using the new palette */
-  /* Page background removed: transparent so only cards/sections define color */
-  --background: transparent;
+  /* Page background: set to off-white so pages and modals in light mode use a warm neutral */
+  --background: #f9fafb; /* off-white page background (light mode) */
   --foreground: #003300;
-  --card: #ffffff;
+  --card: #f6f9f7;      /* off-white card surface (light mode) */
   --card-foreground: #003300;
   --popover: #ffffff;
   --popover-foreground: #003300;
@@ -318,7 +318,15 @@ html[data-theme="light"] body.modal-open * {
 html[data-theme="light"] body.modal-open [data-slot="dialog-portal"] * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  filter: none !important;
+}
+
+/* Ensure transparent utility classes inside dialogs/modals become solid off-white in light mode */
+html[data-theme="light"] .modal-standard [class*="bg-transparent"],
+html[data-theme="light"] [data-product-detail="true"] [class*="bg-transparent"] {
+  background: var(--card) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: var(--border) !important;
 }
 
 /* Strong override: force every element rendered inside a dialog portal to use solid off-white
@@ -3075,6 +3083,29 @@ html[data-theme="light"] .banner-enhanced .trusted-board-btn, .theme-user .banne
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     border-color: var(--border) !important;
+  }
+
+  /* Neutralize literal white gradients and blur utilities across site in light mode (non-modal) */
+  html[data-theme="light"] [class*="from-white"],
+  html[data-theme="light"] [class*="to-white"],
+  html[data-theme="light"] [class*="via-white"],
+  html[data-theme="light"] [class*="bg-white"],
+  html[data-theme="light"] [class*="bg-white/"],
+  html[data-theme="light"] [class*="backdrop-blur"],
+  html[data-theme="light"] [class*="backdrop-blur-"] {
+    background: var(--card) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-color: var(--border) !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06) !important;
+  }
+
+  /* Allow explicit opt-in of pure-white surfaces with `.allow-white` */
+  html[data-theme="light"] .allow-white,
+  html[data-theme="light"] .allow-white * {
+    background: #ffffff !important;
+    border-color: rgba(0,0,0,0.06) !important;
   }
 
   /* Allow explicitly opting into a pure-white modal surface by adding .modal-pure-white */

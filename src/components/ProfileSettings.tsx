@@ -56,14 +56,14 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
 
   return (
     <div 
-      className="fixed inset-0 bg-transparent backdrop-blur-sm dark:backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
     >
-      <div className="modal-standard modal-pure-white dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] rounded-[24px] max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 animate-in zoom-in-95 duration-200 flex flex-col">
+      <div className="modal-standard bg-[var(--card)] dark:bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] rounded-[24px] max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 animate-in zoom-in-95 duration-200 flex flex-col">
         {/* Header Section - Compact and clean */}
         <div className="px-8 pt-6 pb-4 border-b border-[#cfe8ce] dark:border-[#14b8a6]/20">
           <h2 className="text-[24px] font-bold text-[#006400] dark:text-[#4ade80] mb-1">

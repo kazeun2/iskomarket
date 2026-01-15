@@ -329,18 +329,17 @@ export function NotificationsModal({
     <>
       {/* Backdrop overlay */}
       <div
-        className="fixed inset-0 bg-transparent backdrop-blur-sm dark:bg-[rgba(0,0,0,0.4)] dark:backdrop-blur-sm z-[100] transition-opacity pointer-events-none"
-        style={{ backdropFilter: 'blur(6px)' }}
+        className="fixed inset-0 bg-black/40 dark:bg-black/60 z-[100] transition-opacity pointer-events-none"
       />
 
       {/* Modal container - FIXED SIZE */}
       <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
         <div
-          className="bg-white dark:bg-white rounded-[24px] shadow-2xl dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] w-full max-w-[calc(100%-32px)] md:max-w-[540px] lg:max-w-[600px] h-[90vh] max-h-[700px] flex flex-col pointer-events-auto border border-gray-200 dark:border-gray-200 dark:backdrop-blur-xl overflow-hidden"
+          className="bg-[var(--card)] dark:bg-[var(--card)] rounded-[24px] shadow-2xl dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] w-full max-w-[calc(100%-32px)] md:max-w-[540px] lg:max-w-[600px] h-[90vh] max-h-[700px] flex flex-col pointer-events-auto border border-gray-200 dark:border-gray-200 dark:backdrop-blur-xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header - sticky */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-green-900/20 bg-white dark:bg-gradient-to-r dark:from-[#1a2f1a]/90 dark:via-[#1a2317]/90 dark:to-[#1a1f1a]/90 dark:backdrop-blur-sm flex-shrink-0">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-green-900/20 bg-[var(--card)] dark:bg-gradient-to-r dark:from-[#1a2f1a]/90 dark:via-[#1a2317]/90 dark:to-[#1a1f1a]/90 dark:backdrop-blur-sm flex-shrink-0">
             <h2 className="text-[22px] md:text-[24px] dark:text-white">Notifications</h2>
             <button
               onClick={onClose}
@@ -352,7 +351,7 @@ export function NotificationsModal({
           </div>
 
           {/* Tabs */}
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-green-900/20 bg-white dark:bg-gradient-to-r dark:from-[#1a2f1a]/50 dark:via-[#1a2317]/50 dark:to-[#1a1f1a]/50 flex-shrink-0">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-green-900/20 bg-[var(--card)] dark:bg-gradient-to-r dark:from-[#1a2f1a]/50 dark:via-[#1a2317]/50 dark:to-[#1a1f1a]/50 flex-shrink-0">
             <NotificationTabs
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}

@@ -5,14 +5,14 @@ import { supabase } from '../../src/lib/supabase'
 function mockQuery(result: any) {
   return {
     select: () => ({
-      or: () => ({ order: () => ({ limit: () => Promise.resolve(result) }) }),
-      order: () => ({ limit: () => Promise.resolve(result) }),
+      or: () => ({ order: () => ({ limit: () => Promise.resolve(result), maybeSingle: () => Promise.resolve(result) }), maybeSingle: () => Promise.resolve(result) }),
+      order: () => ({ limit: () => Promise.resolve(result), maybeSingle: () => Promise.resolve(result) }),
       limit: () => Promise.resolve(result),
-      eq: () => ({ order: () => ({ limit: () => Promise.resolve(result) }) }),
+      eq: () => ({ order: () => ({ limit: () => Promise.resolve(result), maybeSingle: () => Promise.resolve(result) }), maybeSingle: () => Promise.resolve(result), limit: () => Promise.resolve(result) }),
       maybeSingle: () => Promise.resolve(result),
     }),
   }
-}
+} 
 
 describe('getConversations (transaction-derived)', () => {
   beforeEach(() => {
@@ -34,5 +34,26 @@ describe('getConversations (transaction-derived)', () => {
     const found = res.data?.find(c => String(c.conversation_id).startsWith('tx:tx1'))
     expect(found).toBeDefined()
     expect(found?.last_message).toContain('(No messages yet)')
+  })
+
+  it('sendMessage inserts body and returns normalized message.message field', async () => {
+    // Mock auth to return user
+    vi.spyOn(supabase.auth, 'getUser').mockResolvedValue({ data: { user: { id: 'u1' } } } as any)
+
+    // Mock conversations insert (not needed if conversation_id provided)
+    vi.spyOn(supabase, 'from').mockImplementation((table: string) => {
+      if (table === 'messages') {
+        return {
+          insert: (payload: any) => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 'm1', ...payload, created_at: '2026-01-02T00:00:00Z' }, error: null }) }) })
+        } as any
+      }
+      return mockQuery({ data: [], error: null }) as any
+    })
+
+    const res = await msg.sendMessage({ sender_id: 'u1', receiver_id: 'u2', conversation_id: 'c1', message: 'Hello world' })
+    expect(res.error).toBeNull()
+    expect(res.data).toBeDefined()
+    expect((res.data as any).body).toBe('Hello world')
+    expect((res.data as any).message).toBe('Hello world')
   })
 })

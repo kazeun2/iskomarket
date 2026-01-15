@@ -149,9 +149,7 @@ export function OverlayHost() {
       {/* Backdrop */}
       <div
         data-slot="dialog-overlay"
-        className="fixed inset-0 bg-white dark:backdrop-blur-sm"
-        onClick={() => hide()}
-        style={{ zIndex: 40000 }}
+      className="fixed inset-0 bg-black/40 dark:bg-black/60"
       />
 
       <div data-slot="dialog-content" className="relative z-[40001] w-full min-h-screen flex items-center justify-center" style={{ zIndex: 40001 }}>

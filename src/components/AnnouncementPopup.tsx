@@ -158,7 +158,7 @@ export function AnnouncementPopup({
           </div>
 
           {/* Message */}
-          <div className="p-4 rounded-lg bg-white dark:bg-[rgba(14,24,20,0.55)] border border-[rgba(0,128,64,0.18)] dark:border-[rgba(0,255,160,0.22)]">
+          <div className="p-4 rounded-lg bg-[var(--card)] dark:bg-[rgba(14,24,20,0.55)] border border-[rgba(0,128,64,0.18)] dark:border-[rgba(0,255,160,0.22)]">
             <p className="text-sm text-[#064E33] dark:text-[#E9FFF4] whitespace-pre-wrap">
               {message}
             </p>

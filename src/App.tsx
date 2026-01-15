@@ -43,6 +43,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./components/ui/dialog";
+import Modal from "./components/Modal";
 import {
   Tabs,
   TabsContent,
@@ -896,24 +897,8 @@ export default function App() {
 
         const offWhite = '#f6f9f7';
 
-        if (!isDarkMode) {
-          // Enforce an explicit off-white background for verification (non-destructive) — only in light mode.
-          root.style.setProperty('--bg-root', offWhite);
-          root.style.setProperty('--background', offWhite);
-          root.style.setProperty('--app-bg', offWhite);
-          // Also ensure the body background reflects the change immediately
-          document.body.style.background = offWhite;
-
-          console.log('Enforced off-white tokens and body background (dev only, light mode)');
-        } else {
-          // Clean up prior dev-only inline overrides when switching to dark mode.
-          root.style.removeProperty('--bg-root');
-          root.style.removeProperty('--background');
-          root.style.removeProperty('--app-bg');
-          document.body.style.background = '';
-
-          console.log('Cleared dev-only light overrides for dark mode');
-        }
+        // Development diagnostics only: do not modify runtime CSS tokens so dev and prod visuals match.
+        console.log('Theme diagnostics run (dev only) — no runtime style changes applied');
 
         console.log('--bg-root (new):', getComputedStyle(root).getPropertyValue('--bg-root'));
         console.groupEnd();
@@ -1723,7 +1708,7 @@ export default function App() {
         {/* Apply theme class to the app root so CSS tokens take effect for navbar, hero and background */}
         {/* Maintenance overlay: if a window is active, show it via hook. Admins see a small banner, non-admins are locked out */}
         <MaintenanceManager />
-        <div className={`${userType === 'admin' ? 'theme-admin' : 'theme-user'} min-h-screen bg-background`}>
+        <div className={`${userType === 'admin' ? 'theme-admin' : 'theme-user'} min-h-screen bg-neutral-50 dark:bg-neutral-900`}>
       <Navigation
         currentView={currentView}
         setCurrentView={setCurrentView}
@@ -2014,7 +1999,7 @@ export default function App() {
 
               {/* Quick Moderation Tests - Only for Admin - Premium Fintech */}
               {userType === "admin" && (
-                <div className="relative rounded-[20px] bg-gradient-to-br from-white/85 via-white/75 to-[#F1F8F4]/70 dark:from-[#0c251b]/95 dark:via-[#092017]/90 dark:to-[#0a1f14]/85 backdrop-blur-[12px] dark:backdrop-blur-[18px] border-[1.5px] border-[#4CAF50]/12 dark:border-[#00C87D]/10 shadow-[0_2px_12px_rgba(76,175,80,0.08)] dark:shadow-[0_4px_20px_rgba(0,200,125,0.12),0_0_60px_rgba(0,200,125,0.03)] p-4 mt-2 overflow-hidden">
+                <div className="relative rounded-[20px] bg-[var(--card)] border-[1.5px] border-[#4CAF50]/12 dark:border-[#00C87D]/10 shadow-[0_2px_12px_rgba(76,175,80,0.08)] dark:shadow-[0_4px_20px_rgba(0,200,125,0.12),0_0_60px_rgba(0,200,125,0.03)] p-4 mt-2 overflow-hidden">
                   
                   {/* Noise Texture - Light Mode */}
                   <div 
@@ -2108,7 +2093,7 @@ export default function App() {
                     box-shadow: 0 6px 24px rgba(0,0,0,0.35) !important;
                   }
                 `}</style>
-                <CardHeader className="p-4 pb-3 mb-2 border-b border-[rgba(0,128,0,0.15)] dark:border-[rgba(20,184,166,0.30)] bg-transparent dark:bg-transparent">
+                <CardHeader className="p-4 pb-3 mb-2 border-b border-[rgba(0,128,0,0.15)] dark:border-[rgba(20,184,166,0.30)] bg-[var(--card)] dark:bg-transparent">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-full bg-[#00612D]/10 dark:bg-emerald-500/20 flex items-center justify-center">
@@ -2176,7 +2161,7 @@ export default function App() {
                             <ImageWithFallback
                               src={getPrimaryImage(product)}
                               alt={product.name}
-                              className="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-300 bg-white dark:bg-[var(--card)]"
+                              className="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-300 bg-[var(--card)] dark:bg-[var(--card)]"
                             />
                           </div>
                           <div style={{ paddingBottom: '2px' }}>
@@ -2215,7 +2200,7 @@ export default function App() {
                     box-shadow: 0 6px 24px rgba(0,0,0,0.35) !important;
                   }
                 `}</style>
-                <CardHeader className="p-4 pb-3 mb-2 border-b border-[rgba(0,128,0,0.15)] dark:border-[rgba(20,184,166,0.30)] bg-transparent dark:bg-transparent">
+                <CardHeader className="p-4 pb-3 mb-2 border-b border-[rgba(0,128,0,0.15)] dark:border-[rgba(20,184,166,0.30)] bg-[var(--card)] dark:bg-transparent">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <div className="h-8 w-8 rounded-full bg-[#F57C00]/10 dark:bg-amber-500/20 flex items-center justify-center">
@@ -3104,60 +3089,50 @@ export default function App() {
       />
 
       {/* Post Product Modal */}
-      <Dialog
+      <Modal
         open={showPostProduct}
-        onOpenChange={setShowPostProduct}
+        onClose={() => setShowPostProduct(false)}
+        title="Post a Product"
+        className="!max-w-2xl"
       >
-        <DialogContent className="modal-standard overflow-visible">
-          <DialogTitle className="sr-only">
-            Post a Product
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Create and post a new product listing to the
-            marketplace
-          </DialogDescription>
-          <div className="modal-header-standard relative">
-            <h2 className="text-lg">Post a Product</h2>
-          </div>
-          <div className="modal-content-standard">
-            <PostProduct
-              currentUser={currentUser}
-              meetupLocations={meetupLocations}
-              onClose={() => setShowPostProduct(false)}
-              onProductPosted={(productData) => {
-                // If a server-returned product is provided (has id), use it directly.
-                // Otherwise fall back to creating a local demo product for example mode.
-                const newProduct = productData.id
-                  ? productData
-                  : {
-                      id: Date.now(),
-                      title: productData.title,
-                      description: productData.description,
-                      price: parseInt(productData.price),
-                      category: productData.category,
-                      images: productData.images,
-                      seller: {
-                        ...currentUser,
-                        rating: currentUser?.rating || 5.0,
-                        totalRatings: currentUser?.totalRatings || 0,
-                        creditScore: currentUser?.creditScore || 100,
-                        successfulPurchases: currentUser?.successfulPurchases || 0,
-                        reviews: currentUser?.reviews || []
-                      },
-                      condition: productData.condition || 'Brand New',
-                      location: productData.location,
-                      datePosted: productData.datePosted,
-                      views: 0,
-                      interested: 0
-                    };
+        <PostProduct
+          currentUser={currentUser}
+          meetupLocations={meetupLocations}
+          onClose={() => setShowPostProduct(false)}
+          onProductPosted={(productData) => {
+            // If a server-returned product is provided (has id), use it directly.
+            // Otherwise fall back to creating a local demo product for example mode.
+            const newProduct = productData.id
+              ? productData
+              : {
+                  id: Date.now(),
+                  title: productData.title,
+                  description: productData.description,
+                  price: parseInt(productData.price),
+                  category: productData.category,
+                  images: productData.images,
+                  seller: {
+                    ...currentUser,
+                    rating: currentUser?.rating || 5.0,
+                    totalRatings: currentUser?.totalRatings || 0,
+                    creditScore: currentUser?.creditScore || 100,
+                    successfulPurchases: currentUser?.successfulPurchases || 0,
+                    reviews: currentUser?.reviews || []
+                  },
+                  condition: productData.condition || 'Brand New',
+                  location: productData.location,
+                  datePosted: productData.datePosted,
+                  views: 0,
+                  interested: 0
+                };
 
-                // Normalize server product fields (datePosted compatibility)
-                const normalized = newProduct.id
-                  ? { ...newProduct, datePosted: newProduct.datePosted || newProduct.created_at, postedDate: newProduct.postedDate || newProduct.created_at }
-                  : newProduct;
+            // Normalize server product fields (datePosted compatibility)
+            const normalized = newProduct.id
+              ? { ...newProduct, datePosted: newProduct.datePosted || newProduct.created_at, postedDate: newProduct.postedDate || newProduct.created_at }
+              : newProduct;
 
-                // Add to products list
-                (async () => {
+            // Add to products list
+            (async () => {
                   // Defensive sanity checks: ensure product seller matches current session user
                   try {
                     const added = { ...normalized } as any;
@@ -3194,9 +3169,7 @@ export default function App() {
                 })();
               }}
             />
-          </div>
-        </DialogContent>
-      </Dialog>
+        </Modal>
 
       {/* Post for a Cause Modal */}
       <Dialog

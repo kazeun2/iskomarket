@@ -34,7 +34,8 @@ export function useMaintenanceStatus(pollIntervalMs: number = 30000) {
 
     timerRef.current = setInterval(() => load(), pollIntervalMs)
 
-    const unsubscribe = subscribeToMaintenanceSettings((rows: MaintenanceSettingsRow[] | null) => {
+    let unsubscribe: (() => void) | null = null
+    subscribeToMaintenanceSettings((rows: MaintenanceSettingsRow[] | null) => {
       if (cancelled) return
       if (rows && rows.length > 0) {
         const d = rows[0]
@@ -47,6 +48,12 @@ export function useMaintenanceStatus(pollIntervalMs: number = 30000) {
       } else {
         setStatus({ isActive: false })
       }
+    }).then(u => {
+      // If the service returned an unsubscribe function, save it
+      if (typeof u === 'function') unsubscribe = u
+    }).catch(() => {
+      // If subscription couldn't be established (table missing), we silently ignore it
+      unsubscribe = null
     })
 
     return () => {

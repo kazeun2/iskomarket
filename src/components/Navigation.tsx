@@ -502,7 +502,7 @@ export function Navigation({
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className="fixed inset-0 bg-white"
+            className="fixed inset-0 bg-black/40 dark:bg-black/60"
             onClick={() => setIsMobileMenuOpen(false)}
           />
           <div className="fixed top-16 left-0 right-0 navbar">

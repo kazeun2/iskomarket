@@ -175,7 +175,7 @@ export function SellerProfile({
 
   return (
     <div
-      className="fixed inset-0 bg-white dark:backdrop-blur-sm flex items-start justify-center p-6 overflow-auto"
+      className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-start justify-center p-6 overflow-auto"
       style={{ zIndex: isAdmin ? 20000 : 12000 }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >

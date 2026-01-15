@@ -17,7 +17,6 @@ import {
   Check,
   XCircle,
 } from "lucide-react";
-import { getPendingTransactions, subscribeToTransaction, confirmTransaction, cancelMeetup, getTransaction, completeTransaction } from '../lib/services/transactions';
 import {
   Dialog,
   DialogContent,
@@ -46,14 +45,16 @@ import {
 } from "../utils/timeUtils";
 import {
   getUserOnlineStatus,
-  sendMessage,
-  getMessages,
   markAsRead,
   subscribeToMessages,
   updateUserActivity,
-  getOrCreateConversation,
-  findConversationBetween,
 } from "../services/messageService";
+import {
+  getOrCreateConversation as chatGetOrCreateConversation,
+  findConversationBetween as chatFindConversationBetween,
+  listMessages as chatListMessages,
+  sendMessage as chatSendMessage,
+} from "../lib/chatService";
 import { agreeMeetupAndNotify } from "../lib/actions/meetup";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatOptional } from "../contexts/ChatContext";
@@ -363,12 +364,14 @@ export function ChatModal({
           convId = propConversationId;
           setConversationId(propConversationId);
         } else if (product?.id) {
-          convId = await getOrCreateConversation(product.id.toString(), currentUserId, recipientIdStr);
+          // Use simplified chat service to get/create convo for this product
+          convId = await chatGetOrCreateConversation(currentUserId!, recipientIdStr, String(product.id));
         } else {
-          convId = await findConversationBetween(currentUserId, recipientIdStr);
+          // Try to find any existing conversation between the two users
+          convId = await chatFindConversationBetween(currentUserId!, recipientIdStr);
         }
       } catch (err) {
-        console.warn('[ChatModal] Error resolving conversation id:', err);
+        console.warn('[ChatModal] Error resolving conversation id (chatService):', err);
       }
 
       // CRITICAL SECURITY: conversation_id is REQUIRED before loading any messages
@@ -390,37 +393,33 @@ export function ChatModal({
         return;
       }
 
-      const { data, error } = await getMessages({
-        user_id: currentUserId,
-        other_user_id: recipientIdStr,
-        conversation_id: convId,
-      });
-
-      if (error) {
-        console.error('Error loading messages:', error);
+      let data: any[] = []
+      try {
+        data = await chatListMessages(convId);
+      } catch (err) {
+        console.error('Error loading messages from chatService:', err);
         toast.error('Failed to load messages');
         setIsLoadingMessages(false);
         return;
       }
 
-      console.log('[ChatModal] Messages loaded successfully:', {
+      console.log('[ChatModal] Messages loaded successfully (chatService):', {
         count: data?.length ?? 0,
         conversationId: convId,
       });
 
       if (data && data.length > 0) {
-        // Convert Supabase messages to UI format (include sender profile when available)
+        // Convert messages to UI format
         const formattedMessages: Message[] = data.map((msg: any) => ({
           id: msg.id,
-          message: msg.message || (msg as any).message_text || (msg as any).content || msg.body || '(No text)',
+          message: msg.body || '(No text)',
           sender_id: msg.sender_id,
           receiver_id: msg.receiver_id,
           timestamp: formatRelativeTime(msg.created_at),
           type: 'text',
           created_at: msg.created_at,
-          is_read: msg.is_read,
-          // embed sender profile if available
-          sender: msg.sender || null,
+          is_read: false,
+          sender: null,
         }));
 
         // Insert product card at top if needed
@@ -447,56 +446,10 @@ export function ChatModal({
           uniqueMessages.filter((m) => m.type === 'text').length === 0,
         );
 
-        // Check for any existing transaction for this product and subscribe to realtime updates
-        try {
-          if (product?.id && currentUserId) {
-            const pendingTx = await getPendingTransactions(currentUserId);
-            // Use canonical column names `sender_id` and `receiver_id` when looking up transactions
-            const found = pendingTx?.find((t: any) => String(t.product_id) === String(product.id) && (String(t.sender_id) === String(currentUserId) || String(t.receiver_id) === String(currentUserId)));
-            if (found) {
-              // Map DB row to local Transaction shape (preserve buyer/seller ids for role detection)
-              setTransaction((prev) => ({
-                ...prev,
-                id: found.id,
-                meetupLocation: found.meetup_location || prev.meetupLocation,
-                meetupDate: found.meetup_date ? new Date(found.meetup_date) : prev.meetupDate,
-                buyerConfirmed: !!found.meetup_confirmed_by_buyer,
-                sellerConfirmed: !!found.meetup_confirmed_by_seller,
-                status: (found.status as Transaction['status']) || prev.status,
-                buyerId: found.sender_id ?? prev.buyerId,
-                sellerId: found.receiver_id ?? prev.sellerId,
-              }));
-
-              // Subscribe to realtime updates for this transaction so both parties see changes immediately
-              const unsub = subscribeToTransaction(found.id, (updated: any) => {
-                setTransaction((prev) => ({
-                  ...prev,
-                  meetupLocation: updated.meetup_location || prev.meetupLocation,
-                  meetupDate: updated.meetup_date ? new Date(updated.meetup_date) : prev.meetupDate,
-                  buyerConfirmed: !!updated.meetup_confirmed_by_buyer,
-                  sellerConfirmed: !!updated.meetup_confirmed_by_seller,
-                  status: (updated.status as Transaction['status']) || prev.status,
-                  buyerId: updated.sender_id ?? prev.buyerId,
-                  sellerId: updated.receiver_id ?? prev.sellerId,
-                }));
-
-                // Show a brief status banner so users notice the update
-                if (updated.meetup_location) {
-                  setStatusBannerMessage(`Meet-up scheduled at ${updated.meetup_location}`);
-                  setStatusBannerType('success');
-                  setShowStatusBanner(true);
-                  clearTimeout(bannerTimeoutRef.current as any);
-                  bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
-                }
-              });
-
-              // Save unsubscribe so we can cleanup later
-              txUnsubRef.current = unsub;
-            }
-          }
-        } catch (e) {
-          console.warn('[ChatModal] Failed to lookup/subscribe transaction:', e);
-        }
+        // Transaction linking and realtime subscription are intentionally disabled for now to keep chat independent.
+        // Previously we looked up pending transactions and subscribed to transaction updates from inside ChatModal.
+        // That coupling caused 400s and schema tightness; we'll re-enable transaction logic later behind a separate service.
+        // (No-op)
       } else {
         // No messages yet, just show product card if available (ensure dedupe)
         const uniqueInitial = Array.from(new Map(initialMessages.map((m) => [m.id, m])).values());
@@ -867,24 +820,20 @@ export function ChatModal({
     setMessages((prev) => [...prev, optimisticMessage]);
 
     try {
-      // Ensure we have a conversation id before sending (try resolving/creating to avoid missing conversation_id on insert)
+      // Ensure we have a conversation id before sending
       if (!currentConversationId) {
         try {
-          console.log('[ChatModal] pre-send: resolving conversation id...');
           if (product?.id) {
-            const conv = await getOrCreateConversation(product.id.toString(), senderId, recipientIdStr);
+            const conv = await chatGetOrCreateConversation(currentUserId!, recipientIdStr, String(product.id));
             if (conv) {
               setConversationId(conv);
-              // update local mutable variable for this scope
               currentConversationId = conv;
-              console.log('[ChatModal] pre-send: resolved conversation (product):', conv);
             }
           } else {
-            const conv = await findConversationBetween(senderId, recipientIdStr);
+            const conv = await chatFindConversationBetween(currentUserId!, recipientIdStr);
             if (conv) {
               setConversationId(conv);
               currentConversationId = conv;
-              console.log('[ChatModal] pre-send: resolved existing conversation between users:', conv);
             }
           }
         } catch (e) {
@@ -892,47 +841,19 @@ export function ChatModal({
         }
       }
 
-      // ➤ SEND TO SUPABASE (REAL ENTRY)
-      const { data, error } = await sendMessage({
-        sender_id: senderId,
-        receiver_id: recipientIdStr,
-        product_id: product?.id?.toString(),
-        conversation_id: currentConversationId ?? undefined,
-        message: messageText,
-      });
-
-      if (error) {
-        console.error("Error sending message:", error);
-        // Friendly user-facing error -- avoid exposing raw DB errors
-        toast.error("Could not send message. Please try again.");
-
-        // Remove optimistic bubble
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
-
-        // Restore the message text to input so user can retry
-        setNewMessage(messageText);
-
-        setIsSending(false);
-        return;
-      }
-
-      // If server didn't return conversation_id, try to resolve it now (may have been created during send)
+      // ➤ SEND TO SUPABASE via chatService
+      let sent: any = null
       try {
-        if (data && !(data as any).conversation_id) {
-          try {
-            console.log('[ChatModal] sendMessage returned without conversation_id - resolving now');
-            const conv = await findConversationBetween(senderId, recipientIdStr);
-            if (conv) {
-              console.log('[ChatModal] Resolved conversation after send:', conv);
-              setConversationId(conv);
-              currentConversationId = conv;
-            }
-          } catch (e) {
-            console.warn('[ChatModal] Failed to resolve conversation after send:', e);
-          }
-        }
-      } catch (e) {
-        console.warn('[ChatModal] Unexpected error during post-send conversation resolution:', e);
+        sent = await chatSendMessage(currentConversationId as string, senderId, messageText);
+      } catch (err: any) {
+        console.error('Error sending message (chatService):', err?.message || err)
+        toast.error('Could not send message. Please try again.')
+
+        // Remove optimistic bubble and restore text
+        setMessages((prev) => prev.filter((m) => m.id !== tempId))
+        setNewMessage(messageText)
+        setIsSending(false)
+        return
       }
 
       // ➤ REFRESH CONVERSATION LIST IN DASHBOARD (show new message card)
@@ -943,10 +864,8 @@ export function ChatModal({
           await new Promise((res) => setTimeout(res, delays[attempt] || 500));
           try {
             await chatContext.refreshConversations();
-            console.log('[ChatModal] Refreshed conversations after sending message (attempt', attempt + 1 + ')');
             break;
           } catch (err) {
-            console.warn('[ChatModal] refreshConversations attempt failed', attempt + 1, err);
             if (attempt === maxRefreshAttempts - 1) {
               console.warn('[ChatModal] All refresh attempts failed');
             }
@@ -957,35 +876,27 @@ export function ChatModal({
       }
 
       // ➤ REPLACE OPTIMISTIC MESSAGE WITH REAL DATABASE MESSAGE
-      if (data) {
-        // Warn if the returned DB message doesn't include conversation_id
-        if (!(data as any).conversation_id) {
-          console.warn('[ChatModal] sendMessage response missing conversation_id', { data, conversationId });
-        }
-
+      if (sent) {
         setMessages((prev) => {
           const replaced = prev.map((msg) =>
             msg.id === tempId
               ? ({
-                  id: data.id,
-                  message: data.message,
-                  sender_id: data.sender_id,
-                  receiver_id: data.receiver_id,
-                  timestamp: formatRelativeTime(data.created_at),
-                  type: "text",
-                  created_at: data.created_at,
-                  is_read: data.is_read,
-                  sender: (data as any).sender || null,
+                  id: sent.id,
+                  message: sent.body,
+                  sender_id: sent.sender_id,
+                  receiver_id: recipientIdStr,
+                  timestamp: formatRelativeTime(sent.created_at),
+                  type: 'text',
+                  created_at: sent.created_at,
+                  is_read: false,
+                  sender: null,
                 } as Message)
               : msg,
-          );
+          )
 
-          // Deduplicate in case the realtime subscription already inserted the same DB message
-          const unique = Array.from(new Map(replaced.map((m) => [m.id, m])).values());
-          return unique;
-        });
-
-
+          const unique = Array.from(new Map(replaced.map((m) => [m.id, m])).values())
+          return unique
+        })
       }
     } catch (error) {
       console.error(error);
@@ -1370,13 +1281,8 @@ export function ChatModal({
           // Notify the other user via an automated message
           (async () => {
             try {
-              await sendMessage({
-                sender_id: String(currentUserId),
-                receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
-                product_id: String(product?.id),
-                message: 'Meet-up proposal expired — conversation marked as done',
-                automation_type: 'auto_mark_done',
-              });
+                const convToUse = conversationId || currentConversationId || ''
+                if (convToUse) await chatSendMessage(convToUse, String(currentUserId), 'Meet-up proposal expired — conversation marked as done')
             } catch (e) {
               // Non-fatal
               console.warn('Failed to send auto mark-as-done message', e);
@@ -1474,14 +1380,8 @@ export function ChatModal({
     }
 
     try {
-      await sendMessage({
-        sender_id: String(currentUserId),
-        receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
-        product_id: String(product?.id),
-        message: 'Completed confirmation',
-        transaction_id: String(transaction.id),
-        automation_type: 'completed_confirmation',
-      });
+      const convToUse = conversationId || currentConversationId || ''
+      if (convToUse) await chatSendMessage(convToUse, String(currentUserId), 'Completed confirmation')
 
       toast.success('Marked as completed — waiting for other user');
     } catch (e: any) {
@@ -1499,14 +1399,8 @@ export function ChatModal({
     }
 
     try {
-      await sendMessage({
-        sender_id: String(currentUserId),
-        receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
-        product_id: String(product?.id),
-        message: 'Appeal submitted',
-        transaction_id: String(transaction.id),
-        automation_type: 'appeal',
-      });
+      const convToUse = conversationId || currentConversationId || ''
+      if (convToUse) await chatSendMessage(convToUse, String(currentUserId), 'Appeal submitted')
 
       toast.success('Appeal submitted — waiting for other user');
     } catch (e: any) {

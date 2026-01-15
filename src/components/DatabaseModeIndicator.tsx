@@ -18,7 +18,7 @@ export function DatabaseModeIndicator() {
   return (
     <div className="fixed bottom-4 right-4 z-[100000]">
       {isExpanded ? (
-        <div className="bg-white dark:bg-[var(--card)] rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 w-80 animate-in slide-in-from-bottom-2 duration-200">
+        <div className="bg-[var(--card)] dark:bg-[var(--card)] rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 w-80 animate-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-start justify-between mb-2">
             <h4 className="font-semibold text-gray-900 dark:text-white">
               {isConfigured ? '✅ Supabase Connected' : '⚠️ Database Not Connected'}

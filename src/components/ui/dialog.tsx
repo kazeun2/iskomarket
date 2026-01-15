@@ -134,8 +134,10 @@ const DialogContent = React.forwardRef<
   };
 
   React.useEffect(() => {
-    if (process.env.NODE_ENV === 'production') return;
     // Run a short time after mount to allow the portal to attach
+    // Neutralizer runs in all environments so production and dev UIs remain visually consistent.
+    // Note: console diagnostics are still gated to dev, but the style normalization must run
+    // in production as well to ensure modal surfaces are non-glassy and centered across builds.
     const t = setTimeout(() => {
       const el = innerRef.current as HTMLElement | null;
       if (!el) return;
@@ -212,11 +214,13 @@ const DialogContent = React.forwardRef<
           node = node.parentElement;
         }
 
-        console.group('[Dialog diagnostics] computed style for dialog content');
-        console.debug(info);
-        if (ancestors.length) console.warn('Potential translucency sources on ancestors:', ancestors);
-        else console.debug('No ancestor opacity/backdrop-filter issues detected');
-        console.groupEnd();
+        if (process.env.NODE_ENV !== 'production') {
+          console.group('[Dialog diagnostics] computed style for dialog content');
+          console.debug(info);
+          if (ancestors.length) console.warn('Potential translucency sources on ancestors:', ancestors);
+          else console.debug('No ancestor opacity/backdrop-filter issues detected');
+          console.groupEnd();
+        }
 
         // Proactively neutralize green/brand shadows and blend modes in light mode on dialog
         try {
@@ -286,10 +290,10 @@ const DialogContent = React.forwardRef<
           ref={setRef}
           data-slot="dialog-content"
           className={cn(
-            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[9999] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-gray-200 bg-white p-6 shadow-xl text-gray-900 duration-200 sm:max-w-lg [&>button]:hidden",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[9999] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-gray-200 bg-neutral-50 dark:bg-neutral-900 p-6 shadow-xl text-gray-900 duration-200 sm:max-w-lg [&>button]:hidden",
             className,
           )}
-          style={{ zIndex: Math.max(zIndex + 1, 9999), background: 'var(--card)', backgroundColor: 'var(--card)', opacity: 1, backdropFilter: 'none', WebkitBackdropFilter: 'none', mixBlendMode: 'normal', isolation: 'isolate', boxShadow: '0 12px 30px rgba(0,0,0,0.08)' }}
+          style={{ zIndex: Math.max(zIndex + 1, 9999), opacity: 1, isolation: 'isolate', boxShadow: '0 12px 30px rgba(0,0,0,0.08)' }}
           {...restProps}
           aria-describedby={ariaDescribedBy}
         >

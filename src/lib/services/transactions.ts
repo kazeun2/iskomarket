@@ -95,8 +95,18 @@ export async function createTransaction({
     console.log('[transactions.createTransaction] Running in non-browser context; skipping browser auth check')
   }
 
+  // Ensure a conversation exists for this product and participant pair so messages can be linked
+  let conversationId: string | null = null
+  try {
+    conversationId = await (await import('../../services/messageService')).getOrCreateConversation(productId, buyerId, sellerId)
+  } catch (e) {
+    // ignore if messageService not available or schema missing; we'll still create a transaction
+    conversationId = null
+  }
+
   const payload: TransactionInsert = {
     product_id: productId,
+    conversation_id: conversationId,
     sender_id: buyerId,
     receiver_id: sellerId,
     status: 'pending',
@@ -110,148 +120,150 @@ export async function createTransaction({
     throw new Error('Transaction payload missing sender_id or receiver_id')
   }
 
-  // Log payload so errors can be diagnosed in production
-  console.log('[transactions.createTransaction] payload', payload)
+  // Log payload minimally for diagnostics (avoid full error spam)
+  console.log('[transactions.createTransaction] payload keys', Object.keys(payload))
 
-  // Attempt to insert; if DB schema is missing optional columns (e.g. `amount`) or relationships, retry with a reduced payload
-  let insertResult: any = null
-  try {
-    insertResult = await supabase
-      .from('transactions')
-      .insert(payload)
-      .select('id, product_id, sender_id, receiver_id, status, meetup_date, meetup_location')
-      .single()
+  // Insert transaction (single canonical insert). If required columns are missing in DB, this will return an error which callers should handle.
+  const insertResult = await supabase
+    .from('transactions')
+    .insert(payload)
+    .select('id, product_id, conversation_id, sender_id, receiver_id, status, meetup_date, meetup_location')
+    .single()
 
-    if (insertResult.error) {
-      throw insertResult.error
-    }
-  } catch (err: any) {
-    const msg = err?.message || String(err || '')
-    console.warn('[transactions.createTransaction] Insert failed, attempting fallback if applicable', { message: msg })
+  if (insertResult.error) {
+    console.error('[transactions.createTransaction] Supabase insert error', { code: insertResult.error?.code, message: insertResult.error?.message })
+    throw insertResult.error
+  }
 
-    // If the error mentions the `amount` column (or similar missing optional columns), retry without `amount`
-    if (msg.toLowerCase().includes('amount') || msg.toLowerCase().includes('could not find the amount') || msg.toLowerCase().includes('column "amount"')) {
-      const reduced: any = { ...payload }
-      delete reduced.amount
-      try {
-        const retry = await supabase
-          .from('transactions')
-          .insert(reduced)
-          .select('id, product_id, sender_id, receiver_id, status, meetup_date, meetup_location')
-          .single()
-
-        if (retry.error) throw retry.error
-        insertResult = retry
-      } catch (retryErr: any) {
-        console.error('[transactions.createTransaction] Retry without amount failed', retryErr)
-        throw retryErr
-      }
-    } else {
-      // Not a recognized fallback case — rethrow so callers can handle
-      console.error('[transactions.createTransaction] Supabase error', err)
-      throw err
+  // Ensure conversation participants exist (best-effort)
+  if (conversationId) {
+    try {
+      await supabase
+        .from('conversation_participants')
+        .upsert([
+          { conversation_id: conversationId, user_id: buyerId, role: 'buyer' },
+          { conversation_id: conversationId, user_id: sellerId, role: 'seller' },
+        ], { onConflict: ['conversation_id', 'user_id'] });
+    } catch (e) {
+      // ignore enrichment failures
     }
   }
 
   const data = insertResult.data
-  console.log('[transactions.createTransaction] created', { id: (data as any)?.id, row: data })
+  console.log('[transactions.createTransaction] created', { id: (data as any)?.id })
   return data as Transaction
 }
 
 // Get transaction by ID
 export async function getTransaction(transactionId: string) {
-  const { data, error } = await supabase
+  // Fetch core transaction row (avoid relying on nested relationship names)
+  const { data: txRow, error } = await supabase
     .from('transactions')
-    .select(`
-      id,
-      product:products(id, title, images),
-      sender_id,
-      receiver_id,
-      buyer:sender_id (id, display_name, avatar_url, username),
-      seller:receiver_id (user_id as id, display_name, avatar_url, username),
-      meetup_date,
-      meetup_location,
-      status,
-      created_at
-    `)
+    .select('id, product_id, sender_id, receiver_id, meetup_date, meetup_location, status, created_at, conversation_id')
     .eq('id', transactionId)
-    .single()
+    .maybeSingle()
 
   if (error) {
-    console.error('[transactions.getTransaction] Supabase error', { code: error?.code, message: error?.message, details: error?.details })
-
-    // If relationship missing (PGRST200), fall back to simple select then fetch profiles separately
-    const msg = (error?.message || '').toLowerCase();
-    if (error?.code === 'PGRST200' || msg.includes('foreign key relationship') || msg.includes("could not find a relationship")) {
-      console.info('[transactions.getTransaction] Relationship missing for nested join; falling back to simple select', { message: error?.message });
-      const { data: simple, error: simpleErr } = await supabase
-        .from('transactions')
-        .select('id, product_id, sender_id, receiver_id, meetup_date, meetup_location, status, created_at')
-        .eq('id', transactionId)
-        .maybeSingle();
-
-      if (simpleErr) {
-        console.error('[transactions.getTransaction] fallback simple select failed', simpleErr);
-        throw simpleErr;
-      }
-
-      if (!simple) return null as any;
-
-      const ids = [simple.sender_id, simple.receiver_id].filter(Boolean) as string[];
-      let profiles: any[] = [];
-      if (ids.length) {
-        // Try lookup by id (newer schemas) then fallback to user_id
-        const { data: psById } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').in('id', ids);
-        if (psById && psById.length) profiles = psById;
-        else {
-          const { data: psByUserId } = await supabase.from('user_profile').select('id, user_id, display_name, avatar_url, username').in('user_id', ids);
-          profiles = psByUserId || [];
-        }
-      }
-
-      const buyer = profiles.find((p) => p.id === simple.sender_id) || null;
-      const seller = profiles.find((p) => p.id === simple.receiver_id) || null;
-
-      const composed: any = {
-        ...simple,
-        buyer: buyer ? { id: buyer.id, display_name: buyer.display_name, avatar_url: buyer.avatar_url } : null,
-        seller: seller ? { id: seller.id, display_name: seller.display_name, avatar_url: seller.avatar_url } : null,
-      };
-
-      return composed as TransactionWithDetails;
-    }
-
+    console.error('[transactions.getTransaction] Supabase error', { code: error?.code, message: error?.message })
     throw error
   }
 
-  return data as TransactionWithDetails
+  if (!txRow) return null as any
+
+  // Enrich product info if available
+  let product: any = undefined
+  if (txRow.product_id) {
+    try {
+      const { data: p } = await supabase.from('products').select('id, title, images').eq('id', txRow.product_id).maybeSingle()
+      product = p || undefined
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Fetch buyer/seller profiles
+  const ids = [txRow.sender_id, txRow.receiver_id].filter(Boolean) as string[]
+  let profiles: any[] = []
+  if (ids.length) {
+    const { data: byId } = await supabase.from('user_profile').select('id, user_id, username, display_name, avatar_url').in('id', ids)
+    if (byId && byId.length) profiles = byId
+    else {
+      const { data: byUserId } = await supabase.from('user_profile').select('id, user_id, username, display_name, avatar_url').in('user_id', ids)
+      profiles = byUserId || []
+    }
+  }
+
+  const buyer = profiles.find((p) => p.id === txRow.sender_id) || null;
+  const seller = profiles.find((p) => p.id === txRow.receiver_id) || null;
+
+  const composed: any = {
+    id: txRow.id,
+    product: product ? { id: product.id, title: product.title, images: product.images || [] } : undefined,
+    sender_id: txRow.sender_id,
+    receiver_id: txRow.receiver_id,
+    buyer: buyer ? { id: buyer.id || buyer.user_id, username: buyer.username, avatar_url: buyer.avatar_url } : null,
+    seller: seller ? { id: seller.id || seller.user_id, username: seller.username, avatar_url: seller.avatar_url } : null,
+    meetup_date: txRow.meetup_date,
+    meetup_location: txRow.meetup_location,
+    status: txRow.status,
+    created_at: txRow.created_at,
+    conversation_id: txRow.conversation_id,
+  }
+
+  return composed as TransactionWithDetails
 }
 
 // Get user's transactions (as buyer or seller)
 export async function getUserTransactions(userId: string) {
-  const { data, error } = await supabase
+  const { data: rows, error } = await supabase
     .from('transactions')
-    .select(`
-      id,
-      product:products(id, title, images),
-      sender_id,
-      receiver_id,
-      buyer:sender_id (user_id as id, display_name, avatar_url, username),
-      seller:receiver_id (user_id as id, display_name, avatar_url, username),
-      meetup_date,
-      meetup_location,
-      status,
-      created_at
-    `)
+    .select('id, product_id, sender_id, receiver_id, meetup_date, meetup_location, status, created_at, conversation_id')
     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('[transactions.getUserTransactions] Supabase error', { code: error?.code, message: error?.message, details: error?.details })
+    console.error('[transactions.getUserTransactions] Supabase error', { code: error?.code, message: error?.message })
     throw error
   }
 
-  return data as TransactionWithDetails[]
+  const txs = rows || []
+
+  // Fetch unique product ids and profile ids to batch fetch
+  const productIds = Array.from(new Set(txs.map((t: any) => t.product_id).filter(Boolean)))
+  const userIds = Array.from(new Set(txs.flatMap((t: any) => [t.sender_id, t.receiver_id]).filter(Boolean)))
+
+  let productsMap: Record<string, any> = {}
+  if (productIds.length) {
+    const { data: products } = await supabase.from('products').select('id, title, images').in('id', productIds as string[])
+    productsMap = (products || []).reduce((acc: any, p: any) => { acc[p.id] = p; return acc }, {})
+  }
+
+  let profilesMap: Record<string, any> = {}
+  if (userIds.length) {
+    const { data: byId } = await supabase.from('user_profile').select('id, user_id, username, display_name, avatar_url').in('id', userIds as string[])
+    let profiles = byId || []
+    if (!profiles.length) {
+      const { data: byUserId } = await supabase.from('user_profile').select('id, user_id, username, display_name, avatar_url').in('user_id', userIds as string[])
+      profiles = byUserId || []
+    }
+    profilesMap = (profiles || []).reduce((acc: any, p: any) => { acc[p.id || p.user_id] = p; return acc }, {})
+  }
+
+  const composed = (txs || []).map((t: any) => ({
+    id: t.id,
+    product: t.product_id ? (productsMap[t.product_id] ? { id: productsMap[t.product_id].id, title: productsMap[t.product_id].title, images: productsMap[t.product_id].images || [] } : undefined) : undefined,
+    sender_id: t.sender_id,
+    receiver_id: t.receiver_id,
+    buyer: profilesMap[t.sender_id] ? { id: profilesMap[t.sender_id].id || profilesMap[t.sender_id].user_id, username: profilesMap[t.sender_id].username, avatar_url: profilesMap[t.sender_id].avatar_url } : null,
+    seller: profilesMap[t.receiver_id] ? { id: profilesMap[t.receiver_id].id || profilesMap[t.receiver_id].user_id, username: profilesMap[t.receiver_id].username, avatar_url: profilesMap[t.receiver_id].avatar_url } : null,
+    meetup_date: t.meetup_date,
+    meetup_location: t.meetup_location,
+    status: t.status,
+    created_at: t.created_at,
+    conversation_id: t.conversation_id,
+  }))
+
+  return composed as TransactionWithDetails[]
 }
 
 // Confirm transaction (buyer or seller)
@@ -547,43 +559,56 @@ export async function cancelMeetup(transactionId: string, userId: string) {
 
 // Get pending transactions for user
 export async function getPendingTransactions(userId: string) {
-  // Use canonical column names `sender_id` and `receiver_id` (buyer/seller semantics)
-  try {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select(`
-        id,
-        product:products(id, title, images),
-        sender_id,
-        receiver_id,
-        buyer:sender_id (user_id as id, display_name, avatar_url, username),
-        seller:receiver_id (user_id as id, display_name, avatar_url, username),
-        meetup_date,
-        meetup_location,
-        status,
-        created_at
-      `)
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+  // Canonical single-path implementation: select core transaction fields and enrich with product/profile data
+  const { data: rows, error } = await supabase
+    .from('transactions')
+    .select('id, product_id, sender_id, receiver_id, meetup_date, meetup_location, status, created_at, conversation_id')
+    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+    .order('created_at', { ascending: false })
 
-    if (error) throw error
-    return data as TransactionWithDetails[]
-  } catch (err: any) {
-    // Fallback: some Supabase schemas may not have the expected foreign key relationships (e.g. user_profile join)
-    // In that case, return a simple transactions list without joins to avoid failing the caller.
-    const msg = err?.message || String(err || '')
-    if (msg.toLowerCase().includes('relationship') || msg.toLowerCase().includes('user_profile') || err?.code === 'PGRST204') {
-      console.info('[transactions.getPendingTransactions] Relationships missing, falling back to simple select (this can be resolved by ensuring FK relationships exist)', { message: msg, userId })
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('transactions')
-        .select('*')
-        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-
-      if (fallbackError) throw fallbackError
-      return fallbackData as TransactionWithDetails[]
-    }
-
-    throw err
+  if (error) {
+    console.error('[transactions.getPendingTransactions] Supabase error', { code: error?.code, message: error?.message })
+    throw error
   }
+
+  const txs = rows || []
+
+  // Batch fetch product and profiles for enrichment
+  const productIds = Array.from(new Set(txs.map((t: any) => t.product_id).filter(Boolean)))
+  const userIds = Array.from(new Set(txs.flatMap((t: any) => [t.sender_id, t.receiver_id]).filter(Boolean)))
+
+  let productsMap: Record<string, any> = {}
+  if (productIds.length) {
+    const { data: products } = await supabase.from('products').select('id, title, images').in('id', productIds as string[])
+    productsMap = (products || []).reduce((acc: any, p: any) => { acc[p.id] = p; return acc }, {})
+  }
+
+  let profilesMap: Record<string, any> = {}
+  if (userIds.length) {
+    const { data: byId } = await supabase.from('user_profile').select('id, user_id, username, display_name, avatar_url').in('id', userIds as string[])
+    let profiles = byId || []
+    if (!profiles.length) {
+      const { data: byUserId } = await supabase.from('user_profile').select('id, user_id, username, display_name, avatar_url').in('user_id', userIds as string[])
+      profiles = byUserId || []
+    }
+    profilesMap = (profiles || []).reduce((acc: any, p: any) => { acc[p.id || p.user_id] = p; return acc }, {})
+  }
+
+  const composed = (txs || []).map((t: any) => ({
+    id: t.id,
+    product: t.product_id ? (productsMap[t.product_id] ? { id: productsMap[t.product_id].id, title: productsMap[t.product_id].title, images: productsMap[t.product_id].images || [] } : undefined) : undefined,
+    sender_id: t.sender_id,
+    receiver_id: t.receiver_id,
+    buyer: profilesMap[t.sender_id] ? { id: profilesMap[t.sender_id].id || profilesMap[t.sender_id].user_id, username: profilesMap[t.sender_id].username, avatar_url: profilesMap[t.sender_id].avatar_url } : null,
+    seller: profilesMap[t.receiver_id] ? { id: profilesMap[t.receiver_id].id || profilesMap[t.receiver_id].user_id, username: profilesMap[t.receiver_id].username, avatar_url: profilesMap[t.receiver_id].avatar_url } : null,
+    meetup_date: t.meetup_date,
+    meetup_location: t.meetup_location,
+    status: t.status,
+    created_at: t.created_at,
+    conversation_id: t.conversation_id,
+  }))
+
+  return composed as TransactionWithDetails[]
 }
 
 // Subscribe to transaction updates

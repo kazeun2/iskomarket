@@ -165,7 +165,7 @@ export function ActiveProductsModal({ isOpen, onClose, initialCount, onSelectPro
                     <ImageWithFallback
                       src={(product.images && product.images[0]) || '/placeholder.png'}
                       alt={product.title}
-                      className="w-20 h-20 object-contain p-1 rounded-lg flex-shrink-0 bg-white dark:bg-[var(--card)]"
+                      className="w-20 h-20 object-contain p-1 rounded-lg flex-shrink-0 bg-[var(--card)] dark:bg-[var(--card)]"
                     />
                     <div className="flex-1">
                       <div className="flex items-start justify-between gap-2 mb-2">

@@ -55,7 +55,7 @@ export function RateThisUserModal({
 
   return (
     <div 
-      className="fixed inset-0 bg-white dark:backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/40 dark:bg-black/60 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           handleCancel();

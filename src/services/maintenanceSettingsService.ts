@@ -13,8 +13,8 @@ export async function getMaintenanceStatus() {
     const { data, error } = await supabase.from('maintenance_settings').select('*').order('updated_at', { ascending: false }).limit(1).single()
     if (error) {
       const msg = (error as any)?.message || ''
+      // Silently skip maintenance checks when table is missing (avoid noisy console warnings in dev)
       if (msg.includes('Could not find the table') || (error as any)?.code === 'PGRST205') {
-        console.warn('maintenance_settings table not found in Supabase - skipping maintenance checks')
         return { data: null, error: null }
       }
       console.error('Error fetching maintenance status:', error)
@@ -28,15 +28,22 @@ export async function getMaintenanceStatus() {
   }
 }
 
-export function subscribeToMaintenanceSettings(callback: (rows: MaintenanceSettingsRow[] | null) => void) {
+export async function subscribeToMaintenanceSettings(callback: (rows: MaintenanceSettingsRow[] | null) => void) {
+  // First check whether maintenance_settings table exists (quietly). If it doesn't, return a no-op unsubscribe.
+  const { data } = await getMaintenanceStatus()
+  if (!data) {
+    // Table is absent or no active settings — don't subscribe to a non-existent table
+    return () => {}
+  }
+
   const channel = supabase
     .channel('maintenance_settings_changes')
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'maintenance_settings' },
       async () => {
-        const { data } = await getMaintenanceStatus()
-        if (data) callback([data])
+        const { data: d } = await getMaintenanceStatus()
+        if (d) callback([d])
         else callback(null)
       }
     )

@@ -4,7 +4,7 @@ import React from 'react';
 export default function CheckYourEmailPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="max-w-xl w-full bg-white border rounded-lg shadow-sm p-8">
+      <div className="max-w-xl w-full bg-[var(--card)] border rounded-lg shadow-sm p-8">
         <h1 className="text-2xl font-semibold mb-4">Check your email</h1>
 
         <p className="mb-3 text-gray-700">

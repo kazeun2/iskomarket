@@ -233,7 +233,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
 
   return (
     <div 
-      className="fixed inset-0 bg-transparent backdrop-blur-sm dark:backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/40 dark:bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
@@ -265,7 +265,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                   Filter:
                 </label>
                 <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-                  <SelectTrigger className="w-[180px] h-9 rounded-full bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 text-[#006400] dark:text-[#4ade80] hover:border-[#006400] dark:hover:border-[#14b8a6] transition-all">
+                  <SelectTrigger className="w-[180px] h-9 rounded-full bg-[var(--card)] dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 text-[#006400] dark:text-[#4ade80] hover:border-[#006400] dark:hover:border-[#14b8a6] transition-all">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -307,7 +307,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                 filteredFeedback.map((feedback) => (
                   <div 
                     key={feedback.id}
-                    className="bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[20px] p-6 shadow-lg dark:shadow-[0_0_20px_rgba(20,184,166,0.15)] hover:shadow-xl transition-all"
+                    className="bg-[var(--card)] dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[20px] p-6 shadow-lg dark:shadow-[0_0_20px_rgba(20,184,166,0.15)] hover:shadow-xl transition-all"
                     style={{
                       boxShadow: '0 4px 16px rgba(0, 100, 0, 0.08)'
                     }}
@@ -344,7 +344,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                     </div>
 
                     {/* Message Box - Chat-like Card */}
-                    <div className="bg-white dark:bg-[var(--card)] rounded-[16px] p-4 mb-3 border border-[#cfe8ce] dark:border-[#14b8a6]/10">
+                    <div className="bg-[var(--card)] dark:bg-[var(--card)] rounded-[16px] p-4 mb-3 border border-[#cfe8ce] dark:border-[#14b8a6]/10">
                       <p className="text-[14px] text-[#006400] dark:text-[#4ade80] leading-relaxed">
                         {feedback.message}
                       </p>
@@ -366,7 +366,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                           value={responseMessage}
                           onChange={(e) => setResponseMessage(e.target.value)}
                           placeholder={`Write your response to ${feedback.user.name}...`}
-                          className="min-h-[100px] resize-none bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]"
+                          className="min-h-[100px] resize-none bg-[var(--card)] dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]"
                           maxLength={500}
                         />
                         <div className="flex gap-2">
@@ -425,7 +425,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                   What type of website feedback do you have?
                 </label>
                 <Select value={feedbackType} onValueChange={setFeedbackType}>
-                  <SelectTrigger className="h-12 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]">
+                  <SelectTrigger className="h-12 bg-[var(--card)] dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]">
                     <SelectValue placeholder="Select feedback type..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -443,7 +443,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
 
               {/* Selected feedback type info */}
               {feedbackType && (
-                <div className="bg-white dark:bg-[var(--card)] rounded-[16px] p-4 border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20">
+                <div className="bg-[var(--card)] dark:bg-[var(--card)] rounded-[16px] p-4 border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20">
                   <Badge className="bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white border-0 mb-2">
                     {feedbackTypes.find(t => t.value === feedbackType)?.label}
                   </Badge>
@@ -462,7 +462,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Please provide detailed information about your website feedback (e.g., what page you were on, what happened, what you expected to happen)..."
-                  className="min-h-[140px] resize-none bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40"
+                  className="min-h-[140px] resize-none bg-[var(--card)] dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40"
                   maxLength={1000}
                 />
                 <div className="flex justify-between text-[12px] text-[#006400]/60 dark:text-[#4ade80]/60">
@@ -472,7 +472,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
               </div>
 
               {/* User Info Display */}
-              <div className="bg-white dark:bg-[var(--card)] rounded-[16px] p-4 border border-[#cfe8ce] dark:border-[#14b8a6]/10">
+              <div className="bg-[var(--card)] dark:bg-[var(--card)] rounded-[16px] p-4 border border-[#cfe8ce] dark:border-[#14b8a6]/10">
                 <div className="text-[13px] text-[#006400]/70 dark:text-[#4ade80]/70">
                   Submitted by: <span className="font-medium text-[#006400] dark:text-[#4ade80]">{currentUser?.name}</span> 
                   {' '}({currentUser?.email})

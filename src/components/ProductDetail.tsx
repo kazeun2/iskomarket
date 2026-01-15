@@ -317,7 +317,7 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
       <div 
         data-product-detail="true"
         data-product-id={String(displayProduct?.id ?? '')}
-        className={`fixed inset-0 bg-transparent dark:bg-black/60 dark:backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300 ${
+        className={`fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center p-4 animate-in fade-in duration-300 ${
           isSecondaryModalOpen ? 'z-[9999]' : 'z-[10000]'
         } ${closingForEdit ? 'opacity-0 pointer-events-none scale-95 transition-all duration-[var(--default-transition-duration)]' : ''}`}
         onClick={(e) => {

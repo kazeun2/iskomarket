@@ -866,7 +866,7 @@ const handleRegister = async (e: React.FormEvent) => {
   };
 
   return (
-    <div className="min-h-screen h-screen relative flex flex-col overflow-y-auto auth-transition">
+    <div className="min-h-screen h-screen relative flex flex-col overflow-y-auto auth-transition bg-neutral-50 dark:bg-neutral-900">
       {/* Premium Radial Gradient Background - Light & Dark Mode */}
       <div
         className="absolute inset-0"

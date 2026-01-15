@@ -8,7 +8,7 @@ export function NoticeOverlay({ mode = 'warn', user, onClose, onSend } : { mode?
 
   return (
     <div className="w-full max-w-3xl p-4">
-      <div className="bg-white dark:bg-[#04121a] rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-[var(--card)] dark:bg-[#04121a] rounded-lg shadow-lg overflow-hidden">
         <div className="p-6 border-b">
           <div className="flex items-center gap-3">
             {mode === 'warn' ? <AlertTriangle className="h-5 w-5 text-orange-600" /> : <Ban className="h-5 w-5 text-red-600" />}
