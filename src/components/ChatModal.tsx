@@ -595,18 +595,78 @@ export function ChatModal({
           markAsRead({ user_id: currentUserId, sender_id: newMsg.sender_id });
         }
 
-        // Meetup/transaction-related message handling is disabled to avoid calling transactions APIs when migrations are pending.
+        // Meetup/transaction-related message handling
         try {
           if (newMsg.automation_type && newMsg.automation_type.startsWith('meetup')) {
-            // Show an informative banner only - do not query transactions table
-            setStatusBannerMessage('📅 Meet-up notifications are temporarily disabled.');
-            setStatusBannerType('info');
-            setShowStatusBanner(true);
-            clearTimeout(bannerTimeoutRef.current as any);
-            bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+            const txId = newMsg.transaction_id || (newMsg as any).transactionId || (newMsg as any).tx_id;
+
+            // Async handler: prefer fetching a real transaction when possible, otherwise fall back to parsing the message text
+            (async () => {
+              try {
+                // If we have a server transaction id, try to fetch authoritative data
+                if (txId) {
+                  try {
+                    const { getTransaction } = await import('../lib/services/transactions');
+                    const tx = await getTransaction(String(txId));
+                    if (tx) {
+                      setTransaction((prev) => ({
+                        ...prev,
+                        id: tx.id,
+                        meetupDate: tx.meetup_date ? new Date(tx.meetup_date) : prev.meetupDate,
+                        meetupLocation: tx.meetup_location || prev.meetupLocation,
+                        status: (tx.status as any) || 'proposed',
+                        buyerId: tx.sender_id,
+                        sellerId: tx.receiver_id,
+                      }));
+
+                      setStatusBannerMessage(`📅 Meet-up scheduled: ${tx.meetup_date ? new Date(tx.meetup_date).toLocaleString() : 'TBD'}`);
+                      setStatusBannerType('info');
+                      setShowStatusBanner(true);
+                      clearTimeout(bannerTimeoutRef.current as any);
+                      bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+                      return;
+                    }
+                  } catch (e) {
+                    // fetch failed — continue to parsing fallback
+                  }
+                }
+
+                // Fallback: try to parse date/location from message text
+                const text = String(newMsg.message || newMsg.message_text || newMsg.content || newMsg.body || '');
+                // Look for common date patterns like "Jan 17 2026" or "January 17, 2026"
+                let parsedDate: Date | undefined;
+                const humanDateMatch = text.match(/(\w{3,9}\s+\d{1,2},?\s*\d{4})/);
+                if (humanDateMatch) parsedDate = new Date(humanDateMatch[1]);
+                if (!parsedDate) {
+                  const isoMatch = text.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+                  if (isoMatch) parsedDate = new Date(isoMatch[0]);
+                }
+                const locMatch = text.match(/at\s+(.+)$/i);
+                const loc = locMatch ? locMatch[1].trim() : (newMsg.meetup_location || undefined);
+
+                setTransaction((prev) => ({
+                  ...prev,
+                  meetupDate: parsedDate || prev.meetupDate,
+                  meetupLocation: loc || prev.meetupLocation,
+                  status: 'proposed',
+                  proposedAt: new Date(newMsg.created_at),
+                  proposedBy: newMsg.sender_id,
+                  id: txId || prev.id,
+                }));
+
+                setStatusBannerMessage(`📅 Meet-up proposed${parsedDate ? `: ${parsedDate.toLocaleString()}` : ''}${loc ? ` at ${loc}` : ''}`);
+                setStatusBannerType('info');
+                setShowStatusBanner(true);
+                clearTimeout(bannerTimeoutRef.current as any);
+                bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+
+              } catch (err) {
+                console.warn('[ChatModal] Failed to process meetup message', err);
+              }
+            })();
           }
         } catch (e) {
-          console.warn('[ChatModal] Skipping meetup/transaction message handling due to disabled state', e);
+          console.warn('[ChatModal] Error handling meetup/transaction message', e);
         }
 
         // Auto-scroll to bottom
@@ -621,15 +681,65 @@ export function ChatModal({
     };
   }, [isOpen, conversationId, currentUserId, recipientIdStr]);
 
-  // Cleanup transaction subscription on conversation/product changes or when the modal unmounts
+  // Subscribe to transaction updates when we have a transaction id
   useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      // Ensure previous subscription is cleared
+      if (txUnsubRef.current) {
+        try { txUnsubRef.current(); } catch (e) { console.warn('Failed to unsubscribe transaction channel', e); }
+        txUnsubRef.current = null;
+      }
+
+      if (!transaction?.id) return;
+
+      try {
+        // Only subscribe if transactions table exists
+        const { tableExists } = await import('../lib/db');
+        if (!(await tableExists('transactions'))) {
+          if (!mounted) return;
+          console.warn('[ChatModal] transactions table not available; skipping transaction subscription');
+          return;
+        }
+
+        const { subscribeToTransaction } = await import('../lib/services/transactions');
+        txUnsubRef.current = subscribeToTransaction(String(transaction.id), (txUpdate: any) => {
+          try {
+            setTransaction((prev) => ({
+              ...prev,
+              meetupDate: txUpdate.meetup_date ? new Date(txUpdate.meetup_date) : prev.meetupDate,
+              meetupLocation: txUpdate.meetup_location || prev.meetupLocation,
+              status: txUpdate.status || prev.status,
+              buyerConfirmed: (txUpdate as any).meetup_confirmed_by_buyer ?? prev.buyerConfirmed,
+              sellerConfirmed: (txUpdate as any).meetup_confirmed_by_seller ?? prev.sellerConfirmed,
+              id: txUpdate.id || prev.id,
+            }));
+
+            // Update banner so UI is clearly reflecting the live update
+            setStatusBannerMessage(`📅 Meet-up updated: ${txUpdate.meetup_date ? new Date(txUpdate.meetup_date).toLocaleString() : ''}${txUpdate.meetup_location ? ` at ${txUpdate.meetup_location}` : ''}`);
+            setStatusBannerType('info');
+            setShowStatusBanner(true);
+            clearTimeout(bannerTimeoutRef.current as any);
+            bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+          } catch (err) {
+            console.warn('[ChatModal] Error applying transaction update', err);
+          }
+        });
+
+      } catch (err) {
+        console.warn('[ChatModal] Failed to subscribe to transaction updates', err);
+      }
+    })();
+
     return () => {
+      mounted = false;
       if (txUnsubRef.current) {
         try { txUnsubRef.current(); } catch (e) { console.warn('Failed to unsubscribe transaction channel', e); }
         txUnsubRef.current = null;
       }
     };
-  }, [conversationId, product?.id]);
+  }, [transaction?.id, conversationId, product?.id]);
 
   // Update user activity when modal is open
   useEffect(() => {

@@ -61,6 +61,9 @@ export async function agreeMeetupAndNotify({ productId, buyerId, sellerId, meetu
         product_id: String(productId),
         message: messageText,
         automation_type: 'meetup_request',
+        // Include meetup metadata so recipients can update UI even if transactions are local-only
+        meetup_date: meetupDate || null,
+        meetup_location: meetupLocation || null,
         // don't include a transaction id that the server won't recognise
       })
       if (msgError) {
@@ -128,6 +131,8 @@ export async function agreeMeetupAndNotify({ productId, buyerId, sellerId, meetu
       message: messageText,
       transaction_id: tx?.id ? String(tx.id) : undefined,
       automation_type: 'meetup_request',
+      meetup_date: meetupDate || (tx?.meetup_date || null),
+      meetup_location: meetupLocation || (tx?.meetup_location || null),
     })
     if (msgError) {
       console.error('[agreeMeetupAndNotify] Supabase message error', { message: msgError?.message, code: msgError?.code, details: msgError?.details })
