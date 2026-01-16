@@ -6,11 +6,10 @@ interface AgreeParams {
   productId: string
   buyerId: string
   sellerId: string
-  meetupLocation: string
   meetupDate?: string | null
 }
 
-export async function agreeMeetupAndNotify({ productId, buyerId, sellerId, meetupLocation, meetupDate }: AgreeParams) {
+export async function agreeMeetupAndNotify({ productId, buyerId, sellerId, meetupDate }: AgreeParams) {
   if (!buyerId || !sellerId) throw new Error('Missing buyer or seller id')
 
   // Log payload for debugging (helps trace RLS/auth issues)
@@ -47,7 +46,6 @@ export async function agreeMeetupAndNotify({ productId, buyerId, sellerId, meetu
       product_id: String(productId),
       buyer_id: String(buyerId),
       receiver_id: String(sellerId),
-      meetup_location: meetupLocation,
       meetup_date: meetupDate || null,
       local_only: true,
     }
@@ -63,7 +61,7 @@ export async function agreeMeetupAndNotify({ productId, buyerId, sellerId, meetu
         automation_type: 'meetup_request',
         // Include meetup metadata so recipients can update UI even if transactions are local-only
         meetup_date: meetupDate || null,
-        meetup_location: meetupLocation || null,
+        // don't include meetup_location; date-only prototype
         // don't include a transaction id that the server won't recognise
       })
       if (msgError) {
@@ -101,7 +99,8 @@ export async function agreeMeetupAndNotify({ productId, buyerId, sellerId, meetu
   let tx: any
   if (existingTx) {
     try {
-      tx = await updateMeetupDetails(existingTx.id, meetupLocation, meetupDate || existingTx.meetup_date || null)
+      // We do not use meetup locations in the date-only prototype; pass null for location
+      tx = await updateMeetupDetails(existingTx.id, null, meetupDate || existingTx.meetup_date || null)
       console.log('[agreeMeetupAndNotify] updated transaction', { id: existingTx.id })
     } catch (e: any) {
       console.error('[agreeMeetupAndNotify] Failed to update meetup details', { message: e?.message, code: e?.code, details: e?.details })
@@ -109,7 +108,7 @@ export async function agreeMeetupAndNotify({ productId, buyerId, sellerId, meetu
     }
   } else {
     try {
-      tx = await createTransaction({ productId: String(productId), buyerId: String(buyerId), sellerId: String(sellerId), meetupLocation, meetupDate })
+      tx = await createTransaction({ productId: String(productId), buyerId: String(buyerId), sellerId: String(sellerId), meetupLocation: null, meetupDate })
       console.log('[agreeMeetupAndNotify] created transaction', { id: tx?.id })
     } catch (e: any) {
       console.error('[agreeMeetupAndNotify] Failed to create transaction', { message: e?.message, code: e?.code, details: e?.details })

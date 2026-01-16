@@ -8,13 +8,11 @@ import { toast } from 'sonner';
 interface DatePickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Passes selected date and optionally the chosen/fixed location (seller-provided)
-  onDateSelected: (date: Date, location?: string) => void;
-  // When provided, the modal will use this fixed location and hide the selector
-  fixedLocation?: string;
+  // Passes selected date (date-only)
+  onDateSelected: (date: Date) => void;
 }
 
-export function DatePickerModal({ isOpen, onClose, onDateSelected, fixedLocation }: DatePickerModalProps) {
+export function DatePickerModal({ isOpen, onClose, onDateSelected }: DatePickerModalProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
   // Minimum date: December 1, 2025
@@ -26,11 +24,10 @@ export function DatePickerModal({ isOpen, onClose, onDateSelected, fixedLocation
       return;
     }
 
-    const finalLocation = fixedLocation ?? undefined;
-    onDateSelected(selectedDate, finalLocation);
+    onDateSelected(selectedDate);
     onClose();
     toast.success('Meet-up date proposed!', {
-      description: `You've proposed ${selectedDate.toLocaleDateString()}${finalLocation ? ` at ${finalLocation}` : ''}`
+      description: `You've proposed ${selectedDate.toLocaleDateString()}`
     });
   };
 

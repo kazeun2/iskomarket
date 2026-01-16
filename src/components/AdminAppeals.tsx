@@ -1,11 +1,11 @@
 import React from 'react'
 import { useConversations } from '../contexts/ConversationContext'
 
-export default function AdminAppeals() {
+export default function AdminAppeals({ transactionOnly = false }: { transactionOnly?: boolean }) {
   const ctx = useConversations()
-  const appeals = Object.values(ctx.appeals)
+  const appeals = Object.values(ctx.appeals).filter((a) => !transactionOnly || !!a.transactionId)
 
-  if (!appeals.length) return <div>No appeals yet</div>
+  if (!appeals.length) return <div>{transactionOnly ? 'No transaction appeals yet' : 'No appeals yet'}</div>
 
   return (
     <div className="p-4">

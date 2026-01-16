@@ -16,20 +16,32 @@
         - button "Register" [ref=e29]
       - generic [ref=e31]:
         - generic [ref=e32]:
-          - generic [ref=e33]: CvSU Email Address
+          - generic [ref=e33]: Username
           - generic [ref=e34]:
             - img [ref=e35]
-            - textbox "your.name@cvsu.edu.ph" [ref=e38]: test+seller@example.com
-          - generic [ref=e39]:
-            - img [ref=e40]
-            - generic [ref=e42]: Please use your CvSU email address (@cvsu.edu.ph)
-        - generic [ref=e43]:
-          - generic [ref=e44]: Password
-          - generic [ref=e45]:
-            - img [ref=e46]
-            - textbox "Enter your password" [ref=e49]: Aa123456
-            - button [ref=e50]:
-              - img [ref=e51]
-        - button "Sign In to IskoMarket" [active] [ref=e54] [cursor=pointer]
-        - button "Forgot your password?" [ref=e56] [cursor=pointer]: Forgot your password?
+            - textbox "iskostudent" [ref=e38]: seller8961
+            - generic: 10/10
+        - generic [ref=e39]:
+          - generic [ref=e40]: CvSU Email Address
+          - generic [ref=e41]:
+            - img [ref=e42]
+            - textbox "your.name@cvsu.edu.ph" [ref=e45]: test+seller@example.com
+          - generic [ref=e46]:
+            - img [ref=e47]
+            - generic [ref=e49]: Please use your CvSU email address (@cvsu.edu.ph)
+        - generic [ref=e50]:
+          - generic [ref=e51]: Password
+          - generic [ref=e52]:
+            - img [ref=e53]
+            - textbox "Create a strong password" [ref=e56]: Aa123456
+            - button [ref=e57]:
+              - img [ref=e58]
+        - generic [ref=e61]:
+          - generic [ref=e62]: Confirm Password
+          - generic [ref=e63]:
+            - img [ref=e64]
+            - textbox "Confirm your password" [ref=e67]: Aa123456
+            - button [ref=e68]:
+              - img [ref=e69]
+        - button "Register" [active] [ref=e72] [cursor=pointer]
 ```

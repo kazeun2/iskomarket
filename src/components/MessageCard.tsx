@@ -41,14 +41,14 @@ export function MessageCard({ transaction, currentUserId, onOpen }: MessageCardP
   // Product title fallback
   const productTitle = transaction.product?.title || 'Product'
 
-  // Meetup text
+  // Meetup text (date-only)
   let subtitle = 'Tap to view conversation'
   if (transaction.meetup_date) {
     try {
       const d = new Date(transaction.meetup_date)
-      subtitle = `Meet-up: ${d.toLocaleDateString()} • ${transaction.meetup_location || 'TBD'}`
+      subtitle = `Meet-up: ${d.toLocaleDateString()}`
     } catch (e) {
-      subtitle = transaction.meetup_location ? `Meet-up • ${transaction.meetup_location}` : 'Meet-up scheduled'
+      subtitle = 'Meet-up scheduled'
     }
   }
 

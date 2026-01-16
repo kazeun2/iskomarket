@@ -1,0 +1,55 @@
+# Page snapshot
+
+```yaml
+- generic [active]:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - button:
+            - img
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+              - generic:
+                - generic:
+                  - heading [level=1]: IskoMarket
+                - paragraph: Cavite State University – Main Campus
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - heading [level=3]: Reset Your Password
+                  - paragraph: Follow the instructions in the email to reset your password
+                - generic:
+                  - generic:
+                    - paragraph: "We've sent a password reset email to:"
+                    - paragraph: test+reset@cvsu.edu.ph
+                    - paragraph: Please check your inbox and follow the instructions to reset your password.
+  - generic: Dialog content
+  - dialog "Reset your password" [ref=e2]:
+    - paragraph [ref=e3]: Dialog content
+    - generic [ref=e4]:
+      - heading "Reset your password" [level=2] [ref=e5]
+      - paragraph [ref=e6]: Enter the exact numeric code from the most recent email we sent to your CvSU inbox to proceed with resetting your password.
+    - generic [ref=e7]:
+      - paragraph [ref=e8]: "Code sent to: test+reset@cvsu.edu.ph"
+      - generic [ref=e9]:
+        - textbox "Digit 1" [ref=e10]: "0"
+        - textbox "Digit 2" [ref=e11]: "0"
+        - textbox "Digit 3" [ref=e12]: "0"
+        - textbox "Digit 4" [ref=e13]: "0"
+        - textbox "Digit 5" [ref=e14]: "0"
+        - textbox "Digit 6" [ref=e15]: "0"
+        - textbox "Digit 7" [ref=e16]: "0"
+        - textbox "Digit 8" [ref=e17]: "0"
+      - generic [ref=e18]:
+        - button "Verifying…" [disabled] [ref=e19]
+        - button "Cancel" [ref=e20]
+      - button "Resend in 57s" [disabled] [ref=e21]
+```

@@ -64,6 +64,7 @@ import { agreeMeetupAndNotify } from "../lib/actions/meetup";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatOptional } from "../contexts/ChatContext";
 import { useConnection } from "../contexts/ConnectionStatusContext";
+import { useConversations } from "../contexts/ConversationContext"; // shared, in-memory conversation store for prototype flows
 
 interface Message {
   id: string;
@@ -117,7 +118,6 @@ interface ChatModalProps {
 interface Transaction {
   id?: string;
   meetupDate?: Date; // Store as Date object for easier calculations
-  meetupLocation?: string;
   buyerConfirmed: boolean;
   sellerConfirmed: boolean;
   status:
@@ -140,6 +140,11 @@ interface Transaction {
   otherUserCompletedConfirmation?: boolean; // Other user clicked Completed
   userAppealed?: boolean; // Current user clicked Appeal
   otherUserAppealed?: boolean; // Other user clicked Appeal
+  buyerMarkedCompleted?: boolean;
+  sellerMarkedCompleted?: boolean;
+  buyerAppealed?: boolean;
+  sellerAppealed?: boolean;
+  transactionConfirmDeadline?: Date;
 }
 
 export function ChatModal({
@@ -161,6 +166,19 @@ export function ChatModal({
   // Connection context (optional - provider may not be mounted in some test harnesses)
   let connection: any = null;
   try { connection = useConnection(); } catch (e) { connection = null; }
+
+  // ConversationContext (in-memory, optional - used by prototype/demo flows)
+  let convCtx: any = null;
+  try { convCtx = useConversations(); } catch (e) { convCtx = null; }
+
+  const getConvoKey = (sender?: string, receiver?: string) => {
+    if (conversationId) return conversationId;
+    const a = sender || String(authUserId);
+    const b = receiver || recipientIdStr;
+    if (!a || !b) return null;
+    return `virtual:${[a,b].sort().join(':')}`;
+  };
+
   // Start with any already-known user id to avoid temporary nulls
   const [authUserId, setAuthUserId] = useState<string | null>(user?.id ?? null);
 
@@ -223,7 +241,6 @@ export function ChatModal({
     buyerConfirmed: false,
     sellerConfirmed: false,
     status: "pending",
-    meetupLocation: "U-Mall Gate", // Updated default location
   });
 
   // Online status state
@@ -613,7 +630,6 @@ export function ChatModal({
                         ...prev,
                         id: tx.id,
                         meetupDate: tx.meetup_date ? new Date(tx.meetup_date) : prev.meetupDate,
-                        meetupLocation: tx.meetup_location || prev.meetupLocation,
                         status: (tx.status as any) || 'proposed',
                         buyerId: tx.sender_id,
                         sellerId: tx.receiver_id,
@@ -631,7 +647,7 @@ export function ChatModal({
                   }
                 }
 
-                // Fallback: try to parse date/location from message text
+                // Fallback: try to parse date from message text
                 const text = String(newMsg.message || newMsg.message_text || newMsg.content || newMsg.body || '');
                 // Look for common date patterns like "Jan 17 2026" or "January 17, 2026"
                 let parsedDate: Date | undefined;
@@ -641,20 +657,17 @@ export function ChatModal({
                   const isoMatch = text.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
                   if (isoMatch) parsedDate = new Date(isoMatch[0]);
                 }
-                const locMatch = text.match(/at\s+(.+)$/i);
-                const loc = locMatch ? locMatch[1].trim() : (newMsg.meetup_location || undefined);
 
                 setTransaction((prev) => ({
                   ...prev,
                   meetupDate: parsedDate || prev.meetupDate,
-                  meetupLocation: loc || prev.meetupLocation,
                   status: 'proposed',
                   proposedAt: new Date(newMsg.created_at),
                   proposedBy: newMsg.sender_id,
                   id: txId || prev.id,
                 }));
 
-                setStatusBannerMessage(`📅 Meet-up proposed${parsedDate ? `: ${parsedDate.toLocaleString()}` : ''}${loc ? ` at ${loc}` : ''}`);
+                setStatusBannerMessage(`📅 Meet-up proposed${parsedDate ? `: ${parsedDate.toLocaleString()}` : ''}`);
                 setStatusBannerType('info');
                 setShowStatusBanner(true);
                 clearTimeout(bannerTimeoutRef.current as any);
@@ -672,6 +685,8 @@ export function ChatModal({
         // Handle manual/automated 'mark done' and 'cancel done' messages so recipient UI reflects status
         try {
           const at = String(newMsg.automation_type || '').toLowerCase();
+          const key = getConvoKey(newMsg.sender_id, newMsg.receiver_id);
+
           if (at.includes('mark_done')) {
             setIsMarkedAsDone(true);
             setStatusBannerMessage('🗂️ Conversation marked as done');
@@ -681,6 +696,7 @@ export function ChatModal({
             bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
             // If there was a proposed meetup, clear it visually
             setTransaction((prev) => ({ ...prev, meetupDate: undefined, status: 'pending', proposedAt: undefined, buyerConfirmed: false, sellerConfirmed: false }));
+            try { if (convCtx && key) convCtx.markDone(key); } catch (e) {}
           } else if (at === 'cancel_done') {
             setIsMarkedAsDone(false);
             setStatusBannerMessage('🔄 Conversation restored to active state.');
@@ -688,6 +704,26 @@ export function ChatModal({
             setShowStatusBanner(true);
             clearTimeout(bannerTimeoutRef.current as any);
             bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+            try { if (convCtx && key) convCtx.cancelDone(key); } catch (e) {}
+          } else if (at === 'appeal') {
+            // Ensure the shared store knows about this appeal
+            const appealId = `appeal-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+            const appeal = {
+              id: appealId,
+              transactionId: newMsg.transaction_id || (newMsg as any).tx_id || undefined,
+              conversationId: getConvoKey(newMsg.sender_id, newMsg.receiver_id) || 'unknown',
+              productId: product?.id || undefined,
+              submittedById: newMsg.sender_id,
+              reason: 'other',
+              description: newMsg.message || undefined,
+              evidenceUrl: undefined,
+              status: 'pending',
+              createdAt: new Date(newMsg.created_at).toISOString(),
+            } as any;
+            try { if (convCtx) convCtx.startAppeal(appeal.conversationId, newMsg.sender_id, appeal); } catch (e) {}
+          } else if (at === 'completed_confirmation') {
+            // someone marked completed; update shared state
+            try { if (convCtx && getConvoKey(newMsg.sender_id, newMsg.receiver_id)) convCtx.markCompleted(getConvoKey(newMsg.sender_id, newMsg.receiver_id), newMsg.sender_id); } catch (e) {}
           }
         } catch (err) {
           console.warn('[ChatModal] Error processing mark_done/cancel_done message', err);
@@ -733,7 +769,6 @@ export function ChatModal({
             setTransaction((prev) => ({
               ...prev,
               meetupDate: txUpdate.meetup_date ? new Date(txUpdate.meetup_date) : prev.meetupDate,
-              meetupLocation: txUpdate.meetup_location || prev.meetupLocation,
               status: txUpdate.status || prev.status,
               buyerConfirmed: (txUpdate as any).meetup_confirmed_by_buyer ?? prev.buyerConfirmed,
               sellerConfirmed: (txUpdate as any).meetup_confirmed_by_seller ?? prev.sellerConfirmed,
@@ -741,7 +776,7 @@ export function ChatModal({
             }));
 
             // Update banner so UI is clearly reflecting the live update
-            setStatusBannerMessage(`📅 Meet-up updated: ${txUpdate.meetup_date ? new Date(txUpdate.meetup_date).toLocaleString() : ''}${txUpdate.meetup_location ? ` at ${txUpdate.meetup_location}` : ''}`);
+            setStatusBannerMessage(`📅 Meet-up updated: ${txUpdate.meetup_date ? new Date(txUpdate.meetup_date).toLocaleString() : ''}`);
             setStatusBannerType('info');
             setShowStatusBanner(true);
             clearTimeout(bannerTimeoutRef.current as any);
@@ -764,6 +799,37 @@ export function ChatModal({
       }
     };
   }, [transaction?.id, conversationId, product?.id]);
+
+  // Mirror ConversationContext (shared prototype store) updates into local transaction state
+  useEffect(() => {
+    try {
+      if (!convCtx) return;
+      const key = getConvoKey(String(currentUserId), String(recipientIdStr));
+      if (!key) return;
+      const convo = convCtx.conversations[key];
+      if (!convo || !convo.transaction) return;
+
+      const txn = convo.transaction;
+
+      setTransaction((prev) => ({
+        ...prev,
+        meetupDate: txn.meetupDate ? new Date(txn.meetupDate) : prev.meetupDate,
+        status: (txn.meetupStatus as any) || prev.status,
+        buyerConfirmed: !!txn.buyerConfirmedMeetup || prev.buyerConfirmed,
+        sellerConfirmed: !!txn.sellerConfirmedMeetup || prev.sellerConfirmed,
+        buyerMarkedCompleted: !!txn.buyerMarkedCompleted || prev.buyerMarkedCompleted,
+        sellerMarkedCompleted: !!txn.sellerMarkedCompleted || prev.sellerMarkedCompleted,
+        buyerAppealed: !!txn.buyerAppealed || prev.buyerAppealed,
+        sellerAppealed: !!txn.sellerAppealed || prev.sellerAppealed,
+        transactionConfirmDeadline: txn.transactionConfirmDeadline || prev.transactionConfirmDeadline,
+      }));
+
+      setIsMarkedAsDone(!!(convo.flags && convo.flags.isMarkedDone));
+
+    } catch (e) {
+      // ignore
+    }
+  }, [convCtx?.conversations, conversationId, recipientIdStr, currentUserId]);
 
   // Update user activity when modal is open
   useEffect(() => {
@@ -1201,6 +1267,7 @@ export function ChatModal({
     try {
       if (conversationId && recipientIdStr) {
         await sendMessage({
+          sender_id: String(currentUserId),
           receiver_id: recipientIdStr,
           conversation_id: conversationId,
           message: 'Conversation marked as done',
@@ -1210,6 +1277,12 @@ export function ChatModal({
     } catch (e) {
       console.warn('[ChatModal] Failed to notify other user about mark-as-done', e);
     }
+
+    // Update prototype in-memory store so both participants see the change
+    try {
+      const key = getConvoKey(String(currentUserId), String(recipientIdStr));
+      if (convCtx && key) convCtx.markDone(key);
+    } catch (e) { /* ignore */ }
 
     setStatusBannerMessage(
       "🗂️ Conversation Marked as Done – Meet-up scheduling disabled.",
@@ -1239,6 +1312,7 @@ export function ChatModal({
     try {
       if (conversationId && recipientIdStr) {
         await sendMessage({
+          sender_id: String(currentUserId),
           receiver_id: recipientIdStr,
           conversation_id: conversationId,
           message: 'Conversation restored to active',
@@ -1248,6 +1322,12 @@ export function ChatModal({
     } catch (e) {
       console.warn('[ChatModal] Failed to notify other user about cancel-done', e);
     }
+
+    // Update prototype in-memory store
+    try {
+      const key = getConvoKey(String(currentUserId), String(recipientIdStr));
+      if (convCtx && key) convCtx.cancelDone(key);
+    } catch (e) { /* ignore */ }
 
     // Allow user to choose new meet-up date after canceling done status
     setStatusBannerMessage(
@@ -1277,21 +1357,19 @@ export function ChatModal({
     setShowDatePicker(true);
   };
 
-  // When opening the DatePicker, if the product specifies a meetupLocation (seller chose it at posting), pass it to the date picker so the user can't change it
+  // When opening the DatePicker, pass date only (no locations)
   const renderDatePicker = () => (
     <DatePickerModal
       isOpen={showDatePicker}
       onClose={() => setShowDatePicker(false)}
       onDateSelected={handleDateSelected}
-      fixedLocation={product?.meetupLocation}
     />
   );
-  const handleDateSelected = async (date: Date, location?: string) => {
-    // Optimistically update the UI
+  const handleDateSelected = async (date: Date) => {
+    // Optimistically update the UI (date-only)
     setTransaction((prev) => ({
       ...prev,
       meetupDate: date,
-      meetupLocation: location ?? prev.meetupLocation,
       status: "proposed",
       proposedAt: new Date(),
       proposedBy: currentUserId ?? undefined,
@@ -1313,19 +1391,16 @@ export function ChatModal({
     }
 
     try {
-      const chosenLocation = product?.meetupLocation ?? location ?? transaction.meetupLocation ?? 'TBD';
-
       try {
         // Attempt to create/update the meetup transaction on the server and notify the other user.
         // The helper will fall back to a local-only provisional transaction when the DB schema/permissions are not available.
-        const tx = await agreeMeetupAndNotify({ productId: String(product.id), buyerId, sellerId: String(sellerId), meetupLocation: chosenLocation, meetupDate: date.toISOString() });
+        const tx = await agreeMeetupAndNotify({ productId: String(product.id), buyerId, sellerId: String(sellerId), meetupDate: date.toISOString() });
 
         // Map server/local response to UI state
         const isLocal = tx?.local_only === true || String(tx?.id || '').startsWith('local-');
         setTransaction((prev) => ({
           ...prev,
           meetupDate: tx?.meetup_date ? new Date(tx.meetup_date) : date,
-          meetupLocation: tx?.meetup_location || chosenLocation,
           status: (tx?.status as any) || 'proposed',
           id: tx?.id || prev.id,
           proposedAt: tx?.proposed_at ? new Date(tx.proposed_at) : new Date(),
@@ -1333,11 +1408,11 @@ export function ChatModal({
         }));
 
         if (isLocal) {
-          setStatusBannerMessage(`📅 (Local) Meet-up proposed: ${date.toDateString()} at ${chosenLocation} — Meet-up creation is temporarily disabled.`);
+          setStatusBannerMessage(`📅 (Local) Meet-up proposed: ${date.toDateString()} — Meet-up creation is temporarily disabled.`);
           setStatusBannerType('info');
           toast.info('Meet-up scheduling is temporarily disabled. Your date is recorded locally only.');
         } else {
-          setStatusBannerMessage(`📅 Meet-up proposed: ${date.toDateString()} at ${chosenLocation}`);
+          setStatusBannerMessage(`📅 Meet-up proposed: ${date.toDateString()}`);
           setStatusBannerType('success');
           toast.success('Meet-up proposed and the other user has been notified.');
         }
@@ -1355,14 +1430,12 @@ export function ChatModal({
         setTransaction((prev) => ({
           ...prev,
           meetupDate: date,
-          meetupLocation: chosenLocation,
           status: 'proposed',
           proposedAt: new Date(),
           proposedBy: currentUserId ?? undefined,
         }));
 
-        const meetupLoc = transaction.meetupLocation || product?.meetupLocation || 'TBD'
-        setStatusBannerMessage(`📅 (Local) Meet-up proposed: ${date.toDateString()} at ${meetupLoc} — Meet-up creation is temporarily disabled.`);
+        setStatusBannerMessage(`📅 (Local) Meet-up proposed: ${date.toDateString()} — Meet-up creation is temporarily disabled.`);
         setStatusBannerType('info');
         setShowStatusBanner(true);
         clearTimeout(bannerTimeoutRef.current as any);
@@ -1370,7 +1443,7 @@ export function ChatModal({
         toast.info('Meet-up scheduling is temporarily disabled. Your date is recorded locally only.');
 
         try {
-          const localTx = { id: `local-${Date.now()}`, product_id: String(product.id), meetup_date: date.toISOString(), meetup_location: meetupLoc, status: 'proposed', buyerId, sellerId };
+          const localTx = { id: `local-${Date.now()}`, product_id: String(product.id), meetup_date: date.toISOString(), meetup_location: null, status: 'proposed', buyerId, sellerId };
           window.dispatchEvent(new CustomEvent('iskomarket:transaction-created', { detail: localTx }));
         } catch (e) {
           // no-op
@@ -1670,10 +1743,22 @@ export function ChatModal({
       }));
 
       toast.success('Meet-up confirmed');
+
+      // Update prototype in-memory store so other user sees confirmation
+      try {
+        const key = getConvoKey(String(currentUserId), String(recipientIdStr));
+        if (convCtx && key) convCtx.confirmMeetup(key, String(currentUserId));
+      } catch (e) { /* ignore */ }
+
     } catch (err: any) {
       console.warn('[ChatModal] confirmTransaction failed, falling back to local update', err);
       setTransaction((prev) => ({ ...prev, buyerConfirmed: role === 'buyer' ? true : prev.buyerConfirmed, sellerConfirmed: role === 'seller' ? true : prev.sellerConfirmed }));
       toast.info('Confirming meet-ups is temporarily disabled (local only).');
+      try {
+        const key = getConvoKey(String(currentUserId), String(recipientIdStr));
+        if (convCtx && key) convCtx.confirmMeetup(key, String(currentUserId));
+      } catch (e) { /* ignore */ }
+
     }
   };
 
@@ -1697,6 +1782,12 @@ export function ChatModal({
       });
 
       toast.success('Marked as completed — waiting for other user');
+
+      // Update shared in-memory conversation state (optimistic)
+      try {
+        const key = getConvoKey(String(currentUserId), String(recipientIdStr));
+        if (convCtx && key) convCtx.markCompleted(key, String(currentUserId));
+      } catch (e) { /* ignore */ }
     } catch (e: any) {
       console.error('Failed to send completed confirmation message', e);
       toast.error('Failed to mark as completed');
@@ -1711,7 +1802,26 @@ export function ChatModal({
       return;
     }
 
+    // Construct optimistic Appeal object and start it in shared store
     try {
+      const appealId = `appeal-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+      const appeal = {
+        id: appealId,
+        transactionId: String(transaction.id),
+        conversationId: conversationId || getConvoKey(String(currentUserId), String(recipientIdStr)) || 'unknown',
+        productId: String(product?.id || ''),
+        buyerId: transaction.buyerId || '',
+        sellerId: transaction.sellerId || '',
+        submittedById: String(currentUserId),
+        reason: 'other',
+        description: undefined,
+        evidenceUrl: undefined,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      } as any;
+
+      try { if (convCtx) convCtx.startAppeal(appeal.conversationId, String(currentUserId), appeal); } catch (e) { /* ignore */ }
+
       await sendMessage({
         sender_id: String(currentUserId),
         receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
@@ -1781,11 +1891,11 @@ export function ChatModal({
     );
   }
 
-  // Chat body : message list + optional meetup banner
+  // Chat body : message list + optional meetup banner (date-only)
   type ChatBodyProps = {
     messages: Message[];
     currentUserId?: string | null;
-    meetup?: { date?: string | undefined; location?: string | undefined } | null;
+    meetup?: { date?: string | undefined } | null;
     showTypingIndicator?: boolean;
     messagesEndRef?: React.RefObject<HTMLDivElement>;
   };
@@ -1798,7 +1908,6 @@ export function ChatModal({
         {formattedMeetup && (
           <div className="mx-4 mt-3 mb-1 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900 shadow-sm dark:bg-amber-900 dark:text-amber-50">
             <div className="font-semibold">Meet‑up proposed: {formattedMeetup}</div>
-            {meetup?.location && <div className="opacity-80">{meetup.location}</div>}
           </div>
         )}
 
@@ -1881,14 +1990,14 @@ export function ChatModal({
   }
 
   // Slim meetup banner (appears at top of message list)
-  function MeetupBanner({ date, proposedAt, location }: { date?: Date; proposedAt?: Date; location?: string }) {
+  function MeetupBanner({ date, proposedAt }: { date?: Date; proposedAt?: Date }) {
     if (!date) return null;
     const formatted = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const daysLeft = proposedAt ? `${3 - Math.floor((new Date().getTime() - proposedAt.getTime()) / (1000 * 60 * 60 * 24))} days left for confirmation` : '';
     return (
       <div className="mx-4 mt-3 mb-1 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900 shadow-sm">
         <div className="font-semibold">Meet‑up Proposed: {formatted}</div>
-        <div className="opacity-80">{location} • {daysLeft}</div>
+        {daysLeft && <div className="opacity-80">{daysLeft}</div>}
       </div>
     );
   }
@@ -1971,7 +2080,7 @@ export function ChatModal({
                 return (
                   <div className="w-full px-3 py-2 text-sm rounded-b-md bg-blue-50 text-blue-800 dark:bg-slate-900 dark:text-blue-200 flex items-center justify-between">
                     <div>
-                      <strong>📅 Scheduled Meet-up:</strong> {dt.toDateString()} {transaction.meetupLocation ? `– ${transaction.meetupLocation}` : ''}
+                      <strong>📅 Scheduled Meet-up:</strong> {dt.toDateString()}
                       <div className="text-xs text-muted-foreground">Awaiting confirmation from other user…</div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1984,7 +2093,7 @@ export function ChatModal({
 
                       <button onClick={async () => {
                         // Cancelling meetups is disabled while meetup/transaction schema is being stabilized
-                        setTransaction((prev) => ({ ...prev, meetupDate: undefined, meetupLocation: undefined, status: 'pending', buyerConfirmed: false, sellerConfirmed: false }));
+                        setTransaction((prev) => ({ ...prev, meetupDate: undefined, status: 'pending', buyerConfirmed: false, sellerConfirmed: false }));
                         setStatusBannerMessage('Meet‑up cancelled (local only) – you can choose another date');
                         setStatusBannerType('info');
                         setShowStatusBanner(true);
@@ -2090,7 +2199,7 @@ export function ChatModal({
               <ChatBody
                 messages={messages.filter((m) => m.type !== 'product')}
                 currentUserId={currentUserId}
-                meetup={{ date: transaction.meetupDate ? transaction.meetupDate.toISOString() : undefined, location: transaction.meetupLocation }}
+                meetup={{ date: transaction.meetupDate ? transaction.meetupDate.toISOString() : undefined }}
                 showTypingIndicator={showTypingIndicator}
                 messagesEndRef={messagesEndRef}
               />

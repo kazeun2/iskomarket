@@ -1063,20 +1063,18 @@ export async function getConversations(user_id: string): Promise<{
             // Note: we will attempt to fetch user data below if needed
           }
 
-          // Detect meetup metadata from last message if present
+          // Detect meetup date from last message if present (date-only)
           let meetup_date: string | undefined = undefined;
-          let meetup_location: string | undefined = undefined;
           try {
             if (lastMessage) {
               if (lastMessage.automation_type && String(lastMessage.automation_type).toLowerCase().startsWith('meetup')) {
                 meetup_date = lastMessage.created_at;
-                const locMatch = String(lastText || '').match(/(?:at|@)\s*([^\n]+)$/i);
-                if (locMatch && locMatch[1]) meetup_location = locMatch[1].trim();
               } else {
-                const m = String(lastText || '').match(/meet-?up[:\s]*([^\n]+)/i);
-                if (m && m[1]) {
-                  meetup_location = m[1].trim();
-                  meetup_date = lastMessage.created_at;
+                const isoMatch = String(lastText || '').match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+                if (isoMatch) meetup_date = isoMatch[0];
+                else {
+                  const humanDateMatch = String(lastText || '').match(/(\w{3,9}\s+\d{1,2},?\s*\d{4})/);
+                  if (humanDateMatch) meetup_date = new Date(humanDateMatch[1]).toISOString();
                 }
               }
             }
@@ -1092,9 +1090,8 @@ export async function getConversations(user_id: string): Promise<{
             last_message_at: lastMessage?.created_at || conv.last_message_at || new Date().toISOString(),
             unread_count: unreadCount,
             product_id: conv.product_id,
-            // Detected meetup data
+            // Detected meetup data (date-only)
             meetup_date: meetup_date,
-            meetup_location: meetup_location,
             // Do not inject hardcoded placeholders here; let consumers decide how to display missing names
             other_user_name: userData?.name ?? undefined,
             other_user_username: userData?.username ?? undefined,

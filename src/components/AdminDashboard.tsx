@@ -36,6 +36,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { SystemAlertModal } from "./SystemAlertModal";
+import AdminAppeals from '../components/AdminAppeals';
 import {
   Card,
   CardContent,
@@ -1896,12 +1897,21 @@ Cavite State University`;
           </MinimalStatCard>
         )}
         {adminFlags.appeals && (
-          <MinimalStatCard
-            onClick={() => setSelectedStatModal("appeals")}
-          >
-            <Mail className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
-            <div className="text-sm text-muted-foreground">Appeals</div>
-          </MinimalStatCard>
+          <>
+            <MinimalStatCard
+              onClick={() => setSelectedStatModal("appeals")}
+            >
+              <Mail className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
+              <div className="text-sm text-muted-foreground">Appeals</div>
+            </MinimalStatCard>
+
+            <MinimalStatCard
+              onClick={() => setSelectedStatModal("transactionAppeals")}
+            >
+              <FileText className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
+              <div className="text-sm text-muted-foreground">Transaction Appeals</div>
+            </MinimalStatCard>
+          </>
         )}
         {adminFlags.seasonReset && (
           <MinimalStatCard
@@ -4609,6 +4619,39 @@ Cavite State University`
       {/* Product Details Modal is now shown via OverlayManager (screen-level overlay) */}
 
       {/* Product Delete Confirmation is now shown via OverlayManager */}
+
+      {/* Transaction Appeals Modal (prototype - shows transaction appeals from ConversationContext) */}
+      <Dialog
+        open={selectedStatModal === "transactionAppeals"}
+        onOpenChange={() => setSelectedStatModal(null)}
+      >
+        <DialogContent className="modal-standard sm:max-w-[800px] max-h-[90vh]">
+          <DialogHeader className="sticky top-0 bg-background z-50 pb-4 border-b">
+            <div className="pr-12">
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#006400] dark:text-[#4ade80]" />
+                Transaction Appeals
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                View and manage transaction appeals (mock / prototype store)
+              </DialogDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-muted hover:scale-110 transition-all duration-200 absolute top-4 right-6"
+              onClick={() => setSelectedStatModal(null)}
+              aria-label="Close dialog"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
+
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+            <AdminAppeals transactionOnly />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Product Detail Modal */}
       {selectedProductDetails && showProductDetailModal && (
