@@ -20,6 +20,9 @@ if (container) {
           Hello IskoMarket — test render
         </div>
       );
+    } else if (params.get('test') === 'chatdemo') {
+      const ChatDemo = (await import('./pages/ChatPrototype')).default
+      root.render(<ChatDemo />)
     } else {
       root.render(<App />);
     }
