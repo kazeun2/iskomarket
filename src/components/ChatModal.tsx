@@ -669,6 +669,30 @@ export function ChatModal({
           console.warn('[ChatModal] Error handling meetup/transaction message', e);
         }
 
+        // Handle manual/automated 'mark done' and 'cancel done' messages so recipient UI reflects status
+        try {
+          const at = String(newMsg.automation_type || '').toLowerCase();
+          if (at.includes('mark_done')) {
+            setIsMarkedAsDone(true);
+            setStatusBannerMessage('🗂️ Conversation marked as done');
+            setStatusBannerType('info');
+            setShowStatusBanner(true);
+            clearTimeout(bannerTimeoutRef.current as any);
+            bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+            // If there was a proposed meetup, clear it visually
+            setTransaction((prev) => ({ ...prev, meetupDate: undefined, status: 'pending', proposedAt: undefined, buyerConfirmed: false, sellerConfirmed: false }));
+          } else if (at === 'cancel_done') {
+            setIsMarkedAsDone(false);
+            setStatusBannerMessage('🔄 Conversation restored to active state.');
+            setStatusBannerType('success');
+            setShowStatusBanner(true);
+            clearTimeout(bannerTimeoutRef.current as any);
+            bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+          }
+        } catch (err) {
+          console.warn('[ChatModal] Error processing mark_done/cancel_done message', err);
+        }
+
         // Auto-scroll to bottom
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1173,6 +1197,20 @@ export function ChatModal({
       }));
     }
 
+    // Notify the other participant via an automated message so their UI can reflect the change in real-time
+    try {
+      if (conversationId && recipientIdStr) {
+        await sendMessage({
+          receiver_id: recipientIdStr,
+          conversation_id: conversationId,
+          message: 'Conversation marked as done',
+          automation_type: 'mark_done',
+        });
+      }
+    } catch (e) {
+      console.warn('[ChatModal] Failed to notify other user about mark-as-done', e);
+    }
+
     setStatusBannerMessage(
       "🗂️ Conversation Marked as Done – Meet-up scheduling disabled.",
     );
@@ -1195,6 +1233,20 @@ export function ChatModal({
       }
     } catch (e) {
       console.warn('[ChatModal] Error clearing conversation is_done', e);
+    }
+
+    // Notify the other participant so they can update their UI
+    try {
+      if (conversationId && recipientIdStr) {
+        await sendMessage({
+          receiver_id: recipientIdStr,
+          conversation_id: conversationId,
+          message: 'Conversation restored to active',
+          automation_type: 'cancel_done',
+        });
+      }
+    } catch (e) {
+      console.warn('[ChatModal] Failed to notify other user about cancel-done', e);
     }
 
     // Allow user to choose new meet-up date after canceling done status
