@@ -203,6 +203,11 @@ import {
 // Create and confirm
 const transaction = await createTransaction(productId, buyerId, sellerId)
 await confirmTransaction(transaction.id, userId, 'buyer')
+
+// If you're running database migrations or temporarily need to prevent creating real
+// transactions from the frontend (e.g., staging without updated columns), set the
+// env variable `NEXT_PUBLIC_DISABLE_TRANSACTIONS=1` to create local provisional
+// transactions instead of writing to `public.transactions`.
 ```
 
 ---
@@ -214,6 +219,29 @@ All real-time subscriptions are built-in:
 - **Chat Messages**: Auto-update when new messages arrive
 - **Notifications**: Real-time push notifications
 - **Transaction Updates**: Live transaction status changes
+
+---
+
+## ⚠️ Maintenance Settings (missing table / PGRST205)
+
+If you see an error like:
+
+```
+{"code":"PGRST205","message":"Could not find the table 'public.maintenance_settings' in the schema cache"}
+```
+
+it means the `maintenance_settings` singleton table hasn't been applied to your database. You can fix this in two ways:
+
+1. Apply the migration: run the SQL file `migrations/20260109-add-maintenance-settings.sql` in your Supabase SQL editor (this creates the `maintenance_settings` table and policies). This is the recommended approach if you intend to use the maintenance overlay feature.
+
+2. Disable maintenance checks temporarily (safe fallback): set one of the following env variables in your `.env.local` to `0` (or `false`) to prevent the app from querying the missing table. This avoids 404/PGRST205 network errors while you run migrations.
+
+   - `NEXT_PUBLIC_ENABLE_MAINTENANCE_SETTINGS=0` (Next.js-style build-time flag)
+   - `VITE_ENABLE_MAINTENANCE_SETTINGS=0` (Vite-style runtime flag)
+
+   Set to `1` or `true` to enable the feature again after the migration.
+
+Once the table is present or the flag is set, the app will stop producing the PGRST205 error and will either show the maintenance overlay (when active) or be silent when disabled.
 
 Example usage:
 ```typescript

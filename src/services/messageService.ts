@@ -5,6 +5,7 @@
 
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 type Message = Database['public']['Tables']['messages']['Row'];
 type MessageInsert = Database['public']['Tables']['messages']['Insert'];
@@ -19,6 +20,8 @@ function checkSupabaseReady(): boolean {
   }
   return true;
 }
+
+import { getTableColumns, tableExists } from '../lib/db';
 
 /**
  * Sends a new message
@@ -48,7 +51,8 @@ export async function sendMessage(data: {
         sender_id: data.sender_id,
         receiver_id: data.receiver_id,
         product_id: data.product_id || null,
-        body: text,
+        message: text,
+        body: text, // keep both for compatibility
         is_read: false,
         created_at: new Date().toISOString(),
         transaction_id: null,
@@ -98,39 +102,46 @@ export async function sendMessage(data: {
       }
     }
 
-    // Ensure conversation participants are present (best-effort, idempotent)
+    // Ensure the current user is a participant (best-effort, idempotent). Only upsert current user to respect RLS.
     try {
       await supabase
         .from('conversation_participants')
         .upsert([
           { conversation_id: conversationId, user_id: senderId, role: 'buyer' },
-          { conversation_id: conversationId, user_id: receiverId, role: 'seller' },
         ], { onConflict: ['conversation_id', 'user_id'] });
     } catch (e) {
       // ignore - if table missing or columns differ, we'll still attempt to insert the message below
     }
 
-    // Insert message using canonical `body` column
+    // Insert message using canonical `message` column (migration-aligned)
     const insertPayload: any = {
       conversation_id: conversationId,
       sender_id: senderId,
       receiver_id: receiverId,
-      body: trimmedMessage,
+      message: trimmedMessage,
       is_read: false,
     };
 
     if (data.transaction_id) insertPayload.transaction_id = data.transaction_id;
     if (data.automation_type) insertPayload.automation_type = data.automation_type;
 
-    const { data: message, error } = await supabase.from('messages').insert(insertPayload).select().single();
+    // Insert using canonical `message` column only (no legacy fallbacks)
+    const { data: message, error } = await supabase
+      .from('messages')
+      .insert(insertPayload)
+      .select('id,conversation_id,sender_id,receiver_id,message,created_at,is_read,is_automated')
+      .single();
+
     if (error) {
-      // Return a friendly error for the UI and avoid noisy, unhelpful console traces
-      console.error('[MessageService] Failed to insert message; payload:', { conversationId, senderId, receiverId });
+      // If missing canonical column in DB, return a helpful migration guidance error
+      if (String(error?.message || '').match(/does not exist|could not find|PGRST204|column .*message.*does not exist/i) || String(error?.code || '').match(/^42703$/)) {
+        return { data: null, error: { code: 'schema_incompatible', message: 'No recognized message content column found in messages table. Please apply migration to add a canonical `message` column.' } };
+      }
       return { data: null, error };
     }
 
-    // Normalize return shape for UI (include friendly `message` field for UI compatibility)
-    const normalized = { ...(message as any), body: (message as any).body || (message as any).message || (message as any).message_text || (message as any).content || null, message: (message as any).body || (message as any).message || (message as any).message_text || (message as any).content || null, conversation_id: conversationId };
+    // Normalize return shape for UI (use canonical `message` column)
+    const normalized = { ...(message as any), message: (message as any).message || null, conversation_id: conversationId } as Message;
 
     // Best-effort: update conversation's last message fields
     (async () => {
@@ -145,6 +156,133 @@ export async function sendMessage(data: {
   } catch (err) {
     console.error('[MessageService] Unexpected error:', err);
     return { data: null, error: err };
+  }
+}
+
+/**
+ * sendUserMessage: helper that inserts a user's message using the canonical `message` column only.
+ * - Accepts a Supabase client so callers can pass the desired client (admin/client/session-specific)
+ * - Throws on error so callers can handle errors uniformly
+ */
+export async function sendUserMessage(
+  supabaseClient: SupabaseClient,
+  conversationId: string | null,
+  senderId: string,
+  receiverId: string,
+  text: string,
+): Promise<Message> {
+  if (!checkSupabaseReady()) throw new Error('Supabase not configured');
+  const trimmed = (text || '').trim();
+  if (!trimmed) throw new Error('Empty message');
+
+  const payload: any = {
+    conversation_id: conversationId,
+    sender_id: senderId,
+    receiver_id: receiverId,
+    message: trimmed,
+    is_automated: false,
+  };
+
+  const { data, error } = await supabaseClient
+    .from('messages')
+    .insert(payload)
+    .select('id,conversation_id,sender_id,receiver_id,message,created_at,is_automated')
+    .single();
+
+  if (error) {
+    // Provide helpful error for missing canonical column
+    if (String(error?.message || '').match(/does not exist|could not find|PGRST204|column .*message.*does not exist/i) || String(error?.code || '').match(/^42703$/)) {
+      throw { code: 'schema_incompatible', message: 'No recognized message content column found in messages table. Please apply migration to add a canonical `message` column.' };
+    }
+    throw error;
+  }
+
+  return data as Message;
+}
+
+/**
+ * sendMessageWithAutoReply: insert a user's message and optionally send an automated reply from the receiver once per day
+ * Behavior:
+ *  - Insert the user's message (via direct insert respecting RLS)
+ *  - Read conversations.last_auto_reply_at and if no reply was sent today, insert automated message from recipient and update last_auto_reply_at
+ *  - Returns: { userMessage, autoReplyMessage | null }
+ */
+export async function sendMessageWithAutoReply(opts: {
+  sender_id: string;
+  receiver_id: string;
+  conversation_id?: string;
+  product_id?: string;
+  message?: string;
+  automated_text?: string; // default automated text if needed
+}): Promise<{ userMessage: Message | null; autoReply: Message | null; error: any }> {
+  try {
+    if (!checkSupabaseReady()) {
+      // Mock mode: create synthetic messages for UI
+      const now = new Date().toISOString();
+      const userMessage: any = { id: `mock-${Date.now()}`, sender_id: opts.sender_id, receiver_id: opts.receiver_id, message: opts.message || '', body: opts.message || '', created_at: now, is_read: false };
+      let auto: any = null;
+      const today = new Date().toDateString();
+      // For mock: allow one auto per day by tracking in-memory on window (only for dev)
+      const key = `__iskomarket_auto_reply_${opts.conversation_id}`;
+      const last = (window as any)[key] || null;
+      if (!last || new Date(last).toDateString() !== today) {
+        auto = { id: `mock-auto-${Date.now()}`, sender_id: opts.receiver_id, receiver_id: opts.sender_id, message: opts.automated_text || "Hi! Thank you for messaging! I'll get back to you as soon as possible!", body: opts.automated_text || "Hi! Thank you for messaging! I'll get back to you as soon as possible!", created_at: new Date().toISOString(), is_read: false, is_automated: true };
+        (window as any)[key] = new Date().toISOString();
+      }
+      return { userMessage: userMessage as Message, autoReply: auto as Message, error: null };
+    }
+
+    // 1) Insert the user's message using canonical-only helper
+    let normalizedUser: Message | null = null;
+    try {
+      const inserted = await sendUserMessage(supabase, opts.conversation_id || null, opts.sender_id, opts.receiver_id, (opts.message || '').trim());
+      normalizedUser = inserted as Message;
+      console.info('[MessageService] sendMessageWithAutoReply - user message inserted', { id: normalizedUser.id, conversation_id: normalizedUser.conversation_id });
+    } catch (insertErr) {
+      console.error('[MessageService] sendMessageWithAutoReply - failed to insert user message', insertErr);
+      return { userMessage: null, autoReply: null, error: insertErr };
+    }
+
+    // 2) Read conversation.last_auto_reply_at and decide whether to send an automated reply
+    try {
+      const { data: conv } = await supabase.from('conversations').select('id, last_auto_reply_at').eq('id', opts.conversation_id).maybeSingle();
+      const lastAuto = conv?.last_auto_reply_at ? new Date(conv.last_auto_reply_at) : null;
+      const now = new Date();
+      const sameDay = lastAuto && lastAuto.toDateString() === now.toDateString();
+
+      if (!sameDay) {
+        // Insert automated message from the receiver to the sender
+        const autoText = opts.automated_text || "Hi! Thank you for messaging! I'll get back to you as soon as possible!";
+
+        try {
+          // Only attempt to insert an automated reply from the receiver's active session.
+          const { data: session } = await supabase.auth.getUser();
+          const currentAuthId = session?.user?.id;
+
+          if (!currentAuthId || String(currentAuthId) !== String(opts.receiver_id)) {
+            console.info('[MessageService] Skipping automated reply: current session user is not the intended auto-reply sender', { currentAuthId, intendedSender: opts.receiver_id });
+            return { userMessage: normalizedUser, autoReply: null, error: null };
+          }
+
+          // Automated replies are temporarily disabled while schema/RLS/automation is stabilized. We intentionally do NOT insert automated replies here.
+          console.info('[MessageService] Automated reply suppressed (disabled in code)');
+          return { userMessage: normalizedUser, autoReply: null, error: null };
+        } catch (e) {
+          console.warn('[MessageService] Exception while evaluating auto-reply conditions', e, '— ignoring auto-reply and returning userMessage only');
+          return { userMessage: normalizedUser, autoReply: null, error: null };
+        }
+      }
+
+      // No auto reply needed today
+      return { userMessage: normalizedUser, autoReply: null, error: null };
+    } catch (e) {
+      console.warn('[MessageService] sendMessageWithAutoReply - failed to determine last_auto_reply_at', e);
+      // Don't block the user message if we can't check/insert automated reply
+      return { userMessage: normalizedUser, autoReply: null, error: null };
+    }
+  } catch (err) {
+    console.error('[MessageService] Unexpected error in sendMessageWithAutoReply:', err);
+    return { userMessage: null, autoReply: null, error: err };
   }
 }
 
@@ -176,9 +314,7 @@ export async function getMessages(params: {
     // Only query by conversation_id - this ensures RLS policies are properly enforced
     const q = supabase
       .from('messages')
-      .select(
-        'id, conversation_id, sender_id, receiver_id, body, created_at, is_read, transaction_id, automation_type'
-      )
+      .select('id, conversation_id, sender_id, receiver_id, message, created_at, is_automated, is_read, read_at')
       .eq('conversation_id', params.conversation_id)
       .order('created_at', { ascending: true });
 
@@ -200,13 +336,13 @@ export async function getMessages(params: {
       let profiles: any[] = [];
       const { data: byId } = await supabase
         .from('user_profile')
-        .select('id, user_id, username, avatar_url')
+        .select('id, user_id, display_name, username, avatar_url')
         .in('id', senderIds as string[]);
       if (byId && byId.length) profiles = byId;
       else {
         const { data: byUserId } = await supabase
           .from('user_profile')
-          .select('id, user_id, username, avatar_url')
+          .select('id, user_id, display_name, username, avatar_url')
           .in('user_id', senderIds as string[]);
         profiles = byUserId || [];
       }
@@ -297,13 +433,12 @@ export async function getOrCreateConversation(productId: string, senderId: strin
     }
 
     const convId = created?.id || null;
-    // Ensure participants exist for the conversation (idempotent)
+    // Ensure participant for the caller exists (idempotent). Only insert the current user to satisfy RLS policies.
     try {
       await supabase
         .from('conversation_participants')
         .upsert([
-          { conversation_id: convId, user_id: buyerId, role: 'buyer' },
-          { conversation_id: convId, user_id: sellerId, role: 'seller' },
+          { conversation_id: convId, user_id: senderId, role: senderId === buyerId ? 'buyer' : 'seller' },
         ], { onConflict: ['conversation_id', 'user_id'] });
     } catch (e) {
       // ignore - continue even if participants table missing; this will be fixed by running migrations
@@ -579,9 +714,9 @@ export async function getConversations(user_id: string): Promise<{
           updated_at,
           participants:conversation_participants (
             user_id,
-            profiles ( id, full_name, avatar_url, username )
+            profiles ( id, display_name, avatar_url, username )
           ),
-          last_message:messages ( id, content, sender_id, created_at, read_at, receiver_id )
+          last_message:messages ( id, message, message_text, content, body, sender_id, created_at, read_at, receiver_id, automation_type, transaction_id )
         `)
         .eq('participants.user_id', user_id)
         .order('updated_at', { ascending: false });
@@ -728,14 +863,22 @@ export async function getConversations(user_id: string): Promise<{
     // To avoid missing conversation cards, fetch recent messages for the user and merge any derived conversations
     // (either explicit conversation_ids or virtual pair-based keys) that are not already present.
     try {
+      // Prefer canonical `message` column only. If absent, skip message-derived conversation merging.
       const { data: recentMessages, error: recentErr } = await supabase
         .from('messages')
-        .select('id, sender_id, receiver_id, conversation_id, message_text, content, created_at')
+        .select('id,sender_id,receiver_id,conversation_id,message,created_at')
         .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`)
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (!recentErr && recentMessages && recentMessages.length > 0) {
+      if (recentErr) {
+        // If the `message` column is missing, Postgres will return an error - just warn and skip
+        if (String(recentErr?.message || '').match(/does not exist|could not find|PGRST204|column .*message.*does not exist/i)) {
+          console.warn('[MessageService] messages table missing canonical `message` column, skipping message-derived conversations');
+        } else {
+          console.warn('[MessageService] Failed to fetch recent messages:', recentErr);
+        }
+      } else if (recentMessages && recentMessages.length > 0) {
         const existingIds = new Set(conversationRows.map((c: any) => String(c.id)));
         const messageDerived: any[] = [];
 
@@ -756,35 +899,10 @@ export async function getConversations(user_id: string): Promise<{
       console.warn('[MessageService] Failed to merge message-derived conversations:', e);
     }
 
-    // Additionally, include transaction-only conversation cards so meet-up proposals show even when no messages exist
-    try {
-      const { data: txs, error: txErr } = await supabase
-        .from('transactions')
-        .select('id, sender_id, receiver_id, buyer_id, seller_id, product_id, status, meetup_date, meetup_location, created_at')
-        .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id},buyer_id.eq.${user_id},seller_id.eq.${user_id}`)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (!txErr && txs && txs.length > 0) {
-        const existingIds = new Set(conversationRows.map((c: any) => String(c.id)));
-        const txDerived: any[] = [];
-        for (const tx of txs) {
-          const key = `tx:${tx.id}`;
-          if (!existingIds.has(String(key))) {
-            existingIds.add(String(key));
-            const buyer = tx.sender_id || tx.buyer_id || null;
-            const seller = tx.receiver_id || tx.seller_id || null;
-            txDerived.push({ id: key, buyer_id: buyer, seller_id: seller, product_id: tx.product_id, _derived_from_transaction: true, updated_at: tx.created_at });
-          }
-        }
-        if (txDerived.length > 0) {
-          conversationRows = conversationRows.concat(txDerived);
-          console.log('[MessageService] Merged transaction-derived conversations:', { added: txDerived.length });
-        }
-      }
-    } catch (e) {
-      console.warn('[MessageService] Failed to merge transaction-derived conversations:', e);
-    }
+    // Transaction-derived conversations are disabled while transaction/meetup schema is being stabilized.
+    // Previously this block queried the `transactions` table to surface meet-up-only conversation cards.
+    // Skipping to avoid /rest/v1/transactions calls and schema-cache related errors.
+    console.info('[MessageService] Skipped merging transaction-derived conversations (transactions are disabled)');
 
     // Fetch messages for each conversation to get last_message and unread_count
     const conversations = await Promise.all(
@@ -805,7 +923,8 @@ export async function getConversations(user_id: string): Promise<{
           if (conv.participants && Array.isArray(conv.participants) && conv.participants.length > 0) {
             const otherParticipant = conv.participants.find((p: any) => String(p.user_id) !== String(user_id));
             otherUserId = otherParticipant?.user_id ?? null;
-            otherUserName = otherParticipant?.profiles?.full_name || otherParticipant?.profiles?.username;
+            // Prefer display_name from user_profile, then fallback to legacy full_name or username
+            otherUserName = otherParticipant?.profiles?.display_name || otherParticipant?.profiles?.full_name || otherParticipant?.profiles?.username;
             otherUserAvatar = otherParticipant?.profiles?.avatar_url;
           } else {
             // fallback to buyer/seller fields (legacy schema)
@@ -838,9 +957,11 @@ export async function getConversations(user_id: string): Promise<{
             // Virtual conversation - fetch by participants
             console.log('[MessageService] Fetching messages for virtual conversation by participants', { conv_id: conv.id, buyer_id: conv.buyer_id, seller_id: conv.seller_id, product_id: conv.product_id });
             const participantFilter = `or(and(sender_id.eq.${conv.buyer_id},receiver_id.eq.${conv.seller_id}),and(sender_id.eq.${conv.seller_id},receiver_id.eq.${conv.buyer_id}))`;
+            const sel = 'id, message, created_at, is_read, read_at, receiver_id, conversation_id, sender_id, automation_type';
+
             let q = supabase
               .from('messages')
-              .select('id, message, message_text, content, created_at, is_read, read_at, receiver_id, conversation_id, sender_id')
+              .select(sel)
               .or(participantFilter)
               .order('created_at', { ascending: false })
               .limit(10);
@@ -854,9 +975,11 @@ export async function getConversations(user_id: string): Promise<{
             console.log('[MessageService] Messages for virtual conv:', { conv_id: conv.id, message_count: messages?.length || 0, unreadCount });
           } else {
             // Normal conversation with explicit conversation_id
+            const sel2 = 'id, message, created_at, is_read, read_at, receiver_id, conversation_id, sender_id, automation_type';
+
             const res = await supabase
               .from('messages')
-              .select('id, message, message_text, content, created_at, is_read, read_at, receiver_id, conversation_id, sender_id')
+              .select(sel2)
               .eq('conversation_id', conv.id)
               .order('created_at', { ascending: false })
               .limit(10);
@@ -928,20 +1051,55 @@ export async function getConversations(user_id: string): Promise<{
               is_read: true,
               receiver_id: null,
               sender_id: null,
-            };
+            } as any;
+          }
+
+          // Normalize last message text from any column that may contain it
+          const lastText = (lastMessage?.message || lastMessage?.message_text || lastMessage?.content || lastMessage?.body || '').trim();
+
+          // If userData is missing but lastMessage has a sender different from current user, prefer that sender as otherUserId
+          if (!otherUserId && lastMessage?.sender_id && String(lastMessage.sender_id) !== String(user_id)) {
+            otherUserId = lastMessage.sender_id;
+            // Note: we will attempt to fetch user data below if needed
+          }
+
+          // Detect meetup metadata from last message if present
+          let meetup_date: string | undefined = undefined;
+          let meetup_location: string | undefined = undefined;
+          try {
+            if (lastMessage) {
+              if (lastMessage.automation_type && String(lastMessage.automation_type).toLowerCase().startsWith('meetup')) {
+                meetup_date = lastMessage.created_at;
+                const locMatch = String(lastText || '').match(/(?:at|@)\s*([^\n]+)$/i);
+                if (locMatch && locMatch[1]) meetup_location = locMatch[1].trim();
+              } else {
+                const m = String(lastText || '').match(/meet-?up[:\s]*([^\n]+)/i);
+                if (m && m[1]) {
+                  meetup_location = m[1].trim();
+                  meetup_date = lastMessage.created_at;
+                }
+              }
+            }
+          } catch (e) {
+            // ignore
           }
 
           const result = {
             conversation_id: conv.id,
             other_user_id: otherUserId,
-            last_message: lastMessage?.message || lastMessage?.message_text || lastMessage?.content || '(No text)',
+            // Use normalized lastText for last_message; fallback to empty string
+            last_message: lastText || '',
             last_message_at: lastMessage?.created_at || conv.last_message_at || new Date().toISOString(),
             unread_count: unreadCount,
             product_id: conv.product_id,
-            other_user_name: userData?.name || 'Unknown User',
-            other_user_username: userData?.username,
-            other_user_avatar: userData?.avatar_url,
-            product_title: productTitle,
+            // Detected meetup data
+            meetup_date: meetup_date,
+            meetup_location: meetup_location,
+            // Do not inject hardcoded placeholders here; let consumers decide how to display missing names
+            other_user_name: userData?.name ?? undefined,
+            other_user_username: userData?.username ?? undefined,
+            other_user_avatar: userData?.avatar_url ?? undefined,
+            product_title: productTitle ?? undefined,
           };
           
           console.log('[MessageService] Built conversation result:', result);
@@ -974,17 +1132,216 @@ export async function getConversations(user_id: string): Promise<{
 }
 
 /**
+ * A minimal, robust ConversationHeader type returned to callers.
+ */
+export type ConversationHeader = {
+  id: string;
+  otherUser: { id: string; username: string } | null;
+  product: { id: string; title: string; price: number } | null;
+};
+
+/**
+ * Get a conversation header (other user info + product info) for a given conversation id
+ * This implementation performs a few simple queries that work reliably across schema variants
+ */
+export async function getConversationHeader(conversation_id: string, currentUserId: string): Promise<{ data: ConversationHeader | null; error: any }> {
+  try {
+    if (!checkSupabaseReady()) return { data: null, error: { message: 'Supabase not configured' } };
+    if (!conversation_id) return { data: null, error: { message: 'conversation_id is required' } };
+
+    // 1) Read the conversation row (grab buyer/seller and product id)
+    const { data: conv, error: convError } = await supabase
+      .from('conversations')
+      .select('id, buyer_id, seller_id, product_id')
+      .eq('id', conversation_id)
+      .maybeSingle();
+
+    if (convError) return { data: null, error: convError };
+    if (!conv) return { data: null, error: { message: 'Conversation not found' } };
+
+    // SECURITY: Ensure the current user is a participant in the conversation. This prevents accidental
+    // leakage if a conversation_id is passed from an untrusted source.
+    try {
+      const { data: participantCheck, error: pcErr } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', conversation_id)
+        .eq('user_id', currentUserId)
+        .limit(1)
+        .maybeSingle();
+
+      if (pcErr) {
+        // If the table doesn't exist or the query fails, fall back to conversation buyer/seller membership check
+        console.warn('[MessageService] participant membership check failed, falling back to buyer/seller check', pcErr);
+      } else if (!participantCheck) {
+        // No explicit participant row found - ensure the current user is buyer/seller on the conversation
+        if (String(conv.buyer_id) !== String(currentUserId) && String(conv.seller_id) !== String(currentUserId)) {
+          return { data: null, error: { message: 'Access denied: current user is not part of this conversation' } };
+        }
+      }
+    } catch (e) {
+      // On unexpected errors, be defensive and enforce the buyer/seller fallback membership check
+      if (String(conv.buyer_id) !== String(currentUserId) && String(conv.seller_id) !== String(currentUserId)) {
+        return { data: null, error: { message: 'Access denied: current user is not part of this conversation' } };
+      }
+    }
+
+    // 2) Try to get the other participant from conversation_participants, falling back to buyer/seller on the conversation row
+    let otherUserId: string | null = null;
+    try {
+      const { data: participant, error: participantError } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', conversation_id)
+        .neq('user_id', currentUserId)
+        .limit(1)
+        .maybeSingle();
+
+      if (!participantError && participant && (participant as any).user_id) {
+        otherUserId = (participant as any).user_id;
+      }
+    } catch (e) {
+      // ignore and fall back to conversation buyer/seller
+    }
+
+    if (!otherUserId) {
+      if (conv.buyer_id && String(conv.buyer_id) !== String(currentUserId)) otherUserId = conv.buyer_id;
+      else if (conv.seller_id && String(conv.seller_id) !== String(currentUserId)) otherUserId = conv.seller_id;
+    }
+
+    // 3) Fetch the other user (if available)
+    let otherUser: any = null;
+    if (otherUserId) {
+      try {
+        const { data: user, error: userError } = await supabase
+          .from('users')
+          .select('id, username')
+          .eq('id', otherUserId)
+          .maybeSingle();
+        if (user) otherUser = { id: user.id, username: user.username };
+        else if (userError) console.warn('[MessageService] getConversationHeader user lookup failed', userError);
+      } catch (e) {
+        console.warn('[MessageService] getConversationHeader user lookup threw', e);
+      }
+    }
+
+    // 4) Fetch the product (if referenced)
+    let product: any = null;
+    if (conv.product_id) {
+      try {
+        const { data: prod, error: productError } = await supabase
+          .from('products')
+          .select('id, title, price')
+          .eq('id', conv.product_id)
+          .maybeSingle();
+        if (prod) product = { id: prod.id, title: prod.title, price: prod.price };
+        else if (productError) console.warn('[MessageService] getConversationHeader product lookup failed', productError);
+      } catch (e) {
+        console.warn('[MessageService] getConversationHeader product lookup threw', e);
+      }
+    }
+
+    const header: ConversationHeader = {
+      id: conv.id,
+      otherUser: otherUser || (otherUserId ? { id: otherUserId, username: '' } : null),
+      product: product || null,
+    };
+
+    return { data: header, error: null };
+  } catch (e) {
+    console.error('[MessageService] getConversationHeader error:', e);
+    return { data: null, error: e };
+  }
+}
+
+export type ConversationSummary = {
+  id: string;
+  otherUser: { id: string; username: string } | null;
+  product: { id: string; title: string; price: number } | null;
+  meetup_date?: string | null;
+  meetup_time?: string | null;
+  lastMessage?: { text: string; created_at: string } | null;
+};
+
+/**
+ * Get a conversation summary: header + last message + meetup metadata if available
+ */
+export async function getConversationSummary(conversationId: string, currentUserId: string): Promise<{ data: ConversationSummary | null; error: any }> {
+  try {
+    if (!checkSupabaseReady()) return { data: null, error: { message: 'Supabase not configured' } };
+    if (!conversationId) return { data: null, error: { message: 'conversation_id is required' } };
+
+    // Reuse header fetch
+    const hdrRes = await getConversationHeader(conversationId, currentUserId);
+    if (!hdrRes || !hdrRes.data) return { data: null, error: hdrRes.error || { message: 'Failed to fetch conversation header' } };
+
+    // Last message (canonical `message` column)
+    let lastMsg: any = null;
+    try {
+      const { data: lastRows, error: lastErr } = await supabase
+        .from('messages')
+        .select('message, created_at')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (!lastErr && lastRows && lastRows.length) {
+        const r = (lastRows as any[])[0];
+        lastMsg = { text: r.message || '', created_at: r.created_at };
+      }
+    } catch (e) {
+      console.warn('[MessageService] getConversationSummary last message lookup failed', e);
+    }
+
+    // Meetup/transaction info (best-effort) — only query if table exists to avoid noisy 400s
+    let meetup: any = null;
+    try {
+      if (await tableExists('transactions')) {
+        const { data: tx, error: txErr } = await supabase
+          .from('transactions')
+          .select('meetup_date, meetup_time')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!txErr && tx) {
+          meetup = { meetup_date: (tx as any).meetup_date, meetup_time: (tx as any).meetup_time };
+        }
+      }
+    } catch (e) {
+      // ignore missing transactions table or query errors
+    }
+
+    const summary: ConversationSummary = {
+      id: hdrRes.data.id,
+      otherUser: hdrRes.data.otherUser || null,
+      product: hdrRes.data.product || null,
+      meetup_date: meetup?.meetup_date || null,
+      meetup_time: meetup?.meetup_time || null,
+      lastMessage: lastMsg || null,
+    };
+
+    return { data: summary, error: null };
+  } catch (e) {
+    console.error('[MessageService] getConversationSummary error:', e);
+    return { data: null, error: e };
+  }
+}
+
+/**
  * Debug helper - returns getConversations() plus raw messages for the user
  */
 export async function debugConversations(user_id: string) {
   try {
     const conv = await getConversations(user_id);
+
+    // Debug convenience: only select canonical `message` (if missing we'll get an error and surface it)
     const { data: messages, error } = await supabase
       .from('messages')
-      .select('id, sender_id, receiver_id, conversation_id, message_text, content, created_at')
+      .select('id,sender_id,receiver_id,conversation_id,message,created_at')
       .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`)
       .order('created_at', { ascending: false })
       .limit(50);
+
     return { conv, messages, messagesError: error };
   } catch (e) {
     console.error('[MessageService] debugConversations error:', e);

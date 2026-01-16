@@ -187,18 +187,12 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
         return;
       }
 
-      await agreeMeetupAndNotify({
-        productId: String(displayProduct.id),
-        buyerId: String(buyerId),
-        sellerId: String(sellerId),
-        meetupLocation,
-      });
-
-      toast.success('Meet-up location saved and the seller has been notified');
+      // Meet-up backend creation disabled while transactions schema is being stabilized.
+      // Record locally and open chat so users can coordinate directly.
+      toast.info('Meet-up scheduling is temporarily disabled. Opening chat so you can coordinate with the seller.');
     } catch (err: any) {
-      // Log Supabase-friendly error info if available
-      console.error('Error persisting meetup details:', { message: err?.message || err, code: err?.code, details: err?.details || null });
-      toast.error(err?.message || 'Could not save meet-up details. Please try again.');
+      console.error('Local handleAgreeMeetup error:', err);
+      toast.error('Could not schedule meet-up locally. Please try again.');
     } finally {
       // Open chat so users can continue conversation immediately
       requestAnimationFrame(() => {

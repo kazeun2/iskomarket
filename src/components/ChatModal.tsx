@@ -17,6 +17,8 @@ import {
   Check,
   XCircle,
 } from "lucide-react";
+// Transaction/meetup service temporarily disabled in chat context to avoid schema errors and /rest/v1/transactions calls
+// import { getPendingTransactions, subscribeToTransaction, confirmTransaction, cancelMeetup, getTransaction, completeTransaction } from '../lib/services/transactions';
 import {
   Dialog,
   DialogContent,
@@ -45,19 +47,22 @@ import {
 } from "../utils/timeUtils";
 import {
   getUserOnlineStatus,
+  sendMessage,
+  sendUserMessage,
+  getMessages,
   markAsRead,
   subscribeToMessages,
   updateUserActivity,
+  getOrCreateConversation,
+  findConversationBetween,
+  getConversationHeader,
+  getConversationSummary,
 } from "../services/messageService";
-import {
-  getOrCreateConversation as chatGetOrCreateConversation,
-  findConversationBetween as chatFindConversationBetween,
-  listMessages as chatListMessages,
-  sendMessage as chatSendMessage,
-} from "../lib/chatService";
-import { agreeMeetupAndNotify } from "../lib/actions/meetup";
+// Meet-up actions disabled in chat UI until transactions schema is stable
+// import { agreeMeetupAndNotify } from "../lib/actions/meetup";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatOptional } from "../contexts/ChatContext";
+import { useConnection } from "../contexts/ConnectionStatusContext";
 
 interface Message {
   id: string;
@@ -70,6 +75,7 @@ interface Message {
   type?: "text" | "product";
   created_at: string;
   is_read: boolean;
+  is_pending?: boolean; // transient UI flag when message is queued/offline
   sender?: { id: string; display_name?: string | null; avatar_url?: string | null } | null;
 }
 
@@ -151,6 +157,9 @@ export function ChatModal({
 }: ChatModalProps) {
   const { user, refreshUser } = useAuth(); // Get authenticated user and refresh helper
   const chatContext = useChatOptional(); // Get chat context for refreshing conversations
+  // Connection context (optional - provider may not be mounted in some test harnesses)
+  let connection: any = null;
+  try { connection = useConnection(); } catch (e) { connection = null; }
   // Start with any already-known user id to avoid temporary nulls
   const [authUserId, setAuthUserId] = useState<string | null>(user?.id ?? null);
 
@@ -225,8 +234,9 @@ export function ChatModal({
     statusText: "Checking status...",
   });
 
-  // Determine the recipient name
+  // Determine the recipient name (prefer display_name when available)
   const recipientName =
+    otherUser?.display_name ||
     otherUser?.name ||
     otherUser?.username ||
     recipient ||
@@ -290,6 +300,8 @@ export function ChatModal({
   const bannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dialogContentRef = useRef<HTMLElement | null>(null);
+  // Track whether the textarea had focus so we can restore it after renders that re-mount the element
+  const wasTextareaFocusedRef = useRef(false);
 
   // Alias to reuse existing date picker hook for meetup proposal button in provided structure
   const setShowMeetupProposal = setShowDatePicker;
@@ -304,40 +316,59 @@ export function ChatModal({
       behavior: "smooth",
       block: 'end',
     });
+
+    // If the textarea was focused before this messages update, restore focus and caret
+    if (wasTextareaFocusedRef.current && textareaRef.current) {
+      try {
+        const el = textareaRef.current;
+        const pos = el.value ? el.value.length : 0;
+        el.focus();
+        el.setSelectionRange(pos, pos);
+      } catch (e) {
+        // ignore
+      }
+    }
   }, [messages]);
 
-  // Auto-welcome behavior: when the chat is opened and there are no text messages, the OTHER user sends a single automated welcome once per open
-  const autoWelcomeSentRef = useRef(false);
+
+
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationHeader, setConversationHeader] = useState<any | null>(null);
+
+  // Helper to derive canonical user id (users.id) from incoming message object
+  const getCanonicalSenderUserId = (msg: Message | null | undefined) => {
+    if (!msg) return undefined;
+    // `sender` may be a profile (with user_id) or a users row; prefer `user_id` which is the canonical users.id
+    const sAny: any = msg.sender || {};
+    return sAny.user_id || sAny.id || msg.sender_id || undefined;
+  };
+
+  // Load conversation header (other user + product) whenever conversationId becomes available
   useEffect(() => {
-    if (!isOpen) {
-      autoWelcomeSentRef.current = false;
+    let mounted = true;
+    if (!conversationId || !currentUserId) {
+      setConversationHeader(null);
       return;
     }
 
-    // Only send when first message (no text messages) and we haven't already sent it in this open
-    if (isFirstMessage && !autoWelcomeSentRef.current) {
-      autoWelcomeSentRef.current = true;
-      // Show typing indicator from other user briefly then insert message
-      setShowTypingIndicator(true);
-      setTimeout(() => {
-        setShowTypingIndicator(false);
-        const autoWelcome: Message & { is_automated?: boolean } = {
-          id: `auto-welcome-${Date.now()}`,
-          message: "Hi! Thank you for messaging! I'll get back to you as soon as possible!",
-          sender_id: recipientIdStr || 'system',
-          receiver_id: currentUserId || undefined,
-          timestamp: '',
-          type: 'text',
-          created_at: new Date().toISOString(),
-          is_read: true,
-          is_automated: true,
-        };
-        setMessages((prev) => [...prev, autoWelcome]);
-      }, 1500);
-    }
-  }, [isOpen, isFirstMessage, recipientIdStr, currentUserId]);
+    (async () => {
+      try {
+        const res = await getConversationSummary(conversationId, currentUserId as string);
+        if (!mounted) return;
+        if (res && res.data) {
+          setConversationHeader(res.data);
+        } else {
+          setConversationHeader(null);
+        }
+      } catch (e) {
+        console.warn('[ChatModal] getConversationHeader failed:', e);
+        if (mounted) setConversationHeader(null);
+      }
+    })();
 
-  const [conversationId, setConversationId] = useState<string | null>(null);
+    return () => { mounted = false; };
+  }, [conversationId, currentUserId]);
+  const [hasSentMessage, setHasSentMessage] = useState(false);
   const txUnsubRef = useRef<(() => void) | null>(null); // unsubscribe fn for transaction realtime subscription
 
 
@@ -364,14 +395,12 @@ export function ChatModal({
           convId = propConversationId;
           setConversationId(propConversationId);
         } else if (product?.id) {
-          // Use simplified chat service to get/create convo for this product
-          convId = await chatGetOrCreateConversation(currentUserId!, recipientIdStr, String(product.id));
+          convId = await getOrCreateConversation(product.id.toString(), currentUserId, recipientIdStr);
         } else {
-          // Try to find any existing conversation between the two users
-          convId = await chatFindConversationBetween(currentUserId!, recipientIdStr);
+          convId = await findConversationBetween(currentUserId, recipientIdStr);
         }
       } catch (err) {
-        console.warn('[ChatModal] Error resolving conversation id (chatService):', err);
+        console.warn('[ChatModal] Error resolving conversation id:', err);
       }
 
       // CRITICAL SECURITY: conversation_id is REQUIRED before loading any messages
@@ -393,37 +422,56 @@ export function ChatModal({
         return;
       }
 
-      let data: any[] = []
+      // Attempt to eagerly load the conversation header (other user + product).
+      // This helps us avoid duplicating product UI (product strip + product card) and lets
+      // the messages load logic decide whether to insert a product 'type' message.
+      let headerRes: any = null;
       try {
-        data = await chatListMessages(convId);
-      } catch (err) {
-        console.error('Error loading messages from chatService:', err);
+        const hdr = await getConversationSummary(convId, currentUserId as string);
+        if (hdr && hdr.data) {
+          headerRes = hdr.data;
+          setConversationHeader(hdr.data);
+        }
+      } catch (e) {
+        console.warn('[ChatModal] Eager getConversationHeader failed (will continue):', e);
+      }
+
+      const { data, error } = await getMessages({
+        user_id: currentUserId,
+        other_user_id: recipientIdStr,
+        conversation_id: convId,
+      });
+
+      if (error) {
+        console.error('Error loading messages:', error);
         toast.error('Failed to load messages');
         setIsLoadingMessages(false);
         return;
       }
 
-      console.log('[ChatModal] Messages loaded successfully (chatService):', {
+      console.log('[ChatModal] Messages loaded successfully:', {
         count: data?.length ?? 0,
         conversationId: convId,
       });
 
       if (data && data.length > 0) {
-        // Convert messages to UI format
+        // Convert Supabase messages to UI format (include sender profile when available)
         const formattedMessages: Message[] = data.map((msg: any) => ({
           id: msg.id,
-          message: msg.body || '(No text)',
+          // Try all candidate content fields (message/body/message_text/content)
+          message: msg.message ?? msg.body ?? msg.message_text ?? msg.content ?? '',
           sender_id: msg.sender_id,
           receiver_id: msg.receiver_id,
           timestamp: formatRelativeTime(msg.created_at),
           type: 'text',
           created_at: msg.created_at,
-          is_read: false,
-          sender: null,
+          is_read: msg.is_read,
+          // embed sender profile if available
+          sender: msg.sender || null,
         }));
 
-        // Insert product card at top if needed
-        if (product && !formattedMessages.some((m) => m.type === 'product')) {
+        // Insert product card at top if needed. Skip if the conversation header already contains a product
+        if (product && !formattedMessages.some((m) => m.type === 'product') && !(headerRes && headerRes.product)) {
           formattedMessages.unshift({
             id: `product-card-${product.id}`,
             message: undefined as any,
@@ -442,17 +490,33 @@ export function ChatModal({
           new Map(formattedMessages.map((m) => [m.id, m])).values(),
         );
         setMessages(uniqueMessages);
+        // Track whether the current user has previously sent a text message in this conversation
+        setHasSentMessage(uniqueMessages.some((m) => m.type === 'text' && String(getCanonicalSenderUserId(m)) === String(currentUserId)));
+        setIsFirstMessage(
+          uniqueMessages.filter((m) => m.type === 'text').length === 0,
+        );
         setIsFirstMessage(
           uniqueMessages.filter((m) => m.type === 'text').length === 0,
         );
 
-        // Transaction linking and realtime subscription are intentionally disabled for now to keep chat independent.
-        // Previously we looked up pending transactions and subscribed to transaction updates from inside ChatModal.
-        // That coupling caused 400s and schema tightness; we'll re-enable transaction logic later behind a separate service.
-        // (No-op)
+        // Transaction/meetup lookup/subscription disabled temporarily to avoid schema mismatch and /rest/v1/transactions requests.
+        // Previously this block called getPendingTransactions(...) and subscribeToTransaction(...).
+        // Keeping local transaction UI state in-memory only (no server lookups) to preserve chat stability.
+        try {
+          if (product?.id && currentUserId) {
+            // No-op: Do not query transactions in the chat context while migrations are pending.
+            console.info('[ChatModal] Transactions are temporarily disabled in chat. Skipping transaction lookup/subscription for product', { productId: product.id });
+          }
+        } catch (e) {
+          console.warn('[ChatModal] Transaction lookup skipped due to disabled state', e);
+        }
       } else {
         // No messages yet, just show product card if available (ensure dedupe)
-        const uniqueInitial = Array.from(new Map(initialMessages.map((m) => [m.id, m])).values());
+        let uniqueInitial = Array.from(new Map(initialMessages.map((m) => [m.id, m])).values());
+        // If the conversation header already contains a product, don't show the inline product 'message'
+        if (headerRes && headerRes.product) {
+          uniqueInitial = uniqueInitial.filter((m) => m.type !== 'product');
+        }
         setMessages(uniqueInitial);
       }
 
@@ -503,9 +567,23 @@ export function ChatModal({
         };
 
         setMessages((prev) => {
-          const combined = prev.some((m) => m.id === formattedMessage.id) ? prev : [...prev, formattedMessage];
+          // If there's an optimistic queued message that matches message text and is pending, remove it when the real DB message arrives
+          const filtered = prev.filter((m) => {
+            const isPending = (m as any).is_pending || String(m.id).startsWith('queued-');
+            if (!isPending) return true;
+            if (m.message && String(m.message).trim() === String(formattedMessage.message).trim() && (conversationId == null || (m as any).conversation_id === conversationId)) {
+              // Drop optimistic pending message - it will be replaced by the real message below
+              return false;
+            }
+            return true;
+          });
+
+          const combined = filtered.some((m) => m.id === formattedMessage.id) ? filtered : [...filtered, formattedMessage];
           // Deduplicate by id to ensure no duplicate keys
-          return Array.from(new Map(combined.map((m) => [m.id, m])).values());
+          const unique = Array.from(new Map(combined.map((m) => [m.id, m])).values());
+          // If the message was sent by the current user (normalize using sender.profile.user_id if available), mark that they've sent at least one message
+          if (String(getCanonicalSenderUserId(formattedMessage)) === String(currentUserId)) setHasSentMessage(true);
+          return unique;
         });
 
         // Mark as read immediately using conversation_id for precision if we have one
@@ -516,93 +594,18 @@ export function ChatModal({
           markAsRead({ user_id: currentUserId, sender_id: newMsg.sender_id });
         }
 
-        // If this message carries a meetup transaction id or is an automated meetup notification, fetch transaction details and show banner
+        // Meetup/transaction-related message handling is disabled to avoid calling transactions APIs when migrations are pending.
         try {
-          if (newMsg.transaction_id || newMsg.automation_type === 'meetup_request') {
-            const txId = newMsg.transaction_id || (newMsg as any).transaction_id;
-            if (txId) {
-              getTransaction(String(txId)).then((tx) => {
-                if (tx) {
-                  setTransaction((prev) => ({
-                    ...prev,
-                    id: tx.id,
-                    meetupDate: tx.meetup_date ? new Date(tx.meetup_date) : prev.meetupDate,
-                    meetupLocation: tx.meetup_location ?? prev.meetupLocation,
-                    status: (tx as any).status || prev.status,
-                    buyerId: (tx as any).sender_id ?? prev.buyerId,
-                    sellerId: (tx as any).receiver_id ?? prev.sellerId,
-                    proposedAt: tx.created_at ? new Date(tx.created_at) : prev.proposedAt,
-                    proposedBy: newMsg.sender_id ?? prev.proposedBy,
-                  }));
-
-                  // Show appointment banner to both parties
-                  const dt = tx.meetup_date ? new Date(tx.meetup_date) : null;
-                  if (dt) {
-                    setStatusBannerMessage(`📅 Scheduled Meet-up: ${dt.toDateString()} – Awaiting confirmation from other user…`);
-                    setStatusBannerType('info');
-                    setShowStatusBanner(true);
-                    clearTimeout(bannerTimeoutRef.current as any);
-                    bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 9000);
-                  }
-                }
-              }).catch((e) => console.warn('[ChatModal] getTransaction failed on message event', e));
-            }
-          }
-
-          // Completed confirmation received from other user
-          if (newMsg.automation_type === 'completed_confirmation') {
-            setTransaction((prev) => ({ ...prev, otherUserCompletedConfirmation: true }));
-
-            // If both users have marked completed locally, finalize via backend
-            setTimeout(async () => {
-              setTransaction((prev) => {
-                // If conversation is marked done locally, skip automations like finalizing completion
-                if (isMarkedAsDone) {
-                  console.info('[ChatModal] Skipping completeTransaction because conversation is marked done');
-                  return prev;
-                }
-
-                if (prev.userCompletedConfirmation && prev.otherUserCompletedConfirmation && prev.id) {
-                  (async () => {
-                    try {
-                      await completeTransaction(String(prev.id));
-                      setShowRatingModal(true);
-                      setStatusBannerMessage('✅ Transaction completed — you can rate this user now');
-                      setStatusBannerType('success');
-                      setShowStatusBanner(true);
-                    } catch (e) {
-                      console.error('Failed to complete transaction after both confirmations', e);
-                    }
-                  })();
-                }
-                return prev;
-              });
-            }, 50);
-          }
-
-          // Appeal notification from other user
-          if (newMsg.automation_type === 'appeal') {
-            setTransaction((prev) => ({ ...prev, otherUserAppealed: true }));
-            // If both appealed, reopen
-            setTimeout(() => {
-              setTransaction((prev) => {
-                if (prev.userAppealed && prev.otherUserAppealed) {
-                  return {
-                    ...prev,
-                    status: 'meetup_day_passed',
-                    meetupDayReachedAt: new Date(),
-                    userCompletedConfirmation: false,
-                    otherUserCompletedConfirmation: false,
-                    userAppealed: false,
-                    otherUserAppealed: false,
-                  };
-                }
-                return prev;
-              });
-            }, 50);
+          if (newMsg.automation_type && newMsg.automation_type.startsWith('meetup')) {
+            // Show an informative banner only - do not query transactions table
+            setStatusBannerMessage('📅 Meet-up notifications are temporarily disabled.');
+            setStatusBannerType('info');
+            setShowStatusBanner(true);
+            clearTimeout(bannerTimeoutRef.current as any);
+            bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
           }
         } catch (e) {
-          console.warn('[ChatModal] post-message processing failed', e);
+          console.warn('[ChatModal] Skipping meetup/transaction message handling due to disabled state', e);
         }
 
         // Auto-scroll to bottom
@@ -714,8 +717,43 @@ export function ChatModal({
       );
       textareaRef.current.style.height = `${newHeight}px`;
       setTextareaHeight(`${newHeight}px`);
+
+      // If the textarea was focused before a re-render, restore focus and caret position
+      if (wasTextareaFocusedRef.current) {
+        try {
+          const el = textareaRef.current;
+          const pos = el.value ? el.value.length : 0;
+          el.focus();
+          el.setSelectionRange(pos, pos);
+        } catch (e) {
+          // ignore - best effort
+        }
+      }
     }
   }, [newMessage]);
+
+  // Reconcile pending queued messages when ConnectionStatusProvider processes them
+  useEffect(() => {
+    const listener = (e: any) => {
+      try {
+        const detail = e?.detail;
+        if (!detail) return;
+        const { conversation_id, message } = detail;
+        setMessages((prev) => prev.filter((m) => {
+          const isPending = (m as any).is_pending || String(m.id).startsWith('queued-');
+          if (!isPending) return true;
+          // Remove pending optimistic message if text matches and conversation matches
+          if (String(m.message).trim() === String(message).trim()) return false;
+          return true;
+        }));
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    window.addEventListener('iskomarket:queued-message-sent', listener as any);
+    return () => window.removeEventListener('iskomarket:queued-message-sent', listener as any);
+  }, [conversationId]);
 
   // Auto-dismiss banner after 5 seconds
   useEffect(() => {
@@ -773,6 +811,8 @@ export function ChatModal({
     setIsSending(true);
 
     const messageText = newMessage.trim();
+    console.log('[ChatModal] handleSendMessage start', { messageText, conversationId });
+    try { toast.info('Sending message...'); } catch (e) { /* ignore */ }
 
     // Enforce max length on the sending side too
     if (messageText.length > 1000) {
@@ -781,7 +821,8 @@ export function ChatModal({
       return;
     }
 
-    setNewMessage(""); // Clear input immediately for better UX
+    // NOTE: do NOT clear the input until the send succeeds. Clearing before the network round-trip
+    // causes the input to appear to 'lock' when the send fails; we only clear on success below.
 
     // Local mutable conversation id to avoid reassigning a const from state
     let currentConversationId = conversationId;
@@ -815,25 +856,54 @@ export function ChatModal({
       type: "text",
       created_at: new Date().toISOString(),
       is_read: false,
+      is_pending: false,
     };
+
+    // If connection is offline, queue the message and mark optimistic as pending
+    if (connection && !connection.isOnline) {
+      optimisticMessage.is_pending = true;
+      setMessages((prev) => [...prev, optimisticMessage]);
+      setHasSentMessage(true);
+
+      try {
+        await connection.enqueueOutgoingMessage({ conversation_id: conversationId ?? null, senderId, receiverId: recipientIdStr, message: messageText, productId: product?.id ?? null });
+      } catch (e) {
+        console.error('[ChatModal] Failed to enqueue message', e);
+        // remove optimistic message
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        toast.error('Failed to queue message locally');
+      } finally {
+        setIsSending(false);
+      }
+
+      // Do not perform network send right now
+      return;
+    }
 
     setMessages((prev) => [...prev, optimisticMessage]);
 
+    // Optimistically mark that the current user has sent a message (enables meet-up chooser)
+    setHasSentMessage(true);
+
     try {
-      // Ensure we have a conversation id before sending
+      // Ensure we have a conversation id before sending (try resolving/creating to avoid missing conversation_id on insert)
       if (!currentConversationId) {
         try {
+          console.log('[ChatModal] pre-send: resolving conversation id...');
           if (product?.id) {
-            const conv = await chatGetOrCreateConversation(currentUserId!, recipientIdStr, String(product.id));
+            const conv = await getOrCreateConversation(product.id.toString(), senderId, recipientIdStr);
             if (conv) {
               setConversationId(conv);
+              // update local mutable variable for this scope
               currentConversationId = conv;
+              console.log('[ChatModal] pre-send: resolved conversation (product):', conv);
             }
           } else {
-            const conv = await chatFindConversationBetween(currentUserId!, recipientIdStr);
+            const conv = await findConversationBetween(senderId, recipientIdStr);
             if (conv) {
               setConversationId(conv);
               currentConversationId = conv;
+              console.log('[ChatModal] pre-send: resolved existing conversation between users:', conv);
             }
           }
         } catch (e) {
@@ -841,19 +911,47 @@ export function ChatModal({
         }
       }
 
-      // ➤ SEND TO SUPABASE via chatService
-      let sent: any = null
+      // ➤ SEND TO SUPABASE (REAL ENTRY) using canonical `message` insert
+      console.log('[ChatModal] Sending to sendUserMessage', { senderId, receiverId: recipientIdStr, productId: product?.id, conversation_id: currentConversationId });
+      let insertedMsg: any = null;
       try {
-        sent = await chatSendMessage(currentConversationId as string, senderId, messageText);
-      } catch (err: any) {
-        console.error('Error sending message (chatService):', err?.message || err)
-        toast.error('Could not send message. Please try again.')
+        // Import supabase client and pass it explicitly
+        const { supabase } = await import('../lib/supabase');
+        insertedMsg = await sendUserMessage(supabase, currentConversationId || null, senderId, recipientIdStr, messageText);
+        console.log('[ChatModal] sendUserMessage succeeded', { id: insertedMsg?.id });
+      } catch (sendErr) {
+        console.error('Error sending message:', sendErr);
+        const code = sendErr?.code || sendErr?.status || 'unknown';
+        const msg = (sendErr?.message && String(sendErr.message)) || JSON.stringify(sendErr);
+        if (code === 'schema_incompatible') {
+          toast.error('Could not send message: database schema is missing expected message column. Apply migration 20260116-add-message-column-and-messages-rls.sql or contact an admin.');
+        } else {
+          toast.error(`Could not send message (${code}): ${String(msg).slice(0,200)}. Open DevTools Console & Network and paste logs here.`);
+        }
 
-        // Remove optimistic bubble and restore text
-        setMessages((prev) => prev.filter((m) => m.id !== tempId))
-        setNewMessage(messageText)
-        setIsSending(false)
-        return
+        // Remove optimistic bubble
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setIsSending(false);
+        return;
+      }
+
+      // If server didn't return conversation_id on the inserted message, try to resolve it now (may have been created during send)
+      try {
+        if (insertedMsg && !(insertedMsg as any).conversation_id) {
+          try {
+            console.log('[ChatModal] sendUserMessage returned without conversation_id - resolving now');
+            const conv = await findConversationBetween(senderId, recipientIdStr);
+            if (conv) {
+              console.log('[ChatModal] Resolved conversation after send:', conv);
+              setConversationId(conv);
+              currentConversationId = conv;
+            }
+          } catch (e) {
+            console.warn('[ChatModal] Failed to resolve conversation after send:', e);
+          }
+        }
+      } catch (e) {
+        console.warn('[ChatModal] Unexpected error during post-send conversation resolution:', e);
       }
 
       // ➤ REFRESH CONVERSATION LIST IN DASHBOARD (show new message card)
@@ -864,8 +962,10 @@ export function ChatModal({
           await new Promise((res) => setTimeout(res, delays[attempt] || 500));
           try {
             await chatContext.refreshConversations();
+            console.log('[ChatModal] Refreshed conversations after sending message (attempt', attempt + 1 + ')');
             break;
           } catch (err) {
+            console.warn('[ChatModal] refreshConversations attempt failed', attempt + 1, err);
             if (attempt === maxRefreshAttempts - 1) {
               console.warn('[ChatModal] All refresh attempts failed');
             }
@@ -876,27 +976,38 @@ export function ChatModal({
       }
 
       // ➤ REPLACE OPTIMISTIC MESSAGE WITH REAL DATABASE MESSAGE
-      if (sent) {
+      if (insertedMsg) {
+        // Warn if the returned DB message doesn't include conversation_id
+        if (!(insertedMsg as any).conversation_id) {
+          console.warn('[ChatModal] sendUserMessage response missing conversation_id', { insertedMsg, conversationId });
+        }
+
         setMessages((prev) => {
           const replaced = prev.map((msg) =>
             msg.id === tempId
               ? ({
-                  id: sent.id,
-                  message: sent.body,
-                  sender_id: sent.sender_id,
-                  receiver_id: recipientIdStr,
-                  timestamp: formatRelativeTime(sent.created_at),
-                  type: 'text',
-                  created_at: sent.created_at,
-                  is_read: false,
-                  sender: null,
+                  id: insertedMsg.id,
+                  message: insertedMsg.message,
+                  sender_id: insertedMsg.sender_id,
+                  receiver_id: insertedMsg.receiver_id,
+                  timestamp: formatRelativeTime(insertedMsg.created_at),
+                  type: "text",
+                  created_at: insertedMsg.created_at,
+                  is_read: insertedMsg.is_read,
+                  sender: (insertedMsg as any).sender || null,
                 } as Message)
               : msg,
-          )
+          );
 
-          const unique = Array.from(new Map(replaced.map((m) => [m.id, m])).values())
-          return unique
-        })
+
+          // Deduplicate in case the realtime subscription already inserted the same DB message
+          const unique = Array.from(new Map(replaced.map((m) => [m.id, m])).values());
+          return unique;
+        });
+
+        // Clear the input only after the message was acknowledged by the server
+        try { setNewMessage(""); } catch (e) { /* ignore */ }
+
       }
     } catch (error) {
       console.error(error);
@@ -1041,7 +1152,7 @@ export function ChatModal({
     try {
       const chosenLocation = product?.meetupLocation ?? location ?? transaction.meetupLocation ?? 'TBD';
 
-      console.log('[ChatModal] proposing meetup', {
+      console.log('[ChatModal] (meetup-disabled) proposing meetup [LOCAL ONLY]', {
         productId: String(product.id),
         buyerId,
         sellerId: String(sellerId),
@@ -1049,51 +1160,43 @@ export function ChatModal({
         meetupDate: date.toISOString(),
       })
 
-      const tx = await agreeMeetupAndNotify({
-        productId: String(product.id),
-        buyerId: buyerId,
-        sellerId: String(sellerId),
+      // IMPORTANT: Backend meetup/transaction creation is disabled while migrations are pending.
+      // We update local UI state so the user sees the selected date, but we do NOT call agreeMeetupAndNotify or create any transaction rows.
+      setTransaction((prev) => ({
+        ...prev,
+        meetupDate: date,
         meetupLocation: chosenLocation,
-        meetupDate: date.toISOString(),
-      });
+        status: 'proposed',
+        proposedAt: new Date(),
+        proposedBy: currentUserId ?? undefined,
+      }));
 
-      // Update local state with authoritative transaction id & server-supplied meetup info if returned
-      if (tx && tx.id) {
-        setTransaction((prev) => ({
-          ...prev,
-          id: tx.id,
-          meetupLocation: (tx as any).meetup_location ?? prev.meetupLocation,
-          meetupDate: (tx as any).meetup_date ? new Date((tx as any).meetup_date) : prev.meetupDate,
-          buyerId: (tx as any).sender_id ?? prev.buyerId,
-          sellerId: (tx as any).receiver_id ?? prev.sellerId,
-        }));
-      }
-
-      // Refresh conversations and show success banner + toast
-      try { await chatContext.refreshConversations(); } catch (e) { /* non-fatal */ }
-
-      const meetupLoc = (tx && (tx as any).meetup_location) || transaction.meetupLocation || product?.meetupLocation || 'TBD'
-      setStatusBannerMessage(`📅 Scheduled Meet-up: ${date.toDateString()} at ${meetupLoc} – Awaiting confirmation from other user…`);
+      const meetupLoc = transaction.meetupLocation || product?.meetupLocation || 'TBD'
+      setStatusBannerMessage(`📅 (Local) Meet-up proposed: ${date.toDateString()} at ${meetupLoc} — Meet-up creation is temporarily disabled.`);
       setStatusBannerType('info');
       setShowStatusBanner(true);
       clearTimeout(bannerTimeoutRef.current as any);
       bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
-      toast.success('Meet-up date proposed!');
+      toast.info('Meet-up scheduling is temporarily disabled. Your date is recorded locally only.');
 
-      // Broadcast an event for other open clients to pick up immediately
-      try { window.dispatchEvent(new CustomEvent('iskomarket:transaction-created', { detail: tx })); } catch (e) { /* ignore */ }
+      // Emit a local-only transaction-created event so other UI (e.g., conversation list) can show a provisional card
+      try {
+        const localTx = { id: `local-${Date.now()}`, product_id: String(product.id), meetup_date: date.toISOString(), meetup_location: meetupLoc, status: 'proposed', buyerId, sellerId };
+        window.dispatchEvent(new CustomEvent('iskomarket:transaction-created', { detail: localTx }));
+      } catch (e) {
+        // no-op
+      }
+
     } catch (e: any) {
-      console.error('[ChatModal] agreeMeetupAndNotify failed', e);
-      // Show a visible error banner so users notice the failure
-      const errMsg = (e && (e.message || e.error || JSON.stringify(e))) || 'Unknown server error';
-      setStatusBannerMessage(`Failed to propose meet-up: ${errMsg}`);
+      console.error('[ChatModal] Local meetup handling failed', e);
+      setStatusBannerMessage(`Failed to schedule meet-up locally: ${(e && (e.message || e.error)) || 'Unknown error'}`);
       setStatusBannerType('error');
       setShowStatusBanner(true);
       clearTimeout(bannerTimeoutRef.current as any);
       bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 9000);
 
-      toast.error('Failed to propose meet-up');
-      // Optionally revert optimistic state
+      toast.error('Failed to propose meet-up (local)');
+      // Revert optimistic state
       setTransaction((prev) => ({ ...prev, meetupDate: undefined, status: 'pending', proposedBy: undefined }));
     }
   };
@@ -1281,8 +1384,13 @@ export function ChatModal({
           // Notify the other user via an automated message
           (async () => {
             try {
-                const convToUse = conversationId || currentConversationId || ''
-                if (convToUse) await chatSendMessage(convToUse, String(currentUserId), 'Meet-up proposal expired — conversation marked as done')
+              await sendMessage({
+                sender_id: String(currentUserId),
+                receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
+                product_id: String(product?.id),
+                message: 'Meet-up proposal expired — conversation marked as done',
+                automation_type: 'auto_mark_done',
+              });
             } catch (e) {
               // Non-fatal
               console.warn('Failed to send auto mark-as-done message', e);
@@ -1357,17 +1465,10 @@ export function ChatModal({
       return;
     }
 
+    // Confirmations are disabled while meetup/transaction schema is being stabilized
     const role = String(currentUserId) === String(transaction.buyerId) ? 'buyer' : 'seller';
-
-    try {
-      await confirmTransaction(String(transaction.id), String(currentUserId), role as 'buyer' | 'seller');
-      // Optimistic update; subscription will provide authoritative updates
-      setTransaction((prev) => ({ ...prev, buyerConfirmed: role === 'buyer' ? true : prev.buyerConfirmed, sellerConfirmed: role === 'seller' ? true : prev.sellerConfirmed }));
-      toast.success('You confirmed the meet-up — waiting for other user');
-    } catch (e: any) {
-      console.error('Failed to confirm meetup', e);
-      toast.error('Failed to confirm meet-up');
-    }
+    setTransaction((prev) => ({ ...prev, buyerConfirmed: role === 'buyer' ? true : prev.buyerConfirmed, sellerConfirmed: role === 'seller' ? true : prev.sellerConfirmed }));
+    toast.info('Confirming meet-ups is temporarily disabled (local only).');
   };
 
   const handleMarkCompleted = async () => {
@@ -1380,8 +1481,14 @@ export function ChatModal({
     }
 
     try {
-      const convToUse = conversationId || currentConversationId || ''
-      if (convToUse) await chatSendMessage(convToUse, String(currentUserId), 'Completed confirmation')
+      await sendMessage({
+        sender_id: String(currentUserId),
+        receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
+        product_id: String(product?.id),
+        message: 'Completed confirmation',
+        transaction_id: String(transaction.id),
+        automation_type: 'completed_confirmation',
+      });
 
       toast.success('Marked as completed — waiting for other user');
     } catch (e: any) {
@@ -1399,8 +1506,14 @@ export function ChatModal({
     }
 
     try {
-      const convToUse = conversationId || currentConversationId || ''
-      if (convToUse) await chatSendMessage(convToUse, String(currentUserId), 'Appeal submitted')
+      await sendMessage({
+        sender_id: String(currentUserId),
+        receiver_id: String(transaction.buyerId === String(currentUserId) ? transaction.sellerId : transaction.buyerId),
+        product_id: String(product?.id),
+        message: 'Appeal submitted',
+        transaction_id: String(transaction.id),
+        automation_type: 'appeal',
+      });
 
       toast.success('Appeal submitted — waiting for other user');
     } catch (e: any) {
@@ -1434,16 +1547,22 @@ export function ChatModal({
   };
 
   function ChatHeader({ otherUser, product, onClose }: ChatHeaderProps) {
-    const initials = (otherUser?.username || recipientName || 'UN').split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase();
+    // Prefer conversationHeader data when available (support new and old shapes)
+    const headerUserAny: any = conversationHeader?.otherUser || conversationHeader?.other_user || otherUser;
+    const headerProduct = conversationHeader?.product || product;
+
+    const displayName = headerUserAny?.display_name || headerUserAny?.name || headerUserAny?.username || recipientName || 'User';
+    const initials = (displayName || 'UN').split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase();
+
     return (
       <header className="flex items-center gap-3 shrink-0 bg-emerald-600 text-emerald-50 dark:bg-emerald-700 px-4 py-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold">{initials}</div>
         <div className="flex flex-1 flex-col min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold leading-tight truncate">{otherUser?.username ?? recipientName}</span>
-            {isTopFiveBuyer(otherUser) && <PriorityBadge size="sm" variant="compact" showIcon={true} />}
+            <span className="text-sm font-semibold leading-tight truncate">{displayName}</span>
+            {isTopFiveBuyer(headerUserAny) && <PriorityBadge size="sm" variant="compact" showIcon={true} />}
           </div>
-          <span className="text-xs opacity-80 line-clamp-1">{product?.title}</span>
+          <span className="text-xs opacity-80 line-clamp-1">{headerProduct?.title ?? headerProduct?.name ?? ''}</span>
         </div>
         <button
           onClick={onClose}
@@ -1469,7 +1588,7 @@ export function ChatModal({
     const formattedMeetup = meetup?.date ? new Date(meetup.date).toLocaleString() : null;
 
     return (
-      <div className="flex flex-1 flex-col bg-muted dark:bg-muted/80">
+      <div className="flex flex-1 flex-col bg-transparent">
         {formattedMeetup && (
           <div className="mx-4 mt-3 mb-1 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900 shadow-sm dark:bg-amber-900 dark:text-amber-50">
             <div className="font-semibold">Meet‑up proposed: {formattedMeetup}</div>
@@ -1499,7 +1618,10 @@ export function ChatModal({
     );
   }
 
-  // Chat footer (simple input bar)
+  // Chat footer (simple input bar) — extracted to top-level component to avoid remounting on every ChatModal render.
+  // This prevents the textarea from losing focus on each keystroke.
+
+  // NOTE: the actual implementation of ChatFooterComponent lives at module scope below.
   type ChatFooterProps = {
     value: string;
     onChange: (v: string) => void;
@@ -1510,80 +1632,15 @@ export function ChatModal({
     canMarkAsDone: boolean;
     isMarkedAsDone?: boolean;
     onCancelDone?: () => void;
+    // Whether the current user has already sent a message in this conversation
+    hasSentMessage?: boolean;
+    // Provided by ChatModal so the footer can manage focus without being re-created
+    textareaRef?: React.RefObject<HTMLTextAreaElement>;
+    onTextareaFocus?: () => void;
+    onTextareaBlur?: () => void;
   };
 
-  function ChatFooter({ value, onChange, onSend, sending, onShowDatePicker, onMarkAsDone, canMarkAsDone, isMarkedAsDone, onCancelDone }: ChatFooterProps) {
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!value.trim() || sending) return;
-      onSend();
-    };
-
-    return (
-      <footer className="shrink-0 border-t border-border bg-background px-3 py-3 dark:bg-background">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          {/* Mark as Done toggle */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (isMarkedAsDone) {
-                  onCancelDone && onCancelDone();
-                } else {
-                  onMarkAsDone();
-                }
-              }}
-              title={isMarkedAsDone ? 'Cancel Mark as Done' : 'Mark as done'}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/30 disabled:opacity-50"
-              disabled={!canMarkAsDone && !isMarkedAsDone}
-            >
-              {isMarkedAsDone ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-            </button>
-
-            {/* Explicit Cancel Done text button for clarity */}
-            {isMarkedAsDone && (
-              <button type="button" onClick={() => onCancelDone && onCancelDone()} className="text-xs text-muted-foreground hover:underline">Cancel Done</button>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={onShowDatePicker}
-            title={isMarkedAsDone ? 'Meet-up scheduling is disabled while conversation is marked done' : 'Choose meet-up date'}
-            disabled={!!isMarkedAsDone}
-            className={`flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/30 ${isMarkedAsDone ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            📎
-          </button>
-
-          <div className="flex-1 relative">
-            <Textarea
-              ref={textareaRef}
-              value={value}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                onChange(e.target.value);
-              }}
-              placeholder="Type your message..."
-              rows={2}
-              maxLength={1000}
-              aria-describedby="chat-message-counter"
-              className="flex-1 rounded-xl border border-border bg-input-background px-4 py-2 text-sm text-foreground outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:bg-slate-900"
-              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (!value.trim() || sending || value.length > 1000) return;
-                  onSend();
-                }
-              }}
-            />
-            <div id="chat-message-counter" className="absolute right-2 bottom-1 text-xs text-muted-foreground">{value.length}/1000</div>
-          </div>
-
-          <button type="submit" disabled={!value.trim() || sending || value.length > 1000} className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-emerald-50 hover:bg-emerald-600 disabled:opacity-50">➤</button>
-        </form>
-      </footer>
-    );
-  }
+  // The implementation is moved to module scope to keep a stable identity across renders.
 
   // Simple, flat message bubble for chat (no extra shadows or nested card surface)
   type MessageBubbleProps = { message: Message; currentUserId?: string | null };
@@ -1591,18 +1648,26 @@ export function ChatModal({
     // Defensive: sometimes the message array may contain null/undefined entries (external sources / race conditions)
     if (!message) return null;
 
-    const isOwn = message?.sender_id === currentUserId;
+    // Determine ownership using canonical users.id when possible (message.sender may contain user_profile.user_id)
+    const senderUserId = (message.sender && ((message.sender as any).user_id || (message.sender as any).id)) || message.sender_id || undefined;
+    const isOwn = String(senderUserId) === String(currentUserId);
 
 
     const content = message.message ?? (message as any).message_text ?? (message as any).content ?? '';
     const dateText = message.timestamp ?? formatRelativeTime(message.created_at ?? new Date().toISOString());
 
     const formattedTime = dateText;
+    const hasContent = typeof content === 'string' && content.trim().length > 0;
+
+    const isPending = !!message.is_pending || String(message.id).startsWith('queued-');
 
     return (
       <div className={`w-full flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
         <div className="flex flex-col gap-1 max-w-[80%]">
-          <div className={`${isOwn ? 'ml-auto' : 'mr-auto'} ${isOwn ? 'bg-emerald-600 text-emerald-50' : 'bg-card text-card-foreground dark:bg-slate-800 dark:text-slate-50'} rounded-2xl px-3 py-2 text-sm`}>{content}</div>
+          <div className={`${isOwn ? 'ml-auto' : 'mr-auto'} ${isOwn ? 'bg-emerald-600 text-emerald-50' : 'bg-white text-foreground border border-border dark:bg-slate-800 dark:text-slate-50'} rounded-2xl px-3 py-2 text-sm`}>
+            {hasContent ? content : <span className="italic text-muted-foreground">(No message)</span>}
+            {isPending && <span className="ml-2 text-[10px] opacity-80"> • Queued</span>}
+          </div>
           <span className="mt-0.5 text-[10px] text-muted-foreground">{formattedTime}</span>
         </div>
       </div>
@@ -1666,18 +1731,27 @@ export function ChatModal({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           ref={dialogContentRef as any}
-          className="flex flex-col w-full sm:max-w-2xl max-w-[95vw] p-0 overflow-hidden bg-background text-foreground shadow-lg border border-border rounded-2xl"
+          className="flex flex-col w-full sm:max-w-2xl max-w-[95vw] p-0 overflow-hidden bg-transparent text-foreground shadow-lg border border-border rounded-2xl"
           style={{ zIndex, animation: "scaleIn 180ms cubic-bezier(0.16, 1, 0.3, 1)", background: 'transparent', backgroundColor: 'transparent', backgroundImage: 'none', height: '75vh', maxHeight: '75vh' }}
           aria-describedby="chat-description"
         >
-          <div data-slot="chat-panel" className="flex flex-col h-full rounded-3xl bg-background shadow-lg border border-border overflow-hidden"> 
+          <div data-slot="chat-panel" className="flex flex-col h-full rounded-3xl bg-emerald-50/10 dark:bg-muted/80 shadow-lg border border-border overflow-hidden"> 
             {/* Accessibility: provide a DialogTitle (sr-only) for screen readers */}
             <DialogTitle className="sr-only">Chat with {otherUser?.username ?? recipientName}</DialogTitle>
+            <DialogDescription id="chat-description" className="sr-only">Chat with {recipientName}{product ? ` about ${product.title}` : ''}</DialogDescription>
           {/* Header - Fixed with Green Background */}
           {/* Chat Header */}
           <ChatHeader otherUser={otherUser} product={product} onClose={onClose} />
 
           {/* Product strip (compact, non-card UI) */}
+          {conversationHeader?.product && (
+            <div className="flex items-center gap-3 border-b bg-emerald-50/40 px-4 py-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">{conversationHeader.product.title}</span>
+                <span className="text-xs text-muted-foreground">₱{Number(conversationHeader.product.price || 0).toLocaleString()}</span>
+              </div>
+            </div>
+          )}
           {/* Meet-up / Status Banner */}
           {transaction.meetupDate ? (
             (() => {
@@ -1697,32 +1771,20 @@ export function ChatModal({
                     <div className="flex items-center gap-2">
                       {!isConfirmedForCurrent && !isProposer && (
                         <button onClick={() => {
-                          // Kick off confirm flow
-                          if (!transaction.id) return;
-                          const role = String(currentUserId) === String(transaction.buyerId) ? 'buyer' : 'seller';
-                          confirmTransaction(String(transaction.id), String(currentUserId), role as 'buyer' | 'seller')
-                            .then(() => {
-                              toast.success('Meet‑up confirmed');
-                            })
-                            .catch((e) => { console.error(e); toast.error('Failed to confirm meet-up'); });
+                          // Confirmations are disabled while meetup/transaction schema is being stabilized
+                          toast.info('Confirming meet-ups is temporarily disabled.');
                         }} className="text-xs bg-emerald-600 text-emerald-50 px-2 py-1 rounded-md hover:bg-emerald-700">Confirm</button>
                       )}
 
                       <button onClick={async () => {
-                        if (!transaction.id) return;
-                        try {
-                          await cancelMeetup(String(transaction.id), String(currentUserId));
-                          setTransaction((prev) => ({ ...prev, meetupDate: undefined, meetupLocation: undefined, status: 'pending', buyerConfirmed: false, sellerConfirmed: false }));
-                          setStatusBannerMessage('Meet‑up cancelled – you can choose another date');
-                          setStatusBannerType('info');
-                          setShowStatusBanner(true);
-                          clearTimeout(bannerTimeoutRef.current as any);
-                          bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
-                          toast.success('Meet‑up cancelled');
-                        } catch (e: any) {
-                          console.error('Failed to cancel meetup', e);
-                          toast.error('Failed to cancel meet‑up');
-                        }
+                        // Cancelling meetups is disabled while meetup/transaction schema is being stabilized
+                        setTransaction((prev) => ({ ...prev, meetupDate: undefined, meetupLocation: undefined, status: 'pending', buyerConfirmed: false, sellerConfirmed: false }));
+                        setStatusBannerMessage('Meet‑up cancelled (local only) – you can choose another date');
+                        setStatusBannerType('info');
+                        setShowStatusBanner(true);
+                        clearTimeout(bannerTimeoutRef.current as any);
+                        bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+                        toast.info('Meet‑up cancelled (local only)');
                       }} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded-md hover:bg-red-100 dark:bg-red-900 dark:text-red-50">Cancel</button>
                     </div>
                   </div>
@@ -1776,7 +1838,7 @@ export function ChatModal({
             )
           )}
 
-          {product && (
+          {product && !conversationHeader?.product && (
             <section className="shrink-0 border-b border-border bg-background px-3 py-2 flex items-center justify-between gap-2">
               <div onClick={handleProductClick} className="flex items-center gap-3 min-w-0 cursor-pointer">
                 <div className="h-12 w-12 rounded-md overflow-hidden bg-muted">
@@ -1808,16 +1870,20 @@ export function ChatModal({
 
 
           {/* Messages Area - Scrollable */}
-          <main className="flex-1 overflow-y-auto min-h-0 px-3 py-4 space-y-3 bg-muted dark:bg-muted/80 [&>*]:bg-transparent [&>*]:border-none [&>*]:shadow-none">
-            {/* ChatBody inserted below (new, flat layout) */}
-            <ChatBody
-              messages={messages.filter((m) => m.type !== 'product')}
-              currentUserId={currentUserId}
-              meetup={{ date: transaction.meetupDate ? transaction.meetupDate.toISOString() : undefined, location: transaction.meetupLocation }}
-              showTypingIndicator={showTypingIndicator}
-              messagesEndRef={messagesEndRef}
-            />
-
+          <main className="flex-1 overflow-y-auto min-h-0 px-3 py-4 space-y-3 [&>*]:bg-transparent [&>*]:border-none [&>*]:shadow-none">
+            {/* Show skeleton while messages are loading */}
+            {isLoadingMessages ? (
+              // Lazy import skeleton so we don't bloat initial bundle in rare cases
+              <div className="p-2"><div className="animate-pulse space-y-2"><div className="h-6 w-3/4 bg-muted rounded" /><div className="h-32 bg-muted rounded" /><div className="h-6 w-1/2 bg-muted rounded" /></div></div>
+            ) : (
+              <ChatBody
+                messages={messages.filter((m) => m.type !== 'product')}
+                currentUserId={currentUserId}
+                meetup={{ date: transaction.meetupDate ? transaction.meetupDate.toISOString() : undefined, location: transaction.meetupLocation }}
+                showTypingIndicator={showTypingIndicator}
+                messagesEndRef={messagesEndRef}
+              />
+            )}
 
             <div ref={messagesEndRef} />
 
@@ -1837,9 +1903,9 @@ export function ChatModal({
           </main>
 
           {/* Footer */}
-          <ChatFooter
+          <ChatFooterComponent
             value={newMessage}
-            onChange={setNewMessage}
+            onChange={(v: string) => setNewMessage(v)}
             onSend={handleSend}
             sending={isSending}
             onShowDatePicker={() => setShowMeetupProposal(true)}
@@ -1847,6 +1913,11 @@ export function ChatModal({
             canMarkAsDone={canMarkAsDone}
             isMarkedAsDone={isMarkedAsDone}
             onCancelDone={handleCancelDone}
+            hasSentMessage={hasSentMessage}
+            conversationId={conversationId}
+            textareaRef={textareaRef}
+            onTextareaFocus={() => { wasTextareaFocusedRef.current = true; }}
+            onTextareaBlur={() => { wasTextareaFocusedRef.current = false; }}
           />
 
         </div>
@@ -1900,3 +1971,113 @@ export function ChatModal({
     </>
   );
 }
+
+// Top-level ChatFooterComponent — keeps a stable identity across re-renders to avoid remounting the textarea
+const ChatFooterComponent = React.memo(function ChatFooterComponent({
+  value,
+  onChange,
+  onSend,
+  sending,
+  onShowDatePicker,
+  onMarkAsDone,
+  canMarkAsDone,
+  isMarkedAsDone,
+  onCancelDone,
+  hasSentMessage,
+  conversationId,
+  textareaRef,
+  onTextareaFocus,
+  onTextareaBlur,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSend: () => void;
+  sending: boolean;
+  onShowDatePicker: () => void;
+  onMarkAsDone: () => void;
+  canMarkAsDone: boolean;
+  isMarkedAsDone?: boolean;
+  onCancelDone?: () => void;
+  hasSentMessage?: boolean;
+  conversationId?: string | null;
+  textareaRef?: React.RefObject<HTMLTextAreaElement>;
+  onTextareaFocus?: () => void;
+  onTextareaBlur?: () => void;
+}) {
+  // compute meetUp locked state clearly here rather than inline to avoid confusing code
+  const meetUpLocked = !!isMarkedAsDone || !(!!hasSentMessage || !!conversationId);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!value.trim() || sending) return;
+    onSend();
+  };
+
+  return (
+    <footer className="shrink-0 border-t border-border bg-background px-3 py-3 dark:bg-background">
+      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+        {/* Mark as Done toggle */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (isMarkedAsDone) {
+                onCancelDone && onCancelDone();
+              } else {
+                onMarkAsDone();
+              }
+            }}
+            title={isMarkedAsDone ? 'Cancel Mark as Done' : 'Mark as done'}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/30 disabled:opacity-50"
+            disabled={!canMarkAsDone && !isMarkedAsDone}
+          >
+            {isMarkedAsDone ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+          </button>
+
+          {/* Explicit Cancel Done text button for clarity */}
+          {isMarkedAsDone && (
+            <button type="button" onClick={() => onCancelDone && onCancelDone()} className="text-xs text-muted-foreground hover:underline">Cancel Done</button>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onShowDatePicker}
+          title={isMarkedAsDone ? 'Meet-up scheduling is disabled while conversation is marked done' : 'Choose meet-up date'}
+          disabled={meetUpLocked}
+          className={`flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted/30 ${meetUpLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          📎
+        </button>
+
+        <div className="flex-1 relative">
+          <Textarea
+            ref={textareaRef}
+            value={value}
+            onFocus={onTextareaFocus}
+            onBlur={onTextareaBlur}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              onChange(e.target.value);
+            }}
+            placeholder="Type your message..."
+            rows={2}
+            maxLength={1000}
+            aria-describedby="chat-message-counter"
+            className="flex-1 rounded-xl border border-border bg-input-background px-4 py-2 text-sm text-foreground outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:bg-slate-900"
+            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!value.trim() || sending || value.length > 1000) return;
+                onSend();
+              }
+            }}
+          />
+          <div id="chat-message-counter" className="absolute right-2 bottom-1 text-xs text-muted-foreground">{value.length}/1000</div>
+        </div>
+
+        <button type="submit" disabled={!value.trim() || sending || value.length > 1000} className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-emerald-50 hover:bg-emerald-600 disabled:opacity-50">➤</button>
+      </form>
+    </footer>
+  );
+});
+
+export { ChatFooterComponent };

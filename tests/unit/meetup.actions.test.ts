@@ -38,4 +38,19 @@ describe('agreeMeetupAndNotify', () => {
     expect(sendSpy).toHaveBeenCalled()
     expect(result).toBeDefined()
   })
+
+  it('creates a local provisional transaction and sends a message when transactions are disabled', async () => {
+    process.env.NEXT_PUBLIC_DISABLE_TRANSACTIONS = '1'
+    const createSpy = vi.spyOn(tx, 'createTransaction')
+    const updateSpy = vi.spyOn(tx, 'updateMeetupDetails')
+    const sendSpy = vi.spyOn(msg, 'sendMessage').mockResolvedValue({} as any)
+
+    const localTx = await agreeMeetupAndNotify({ productId: 'p1', buyerId: 'b1', sellerId: 's1', meetupLocation: 'Gate', meetupDate: '2026-01-01T12:00:00Z' })
+
+    expect(createSpy).not.toHaveBeenCalled()
+    expect(updateSpy).not.toHaveBeenCalled()
+    expect(sendSpy).toHaveBeenCalled()
+    expect(localTx).toHaveProperty('local_only', true)
+    delete process.env.NEXT_PUBLIC_DISABLE_TRANSACTIONS
+  })
 })

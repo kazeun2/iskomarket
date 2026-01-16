@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabase'
+import { tableExists } from '../db'
 
 export interface UserProfile {
   id: string
@@ -174,6 +175,11 @@ export async function updateLastActive(userId: string) {
 
 // Get user's transaction count
 export async function getUserTransactionCount(userId: string) {
+  if (!(await tableExists('transactions'))) {
+    console.warn('[users.getUserTransactionCount] transactions table missing; returning zeros')
+    return { purchases: 0, sales: 0, total: 0 }
+  }
+
   const { data: purchases } = await supabase
     .from('transactions')
     .select('id', { count: 'exact' })
@@ -213,6 +219,9 @@ export async function getUserReviews(userId: string) {
 
 // Check if user can be reviewed
 export async function canReviewUser(reviewerId: string, reviewedUserId: string, productId?: string) {
+  // If transactions table doesn't exist, disallow reviews (safe fallback)
+  if (!(await tableExists('transactions'))) return false
+
   // Check if reviewer has completed a transaction with reviewed user
   const { data: transaction } = await supabase
     .from('transactions')

@@ -59,9 +59,14 @@ export function SystemAlertModal({ isOpen, onClose }: SystemAlertModalProps) {
         if (alertType === 'maintenance') {
           try {
             const ms = await import('../services/maintenanceSettingsService')
-            const { data: msRow } = await ms.getMaintenanceStatus()
-            if (msRow && msRow.id) {
-              await ms.updateMaintenanceSettings(msRow.id, { is_active: true, title: res.data?.title || 'Scheduled maintenance', message: res.data?.message || alertMessage.trim(), updated_at: new Date().toISOString() })
+            // Respect feature flag: if maintenance settings are disabled, skip updating the singleton row
+            if (!ms.MAINTENANCE_SETTINGS_ENABLED) {
+              console.info('Maintenance settings disabled - skipping activation of maintenance_settings singleton')
+            } else {
+              const { data: msRow } = await ms.getMaintenanceStatus()
+              if (msRow && msRow.id) {
+                await ms.updateMaintenanceSettings(msRow.id, { is_active: true, title: res.data?.title || 'Scheduled maintenance', message: res.data?.message || alertMessage.trim(), updated_at: new Date().toISOString() })
+              }
             }
           } catch (e) {
             console.warn('Failed to set maintenance_settings active (non-fatal):', e)

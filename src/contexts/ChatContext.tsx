@@ -144,14 +144,46 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                     last_message_at: last.created_at,
                     unread_count: msgs.filter((mm: any) => mm.receiver_id === userId && !mm.is_read).length || 0,
                     other_user_name: 'Unknown User',
+                    product_title: undefined,
                   };
                 });
 
                 console.log('[ChatProvider] Client-side derived conversations:', { count: derived.length, derived });
-                setConversations(derived);
-                const unreadCount = derived.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
-                setTotalUnreadCount(unreadCount);
-                return;
+
+                // Enrich derived conversations with profile/product info when possible so dashboard shows real names
+                try {
+                  const { supabase } = await import('../lib/supabase');
+                  const enriched = await Promise.all(derived.map(async (d: any) => {
+                    if (d.other_user_id) {
+                      try {
+                        // Try by user_id on user_profile first
+                        const { data: prof } = await supabase.from('user_profile').select('id, user_id, display_name, username, avatar_url').eq('user_id', d.other_user_id).maybeSingle();
+                        if (prof) {
+                          d.other_user_name = prof.display_name || prof.username || d.other_user_name;
+                        } else {
+                          // Try users table as fallback
+                          const { data: u } = await supabase.from('users').select('name, username').eq('id', d.other_user_id).maybeSingle();
+                          if (u) d.other_user_name = u.name || u.username || d.other_user_name;
+                        }
+                      } catch (e) {
+                        // ignore enrichment errors
+                      }
+                    }
+
+                    return d;
+                  }));
+
+                  setConversations(enriched);
+                  const unreadCount = enriched.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+                  setTotalUnreadCount(unreadCount);
+                  return;
+                } catch (e) {
+                  console.warn('[ChatProvider] Profile enrichment failed for derived conversations, using raw derived list', e);
+                  setConversations(derived);
+                  const unreadCount = derived.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+                  setTotalUnreadCount(unreadCount);
+                  return;
+                }
               }
             } catch (e) {
               console.warn('[ChatProvider] Fallback derivation failed:', e);
@@ -222,7 +254,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             );
           }
 
-          const newConv = {
+          // Insert optimistic conversation entry immediately (use placeholder name)
+        const newConv = {
             conversation_id: convId,
             other_user_id: otherUserId,
             last_message: lastText,
@@ -230,6 +263,24 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             unread_count: newMessage?.receiver_id === userId ? 1 : 0,
             other_user_name: 'Unknown User',
           } as Conversation;
+
+          // Kick off a background enrichment to resolve the other user's display name without blocking
+          (async () => {
+            try {
+              const { supabase } = await import('../lib/supabase');
+              let optimisticOtherName = 'Unknown User';
+              const { data: profile } = await supabase.from('user_profile').select('id, user_id, display_name, username, avatar_url').eq('user_id', otherUserId).maybeSingle();
+              if (profile) optimisticOtherName = profile.display_name || profile.username || optimisticOtherName;
+              else {
+                const { data: u } = await supabase.from('users').select('name, username').eq('id', otherUserId).maybeSingle();
+                if (u) optimisticOtherName = u.name || u.username || optimisticOtherName;
+              }
+
+              setConversations((prev2) => prev2.map((p) => p.conversation_id === convId ? { ...p, other_user_name: optimisticOtherName } : p));
+            } catch (e) {
+              // ignore enrichment failure
+            }
+          })();
 
           return [newConv, ...prev];
         });

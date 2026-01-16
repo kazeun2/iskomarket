@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabase'
+import { tableExists } from '../db'
 import type { Database } from '../database.types'
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row']
@@ -104,9 +105,11 @@ export async function createTransaction({
     conversationId = null
   }
 
-  const payload: TransactionInsert = {
+  // Use an untyped payload to tolerate schema drift in the transactions table until migrations are applied.
+  const payload: any = {
     product_id: productId,
-    conversation_id: conversationId,
+    // only include conversation_id when we actually have one
+    ...(conversationId ? { conversation_id: conversationId } : {}),
     sender_id: buyerId,
     receiver_id: sellerId,
     status: 'pending',
@@ -122,6 +125,11 @@ export async function createTransaction({
 
   // Log payload minimally for diagnostics (avoid full error spam)
   console.log('[transactions.createTransaction] payload keys', Object.keys(payload))
+
+  // Guard: if transactions table is not present, fail fast with a helpful error
+  if (!(await tableExists('transactions'))) {
+    throw new Error('Transactions table is not available in the database. Please apply migrations before creating transactions.')
+  }
 
   // Insert transaction (single canonical insert). If required columns are missing in DB, this will return an error which callers should handle.
   const insertResult = await supabase
@@ -156,6 +164,12 @@ export async function createTransaction({
 
 // Get transaction by ID
 export async function getTransaction(transactionId: string) {
+  // If transactions table doesn't exist, return null (safe fallback)
+  if (!(await tableExists('transactions'))) {
+    console.warn('[transactions.getTransaction] transactions table does not exist; returning null')
+    return null
+  }
+
   // Fetch core transaction row (avoid relying on nested relationship names)
   const { data: txRow, error } = await supabase
     .from('transactions')
@@ -215,6 +229,12 @@ export async function getTransaction(transactionId: string) {
 
 // Get user's transactions (as buyer or seller)
 export async function getUserTransactions(userId: string) {
+  // If transactions table missing - return empty list (safe fallback)
+  if (!(await tableExists('transactions'))) {
+    console.warn('[transactions.getUserTransactions] transactions table missing; returning empty list')
+    return []
+  }
+
   const { data: rows, error } = await supabase
     .from('transactions')
     .select('id, product_id, sender_id, receiver_id, meetup_date, meetup_location, status, created_at, conversation_id')
@@ -268,6 +288,10 @@ export async function getUserTransactions(userId: string) {
 
 // Confirm transaction (buyer or seller)
 export async function confirmTransaction(transactionId: string, userId: string, role: 'buyer' | 'seller') {
+  if (!(await tableExists('transactions'))) {
+    throw new Error('Transactions table is not available')
+  }
+
   const { data: transaction, error: fetchError } = await supabase
     .from('transactions')
     .select('*')
@@ -318,6 +342,10 @@ export async function confirmTransaction(transactionId: string, userId: string, 
 
 // Complete transaction
 export async function completeTransaction(transactionId: string) {
+  if (!(await tableExists('transactions'))) {
+    throw new Error('Transactions table is not available')
+  }
+
   const { data: transaction } = await supabase
     .from('transactions')
     .select('*')
@@ -489,6 +517,10 @@ export async function completeTransaction(transactionId: string) {
 
 // Cancel transaction
 export async function cancelTransaction(transactionId: string, userId: string) {
+  if (!(await tableExists('transactions'))) {
+    throw new Error('Transactions table is not available')
+  }
+
   const { data: transaction } = await supabase
     .from('transactions')
     .select('*')
@@ -516,6 +548,10 @@ export async function updateMeetupDetails(
   meetupLocation: string,
   meetupDate: string
 ) {
+  if (!(await tableExists('transactions'))) {
+    throw new Error('Transactions table is not available')
+  }
+
   const { data, error } = await supabase
     .from('transactions')
     .update({
@@ -532,6 +568,10 @@ export async function updateMeetupDetails(
 
 // Cancel a meetup (reset date and confirmations so users can propose again)
 export async function cancelMeetup(transactionId: string, userId: string) {
+  if (!(await tableExists('transactions'))) {
+    throw new Error('Transactions table is not available')
+  }
+
   // Verify user is a party to the transaction
   const { data: trx, error: fetchErr } = await supabase
     .from('transactions')
@@ -559,6 +599,12 @@ export async function cancelMeetup(transactionId: string, userId: string) {
 
 // Get pending transactions for user
 export async function getPendingTransactions(userId: string) {
+  // If transactions table missing - return empty list (safe fallback)
+  if (!(await tableExists('transactions'))) {
+    console.warn('[transactions.getPendingTransactions] transactions table missing; returning empty list')
+    return []
+  }
+
   // Canonical single-path implementation: select core transaction fields and enrich with product/profile data
   const { data: rows, error } = await supabase
     .from('transactions')

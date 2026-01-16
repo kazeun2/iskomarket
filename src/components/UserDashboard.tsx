@@ -38,10 +38,10 @@ import { isExampleMode, filterExampleData } from '../utils/exampleMode';
 import { useChatOptional } from '../contexts/ChatContext';
 import { useOptionalOverlayManager } from '../contexts/OverlayManager';
 
-// Messaging: conversations + realtime subscription
+// Messaging: message cards + realtime subscription
 import { getMessageCards, subscribeToMessageCards, markMessageCardRead } from '../lib/services/messageCards';
-import { markAsRead } from '../services/messageService';
-import { listConversations as chatListConversations } from '../lib/chatService';
+import { supabase } from '../lib/supabase';
+import { markAsRead, getConversationSummary } from '../services/messageService';
 
 import { DailySpinCard } from './DailySpinCard';
 import { SeasonAnnouncementCard } from './SeasonAnnouncementCard';
@@ -78,6 +78,35 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
   const chatContext = useChatOptional();
   // Optional overlay manager (safe to call even when there is no provider)
   const overlayManager = useOptionalOverlayManager();
+
+  // Map of conversation_id -> ConversationHeader to enrich dashboard cards
+  const [conversationHeaders, setConversationHeaders] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    let mounted = true;
+    if (!currentUser || !currentUser.id || !conversations || !conversations.length) return;
+
+    (async () => {
+      for (const conv of conversations) {
+        const id = conv.conversation_id;
+        if (!id || conversationHeaders[id]) continue; // already have it
+
+        try {
+          const res = await getConversationSummary(id, String(currentUser.id));
+          if (!mounted) return;
+          if (res && res.data) {
+            setConversationHeaders((prev) => ({ ...prev, [id]: res.data }));
+            // Patch the conversations list for immediate UX so the UI shows product/title, username, and last message
+            setConversations((prev) => prev.map((c) => c.conversation_id === id ? ({ ...c, other_user_name: res.data.otherUser?.username || c.other_user_name, other_user: c.other_user || { display_name: res.data.otherUser?.username }, product_title: res.data.product?.title || c.product_title, last_message: res.data.lastMessage?.text || c.last_message, last_message_at: res.data.lastMessage?.created_at || c.last_message_at }) : c));
+          }
+        } catch (e) {
+          console.warn('[UserDashboard] getConversationSummary failed for', id, e);
+        }
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [conversations, currentUser?.id]);
   
   // Update from context when it changes - create stable key to avoid infinite loops
   useEffect(() => {
@@ -115,21 +144,21 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
         }
       }
 
-      // Prefer the chatService for a richer conversation + product view
-      const convs = await chatListConversations(currentUser.id);
-      const normalized = (convs || []).map((c: any) => ({
-        conversation_id: c.id,
-        other_user_id: c.otherUser?.id,
-        other_user: c.otherUser || null,
-        other_user_name: c.otherUser?.username ?? undefined,
-        other_user_username: c.otherUser?.username ?? undefined,
-        other_user_avatar: c.otherUser?.avatar_url ?? undefined,
-        product_id: c.product?.id,
-        product_title: c.product?.title,
+      const cards = await getMessageCards(currentUser.id);
+      // Normalize to the conversations shape the UI expects
+      const normalized = (cards || []).map((c: any) => ({
+        conversation_id: c.conversation_id,
+        other_user_id: c.other_user_id,
+        other_user: c.other_user || null,
+        other_user_name: c.other_user?.display_name ?? undefined,
+        other_user_username: c.other_user?.username || undefined,
+        other_user_avatar: c.other_user?.avatar_url || undefined,
+        product_id: c.product_id,
+        product_title: undefined,
         conversation: c,
-        last_message: c.lastMessage?.body,
-        last_message_at: c.lastMessage?.created_at,
-        unread_count: 0,
+        last_message: c.last_message,
+        last_message_at: c.last_message_at,
+        unread_count: c.unread_count,
       })).sort((a: any, b: any) => new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime());
 
       setConversations(normalized);
@@ -199,6 +228,16 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
             return updated;
           });
         });
+
+        // Subscribe to global message inserts and update the matching conversation card's last message/time in real time
+        const messageChannel = supabase
+          .channel('conversation-messages')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+            const msg = payload.new as any;
+            setConversations((prev) => prev.map((card) => card.conversation_id === msg.conversation_id ? ({ ...card, last_message: msg.message, last_message_at: msg.created_at }) : card).sort((a: any, b: any) => new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime()));
+          })
+          .subscribe();
+
       } catch (e) {
         console.warn('[UserDashboard] Failed to subscribe to message_cards:', e);
       }
@@ -1008,14 +1047,15 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
                   const txLike = {
                     id: String(conversation.conversation_id || conversation.product_id || `txn-${conversation.other_user_id}`),
                     status: 'pending',
-                    meetup_date: conversation.last_message_at || null,
-                    meetup_location: undefined,
+                    meetup_date: conversation.meetup_date || conversation.last_message_at || null,
+                    meetup_location: conversation.meetup_location || undefined,
                     created_at: conversation.last_message_at || new Date().toISOString(),
                     product: conversation.product_id ? { id: conversation.product_id, title: conversation.product_title } : undefined,
-                    buyer: undefined,
+                    // Populate buyer with other user so MessageCard displays their name correctly
+                    buyer: conversation.other_user_id ? { id: conversation.other_user_id, display_name: conversation.other_user_name, avatar_url: conversation.other_user_avatar } : undefined,
                     seller: undefined,
-                    sender_id: conversation.other_user_id, // best-effort
-                    receiver_id: undefined,
+                    sender_id: conversation.other_user_id || undefined,
+                    receiver_id: currentUser?.id ? String(currentUser.id) : undefined,
                   } as any;
 
                   return (
@@ -1062,7 +1102,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <h3 className="font-medium truncate">{conversation.other_user?.display_name ?? 'Unknown User'}</h3>
+                              <h3 className="font-medium truncate">{conversation.other_user_name ?? 'Unknown User'}</h3>
                             </div>
                             <span className="text-sm text-muted-foreground flex-shrink-0">
                               {conversation.last_message_at ? new Date(conversation.last_message_at).toLocaleDateString() : ''}

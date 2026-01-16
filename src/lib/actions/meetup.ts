@@ -37,6 +37,50 @@ export async function agreeMeetupAndNotify({ productId, buyerId, sellerId, meetu
     throw err
   }
 
+  // If transactions are temporarily disabled (e.g., during schema migrations or in test env),
+  // create a local-only provisional transaction object and notify via chat without calling the server.
+  const disableTransactions = process.env.NEXT_PUBLIC_DISABLE_TRANSACTIONS === '1' || (typeof window !== 'undefined' && (window as any).__ISKO_DISABLE_TRANSACTIONS === true)
+  if (disableTransactions) {
+    console.warn('[agreeMeetupAndNotify] Transactions disabled - creating provisional local transaction')
+    const localTx: any = {
+      id: `local-${Date.now()}`,
+      product_id: String(productId),
+      buyer_id: String(buyerId),
+      receiver_id: String(sellerId),
+      meetup_location: meetupLocation,
+      meetup_date: meetupDate || null,
+      local_only: true,
+    }
+    try {
+      const senderId = authUserId || String(buyerId)
+      const dateLabel = meetupDate ? new Date(meetupDate).toLocaleString() : 'TBD'
+      const messageText = `Meet-up proposed for ${dateLabel}`
+      const { data: msgData, error: msgError } = await sendMessage({
+        sender_id: String(senderId),
+        receiver_id: String(sellerId),
+        product_id: String(productId),
+        message: messageText,
+        automation_type: 'meetup_request',
+        // don't include a transaction id that the server won't recognise
+      })
+      if (msgError) {
+        console.error('[agreeMeetupAndNotify] Supabase message error (transactions disabled)', { message: msgError?.message, code: msgError?.code, details: msgError?.details })
+        throw new Error(`Failed to send meetup notification: ${msgError?.message || 'unknown error'}`)
+      }
+      try {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('iskomarket:transaction-created', { detail: localTx }))
+        }
+      } catch (e) {
+        console.warn('[agreeMeetupAndNotify] Failed to dispatch transaction-created event for local tx', e)
+      }
+    } catch (e: any) {
+      console.error('[agreeMeetupAndNotify] Failed to send meetup notification message (local tx)', { message: e?.message || e })
+      throw e
+    }
+    return localTx
+  }
+
   // Try to find an existing pending/confirmed transaction for this buyer/product
   let existingTx: any = null
   try {

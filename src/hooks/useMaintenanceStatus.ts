@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { getMaintenanceStatus, subscribeToMaintenanceSettings, MaintenanceSettingsRow } from '../services/maintenanceSettingsService'
+import { getMaintenanceStatus, subscribeToMaintenanceSettings, MaintenanceSettingsRow, MAINTENANCE_SETTINGS_ENABLED } from '../services/maintenanceSettingsService'
 
 export type MaintenanceStatus = {
   id?: string
@@ -13,6 +13,9 @@ export function useMaintenanceStatus(pollIntervalMs: number = 30000) {
   const timerRef = useRef<any | null>(null)
 
   useEffect(() => {
+    // If maintenance settings are not enabled, avoid starting timers/subscriptions altogether
+    if (!MAINTENANCE_SETTINGS_ENABLED) return
+
     let cancelled = false
 
     async function load() {
