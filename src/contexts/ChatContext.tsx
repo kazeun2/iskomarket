@@ -13,6 +13,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useAuth } from './AuthContext'
 import { subscribeToConversationUpdates, getConversations, debugConversations } from '../services/messageService'
 import { createNotification, notificationTemplates } from '../lib/services/notifications'
+import { getDisplayName } from '../lib/userName';
 import { toast } from 'sonner'
 
 interface Conversation {
@@ -159,11 +160,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                         // Try by user_id on user_profile first
                         const { data: prof } = await supabase.from('user_profile').select('id, user_id, display_name, username, avatar_url').eq('user_id', d.other_user_id).maybeSingle();
                         if (prof) {
-                          d.other_user_name = prof.display_name || prof.username || d.other_user_name;
+                          d.other_user_name = getDisplayName({ display_name: prof.display_name, username: prof.username }) || d.other_user_name;
                         } else {
                           // Try users table as fallback
                           const { data: u } = await supabase.from('users').select('name, username').eq('id', d.other_user_id).maybeSingle();
-                          if (u) d.other_user_name = u.name || u.username || d.other_user_name;
+                          if (u) d.other_user_name = getDisplayName({ name: u.name, username: u.username }) || d.other_user_name;
                         }
                       } catch (e) {
                         // ignore enrichment errors
@@ -270,10 +271,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               const { supabase } = await import('../lib/supabase');
               let optimisticOtherName = 'Unknown User';
               const { data: profile } = await supabase.from('user_profile').select('id, user_id, display_name, username, avatar_url').eq('user_id', otherUserId).maybeSingle();
-              if (profile) optimisticOtherName = profile.display_name || profile.username || optimisticOtherName;
+              if (profile) optimisticOtherName = getDisplayName({ display_name: profile.display_name, username: profile.username }) || optimisticOtherName;
               else {
                 const { data: u } = await supabase.from('users').select('name, username').eq('id', otherUserId).maybeSingle();
-                if (u) optimisticOtherName = u.name || u.username || optimisticOtherName;
+                if (u) optimisticOtherName = getDisplayName({ name: u.name, username: u.username }) || optimisticOtherName;
               }
 
               setConversations((prev2) => prev2.map((p) => p.conversation_id === convId ? { ...p, other_user_name: optimisticOtherName } : p));
@@ -355,7 +356,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             last_message_at: lastAt,
             unread_count: 0,
             product_id: tx.product?.id,
-            other_user_name: tx.buyer?.username || tx.seller?.username || 'Someone',
+            other_user: tx.buyer ? { display_name: tx.buyer.name || tx.buyer.username, username: tx.buyer.username, name: tx.buyer.name, avatar_url: tx.buyer.avatar_url } : (tx.seller ? { display_name: tx.seller.name || tx.seller.username, username: tx.seller.username, name: tx.seller.name, avatar_url: tx.seller.avatar_url } : undefined),
+            other_user_name: getDisplayName(tx.buyer || tx.seller) || 'Someone',
             product_title: tx.product?.title
           };
 

@@ -1,6 +1,7 @@
 import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { formatRelativeTime } from '../utils/timeUtils'
+import { getDisplayName } from '../lib/userName';
 
 type TxUser = {
   id?: string
@@ -35,7 +36,7 @@ export function MessageCard({ transaction, currentUserId, onOpen }: MessageCardP
   const otherUser = isCurrentReceiver ? (transaction.buyer || {}) : (transaction.seller || {})
   const otherUserId = String(otherUser.user_id || otherUser.id || '')
   // Prefer an explicit display_name/name, then fallback to username
-  const username = otherUser.display_name || otherUser.name || otherUser.username || 'Unknown User'
+  const username = getDisplayName({ display_name: otherUser.display_name, name: (otherUser as any).name, username: otherUser.username }) || 'Unknown User'
 
   // Product title fallback
   const productTitle = transaction.product?.title || 'Product'

@@ -45,6 +45,7 @@ import {
   formatOnlineStatus,
   formatRelativeTime,
 } from "../utils/timeUtils";
+import { confirmTransaction } from '../lib/services/transactions';
 import {
   getUserOnlineStatus,
   sendMessage,
@@ -59,7 +60,7 @@ import {
   getConversationSummary,
 } from "../services/messageService";
 // Meet-up actions disabled in chat UI until transactions schema is stable
-// import { agreeMeetupAndNotify } from "../lib/actions/meetup";
+import { agreeMeetupAndNotify } from "../lib/actions/meetup";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatOptional } from "../contexts/ChatContext";
 import { useConnection } from "../contexts/ConnectionStatusContext";
@@ -1152,39 +1153,66 @@ export function ChatModal({
     try {
       const chosenLocation = product?.meetupLocation ?? location ?? transaction.meetupLocation ?? 'TBD';
 
-      console.log('[ChatModal] (meetup-disabled) proposing meetup [LOCAL ONLY]', {
-        productId: String(product.id),
-        buyerId,
-        sellerId: String(sellerId),
-        meetupLocation: chosenLocation,
-        meetupDate: date.toISOString(),
-      })
-
-      // IMPORTANT: Backend meetup/transaction creation is disabled while migrations are pending.
-      // We update local UI state so the user sees the selected date, but we do NOT call agreeMeetupAndNotify or create any transaction rows.
-      setTransaction((prev) => ({
-        ...prev,
-        meetupDate: date,
-        meetupLocation: chosenLocation,
-        status: 'proposed',
-        proposedAt: new Date(),
-        proposedBy: currentUserId ?? undefined,
-      }));
-
-      const meetupLoc = transaction.meetupLocation || product?.meetupLocation || 'TBD'
-      setStatusBannerMessage(`📅 (Local) Meet-up proposed: ${date.toDateString()} at ${meetupLoc} — Meet-up creation is temporarily disabled.`);
-      setStatusBannerType('info');
-      setShowStatusBanner(true);
-      clearTimeout(bannerTimeoutRef.current as any);
-      bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
-      toast.info('Meet-up scheduling is temporarily disabled. Your date is recorded locally only.');
-
-      // Emit a local-only transaction-created event so other UI (e.g., conversation list) can show a provisional card
       try {
-        const localTx = { id: `local-${Date.now()}`, product_id: String(product.id), meetup_date: date.toISOString(), meetup_location: meetupLoc, status: 'proposed', buyerId, sellerId };
-        window.dispatchEvent(new CustomEvent('iskomarket:transaction-created', { detail: localTx }));
-      } catch (e) {
-        // no-op
+        // Attempt to create/update the meetup transaction on the server and notify the other user.
+        // The helper will fall back to a local-only provisional transaction when the DB schema/permissions are not available.
+        const tx = await agreeMeetupAndNotify({ productId: String(product.id), buyerId, sellerId: String(sellerId), meetupLocation: chosenLocation, meetupDate: date.toISOString() });
+
+        // Map server/local response to UI state
+        const isLocal = tx?.local_only === true || String(tx?.id || '').startsWith('local-');
+        setTransaction((prev) => ({
+          ...prev,
+          meetupDate: tx?.meetup_date ? new Date(tx.meetup_date) : date,
+          meetupLocation: tx?.meetup_location || chosenLocation,
+          status: (tx?.status as any) || 'proposed',
+          id: tx?.id || prev.id,
+          proposedAt: tx?.proposed_at ? new Date(tx.proposed_at) : new Date(),
+          proposedBy: tx?.proposed_by || currentUserId || undefined,
+        }));
+
+        if (isLocal) {
+          setStatusBannerMessage(`📅 (Local) Meet-up proposed: ${date.toDateString()} at ${chosenLocation} — Meet-up creation is temporarily disabled.`);
+          setStatusBannerType('info');
+          toast.info('Meet-up scheduling is temporarily disabled. Your date is recorded locally only.');
+        } else {
+          setStatusBannerMessage(`📅 Meet-up proposed: ${date.toDateString()} at ${chosenLocation}`);
+          setStatusBannerType('success');
+          toast.success('Meet-up proposed and the other user has been notified.');
+        }
+
+        setShowStatusBanner(true);
+        clearTimeout(bannerTimeoutRef.current as any);
+        bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+
+        // Dispatch/create transaction-created event in case helper couldn't (defensive)
+        try { if (tx && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('iskomarket:transaction-created', { detail: tx })); } catch (e) { /* no-op */ }
+
+      } catch (err: any) {
+        console.warn('[ChatModal] agreeMeetupAndNotify failed, falling back to local only', err);
+
+        setTransaction((prev) => ({
+          ...prev,
+          meetupDate: date,
+          meetupLocation: chosenLocation,
+          status: 'proposed',
+          proposedAt: new Date(),
+          proposedBy: currentUserId ?? undefined,
+        }));
+
+        const meetupLoc = transaction.meetupLocation || product?.meetupLocation || 'TBD'
+        setStatusBannerMessage(`📅 (Local) Meet-up proposed: ${date.toDateString()} at ${meetupLoc} — Meet-up creation is temporarily disabled.`);
+        setStatusBannerType('info');
+        setShowStatusBanner(true);
+        clearTimeout(bannerTimeoutRef.current as any);
+        bannerTimeoutRef.current = setTimeout(() => setShowStatusBanner(false), 7000);
+        toast.info('Meet-up scheduling is temporarily disabled. Your date is recorded locally only.');
+
+        try {
+          const localTx = { id: `local-${Date.now()}`, product_id: String(product.id), meetup_date: date.toISOString(), meetup_location: meetupLoc, status: 'proposed', buyerId, sellerId };
+          window.dispatchEvent(new CustomEvent('iskomarket:transaction-created', { detail: localTx }));
+        } catch (e) {
+          // no-op
+        }
       }
 
     } catch (e: any) {
@@ -1465,10 +1493,26 @@ export function ChatModal({
       return;
     }
 
-    // Confirmations are disabled while meetup/transaction schema is being stabilized
     const role = String(currentUserId) === String(transaction.buyerId) ? 'buyer' : 'seller';
-    setTransaction((prev) => ({ ...prev, buyerConfirmed: role === 'buyer' ? true : prev.buyerConfirmed, sellerConfirmed: role === 'seller' ? true : prev.sellerConfirmed }));
-    toast.info('Confirming meet-ups is temporarily disabled (local only).');
+
+    try {
+      // Try to persist confirmation to the server. If transactions table is not available
+      // or other errors occur, fall back to local optimistic update.
+      const updated = await confirmTransaction(String(transaction.id), String(currentUserId), role as any);
+      // Map fields back to transaction state
+      setTransaction((prev) => ({
+        ...prev,
+        buyerConfirmed: updated.meetup_confirmed_by_buyer ?? prev.buyerConfirmed,
+        sellerConfirmed: updated.meetup_confirmed_by_seller ?? prev.sellerConfirmed,
+        status: updated.status || prev.status,
+      }));
+
+      toast.success('Meet-up confirmed');
+    } catch (err: any) {
+      console.warn('[ChatModal] confirmTransaction failed, falling back to local update', err);
+      setTransaction((prev) => ({ ...prev, buyerConfirmed: role === 'buyer' ? true : prev.buyerConfirmed, sellerConfirmed: role === 'seller' ? true : prev.sellerConfirmed }));
+      toast.info('Confirming meet-ups is temporarily disabled (local only).');
+    }
   };
 
   const handleMarkCompleted = async () => {
@@ -1871,10 +1915,15 @@ export function ChatModal({
 
           {/* Messages Area - Scrollable */}
           <main className="flex-1 overflow-y-auto min-h-0 px-3 py-4 space-y-3 [&>*]:bg-transparent [&>*]:border-none [&>*]:shadow-none">
-            {/* Show skeleton while messages are loading */}
+            {/* Show skeleton and spinner while messages are loading */}
             {isLoadingMessages ? (
               // Lazy import skeleton so we don't bloat initial bundle in rare cases
-              <div className="p-2"><div className="animate-pulse space-y-2"><div className="h-6 w-3/4 bg-muted rounded" /><div className="h-32 bg-muted rounded" /><div className="h-6 w-1/2 bg-muted rounded" /></div></div>
+              <div className="p-2">
+                <div className="flex items-center justify-center mb-2">
+                  <div role="status" aria-live="polite" className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin border-muted" />
+                </div>
+                <div className="animate-pulse space-y-2"><div className="h-6 w-3/4 bg-muted rounded" /><div className="h-32 bg-muted rounded" /><div className="h-6 w-1/2 bg-muted rounded" /></div>
+              </div>
             ) : (
               <ChatBody
                 messages={messages.filter((m) => m.type !== 'product')}

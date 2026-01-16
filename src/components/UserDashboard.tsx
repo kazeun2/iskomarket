@@ -21,7 +21,8 @@ import { RankTierCompact } from './RankTier';
 import { IskoinWalletCompact, shouldLockIskoins } from './IskoinWallet';
 import { SeasonResetPopup, shouldShowSeasonResetPopup, getCurrentSeason, calculateSeasonResetScore } from './SeasonResetPopup';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from 'sonner';
+import { toast } from 'sonner'
+import { getDisplayName } from '../lib/userName';;
 import { TotalProductsModal, CompletedSalesModal, RatingHistoryModal } from './DashboardStatsModals';
 import { InactivityBanner } from './InactivityBanner';
 import { RewardChestModal } from './RewardChestModal';
@@ -1097,13 +1098,13 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
                       <div className="flex items-center space-x-4">
                         <Avatar>
                           <AvatarFallback className="bg-accent/20 text-accent-foreground">
-                            {conversation.other_user_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                            {(conversation.other_user ? getDisplayName(conversation.other_user) : (conversation.other_user_name || 'Unknown User')).split(' ').map((n: string) => n[0]).join('') || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <h3 className="font-medium truncate">{conversation.other_user_name ?? 'Unknown User'}</h3>
+                              <h3 className="font-medium truncate">{conversation.other_user ? getDisplayName(conversation.other_user) : (conversation.other_user_name ?? 'Unknown User')}</h3>
                             </div>
                             <span className="text-sm text-muted-foreground flex-shrink-0">
                               {conversation.last_message_at ? new Date(conversation.last_message_at).toLocaleDateString() : ''}
