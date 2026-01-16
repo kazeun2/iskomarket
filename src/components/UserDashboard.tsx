@@ -97,7 +97,8 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
           if (res && res.data) {
             setConversationHeaders((prev) => ({ ...prev, [id]: res.data }));
             // Patch the conversations list for immediate UX so the UI shows product/title, username, and last message
-            setConversations((prev) => prev.map((c) => c.conversation_id === id ? ({ ...c, other_user_name: res.data.otherUser?.username || c.other_user_name, other_user: c.other_user || { display_name: res.data.otherUser?.username }, product_title: res.data.product?.title || c.product_title, last_message: res.data.lastMessage?.text || c.last_message, last_message_at: res.data.lastMessage?.created_at || c.last_message_at }) : c));
+            const headerName = res.data.otherUser?.display_name || res.data.otherUser?.username || undefined;
+            setConversations((prev) => prev.map((c) => c.conversation_id === id ? ({ ...c, other_user_name: headerName || c.other_user_name, other_user: c.other_user || { display_name: headerName }, product_title: res.data.product?.title || c.product_title, last_message: res.data.lastMessage?.text || c.last_message, last_message_at: res.data.lastMessage?.created_at || c.last_message_at }) : c));
           }
         } catch (e) {
           console.warn('[UserDashboard] getConversationSummary failed for', id, e);

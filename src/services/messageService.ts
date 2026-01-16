@@ -1136,7 +1136,7 @@ export async function getConversations(user_id: string): Promise<{
  */
 export type ConversationHeader = {
   id: string;
-  otherUser: { id: string; username: string } | null;
+  otherUser: { id: string; username?: string | null; display_name?: string | null; avatar_url?: string | null } | null;
   product: { id: string; title: string; price: number } | null;
 };
 
@@ -1210,6 +1210,7 @@ export async function getConversationHeader(conversation_id: string, currentUser
     }
 
     // 3) Fetch the other user (if available)
+    // Prefer canonical `users` row but fall back to `user_profile` when necessary (legacy rows may reference profile ids)
     let otherUser: any = null;
     if (otherUserId) {
       try {
@@ -1218,8 +1219,38 @@ export async function getConversationHeader(conversation_id: string, currentUser
           .select('id, username')
           .eq('id', otherUserId)
           .maybeSingle();
-        if (user) otherUser = { id: user.id, username: user.username };
-        else if (userError) console.warn('[MessageService] getConversationHeader user lookup failed', userError);
+
+        if (user) {
+          otherUser = { id: user.id, username: user.username };
+        } else {
+          // If no users row found (otherUserId may be a user_profile.id), try user_profile as a fallback
+          try {
+            const { data: profileById, error: pbErr } = await supabase
+              .from('user_profile')
+              .select('id, user_id, username, display_name, avatar_url')
+              .eq('id', otherUserId)
+              .maybeSingle();
+
+            let profile = profileById || null;
+            if (!profile) {
+              // Fall back to searching by user_id in case otherUserId is actually a users.id stored in profile.user_id
+              const { data: profileByUserId, error: pbuErr } = await supabase
+                .from('user_profile')
+                .select('id, user_id, username, display_name, avatar_url')
+                .eq('user_id', otherUserId)
+                .maybeSingle();
+              profile = profileByUserId || null;
+            }
+
+            if (profile) {
+              otherUser = { id: profile.id || profile.user_id, username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url };
+            } else if (userError) {
+              console.warn('[MessageService] getConversationHeader user lookup failed', userError);
+            }
+          } catch (e) {
+            console.warn('[MessageService] getConversationHeader profile lookup threw', e);
+          }
+        }
       } catch (e) {
         console.warn('[MessageService] getConversationHeader user lookup threw', e);
       }
@@ -1256,7 +1287,7 @@ export async function getConversationHeader(conversation_id: string, currentUser
 
 export type ConversationSummary = {
   id: string;
-  otherUser: { id: string; username: string } | null;
+  otherUser: { id: string; username?: string | null; display_name?: string | null } | null;
   product: { id: string; title: string; price: number } | null;
   meetup_date?: string | null;
   meetup_time?: string | null;
