@@ -37,6 +37,8 @@ import {
 } from "lucide-react";
 import { SystemAlertModal } from "./SystemAlertModal";
 import AdminAppeals from '../components/AdminAppeals';
+import { AdminForCauseReview } from './AdminForCauseReview';
+import { AdminReports } from './AdminReports';
 import {
   Card,
   CardContent,
@@ -339,6 +341,10 @@ export function AdminDashboard({
   const [adminAuditLogs, setAdminAuditLogs] = useState<AdminAuditUI[]>([]);
   const [selectedProductDetails, setSelectedProductDetails] =
     useState<any>(null);
+
+  // Modals for trust/admin actions
+  const [showReportsModal, setShowReportsModal] = useState(false);
+  const [showForCauseModal, setShowForCauseModal] = useState(false);
 
   React.useEffect(() => {
     if (!selectedProductDetails) return;
@@ -2221,6 +2227,23 @@ Cavite State University`;
             )}
           </div>
         </TabsContent>
+
+        {/* Trust & Reports quick card */}
+        <Card className="hover:shadow-md border border-gray-200 rounded-[12px] p-4">
+          <CardHeader>
+            <CardTitle className="font-semibold">Trust & Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setShowReportsModal(true)}>
+                <Flag className="h-4 w-4 mr-2" /> View Reports
+              </Button>
+              <Button variant="ghost" onClick={() => setShowForCauseModal(true)}>
+                <Users className="h-4 w-4 mr-2" /> For a Cause Review
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {adminFlags.activitiesTab && (
           <TabsContent value="activities" className="space-y-4">
@@ -4858,6 +4881,46 @@ Cavite State University`
         </DialogContent>
       </Dialog>
 
+
+      {/* Reports Modal */}
+      <Dialog open={showReportsModal} onOpenChange={setShowReportsModal}>
+        <DialogContent className="modal-standard sm:max-w-3xl max-h-[90vh]">
+          <DialogHeader className="sticky top-0 z-50 pb-4 border-b">
+            <div className="flex justify-between items-start w-full">
+              <DialogTitle className="flex items-center gap-2">
+                <Flag className="h-5 w-5" /> Admin Reports
+              </DialogTitle>
+              <Button variant="ghost" size="icon" onClick={() => setShowReportsModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="py-4">
+            <AdminReports />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* For a Cause Review Modal */}
+      <Dialog open={showForCauseModal} onOpenChange={setShowForCauseModal}>
+        <DialogContent className="modal-standard sm:max-w-3xl max-h-[90vh]">
+          <DialogHeader className="sticky top-0 z-50 pb-4 border-b">
+            <div className="flex justify-between items-start w-full">
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" /> For a Cause Review
+              </DialogTitle>
+              <Button variant="ghost" size="icon" onClick={() => setShowForCauseModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="py-4">
+            <AdminForCauseReview />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Inactive Accounts Panel */}
       {adminFlags.manageInactive && (

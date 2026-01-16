@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getReports, updateReportStatus } from '../lib/trustService'
+import { subscribeToReports } from '../services/reportService'
 import { Button } from './ui/button'
 
 export function AdminReports() {
@@ -11,7 +12,11 @@ export function AdminReports() {
     const r = await getReports()
     setRows(r)
   }
-  useEffect(()=>{ load() }, [])
+  useEffect(()=>{
+    load()
+    const unsub = subscribeToReports(()=> load())
+    return () => { if (unsub) unsub() }
+  }, [])
 
   const view = (r:any) => setSelected(r)
 

@@ -8,6 +8,7 @@ import { StarRating } from "./StarRating";
 import { TrustworthyBadge } from "./TrustworthyBadge";
 import { CreditScoreBadge } from "./CreditScoreBadge";
 import { RankTierCompact } from "./RankTier";
+import { ForCauseBadge } from './ForCauseBadge'
 
 interface Product {
   id: number;
@@ -427,6 +428,13 @@ export function ProductGrid({
                             <span className="dark:text-[#F3F3F3] dark:opacity-85">{product.condition}</span>
                           </span>
                         </div>
+
+                        {/* For a Cause Badge (if applicable) */}
+                        {((product as any).is_for_cause || (product as any).goalAmount) && (
+                          <div className="ml-2 mt-1">
+                            <ForCauseBadge status="approved" forSeller={false} />
+                          </div>
+                        )}
 
                         {/* Category Badge */}
                         <div

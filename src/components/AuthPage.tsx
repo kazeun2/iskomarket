@@ -150,7 +150,7 @@ export function AuthPage({
   // Compute a simple username from a CvSU email address.
   // Rule: take local part (before @), then take the first dot-separated segment (e.g., example.admin -> example),
   // strip any non-alphanumeric/underscore chars and truncate to 10 chars, and lowercase it.
-  export const computeUsernameFromEmail = (email: string | undefined | null) => {
+  const computeUsernameFromEmail = (email: string | undefined | null) => {
     if (!email) return '';
     const local = String(email).split('@')[0] || '';
     const firstSegment = local.split('.')[0] || local.split('_')[0] || local;

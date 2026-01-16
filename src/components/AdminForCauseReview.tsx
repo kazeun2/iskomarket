@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getPendingForCauseDetails, updateCauseStatus } from '../lib/trustService'
+import { getPendingForCauseDetails, updateCauseStatus, subscribeToForCauseChanges } from '../lib/trustService'
 import { Button } from './ui/button'
 import { ForCauseBadge } from './ForCauseBadge'
 
@@ -13,7 +13,12 @@ export function AdminForCauseReview() {
     setItems(p)
   }
 
-  useEffect(()=>{ load() }, [])
+  useEffect(()=>{
+    // Initial load + subscribe to realtime changes so the admin list updates automatically
+    load()
+    const unsub = subscribeToForCauseChanges(setItems)
+    return () => unsub()
+  }, [])
 
   const onView = (it: any) => setSelected(it)
 

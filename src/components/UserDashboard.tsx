@@ -837,11 +837,6 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
 
           {/* Floating Feature Icons - Desktop Only */}
           <div className="hidden md:flex flex-col gap-[26px] items-center justify-center">
-            <DailySpinCard
-              spinsLeft={dailySpinState.spinsLeft}
-              rechargesLeft={dailySpinState.rechargesLeft}
-              onClick={() => setShowDailySpin(true)}
-            />
             <SeasonAnnouncementCard
               currentSeason={currentSeason}
               onClick={() => setShowSeasonResetPopup(true)}
@@ -851,11 +846,6 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
 
         {/* Floating Feature Icons - Mobile (Below Stats) */}
         <div className="md:hidden flex gap-[26px] items-center justify-center mt-4">
-          <DailySpinCard
-            spinsLeft={dailySpinState.spinsLeft}
-            rechargesLeft={dailySpinState.rechargesLeft}
-            onClick={() => setShowDailySpin(true)}
-          />
           <SeasonAnnouncementCard
             currentSeason={currentSeason}
             onClick={() => setShowSeasonResetPopup(true)}
@@ -883,12 +873,6 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
             className="flex-1 text-center rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
           >
             Reviews
-          </TabsTrigger>
-          <TabsTrigger 
-            value="rewards"
-            className="flex-1 text-center rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
-          >
-            Rewards
           </TabsTrigger>
 
         </TabsList>
@@ -1210,58 +1194,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
           )}
         </TabsContent>
 
-        <TabsContent value="rewards" className="space-y-6 relative">
-          {/* Noise Overlay */}
-          <div 
-            className="absolute inset-0 pointer-events-none opacity-[0.015] dark:block hidden rounded-[20px]"
-            style={{
-              backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")',
-              mixBlendMode: 'overlay'
-            }}
-          />
-          {/* Redeem Button */}
-          <div className="bg-[#EDF7EE] dark:bg-gradient-to-br dark:from-[#001827] dark:to-[#002434] border border-[#DCE8DE] dark:border-emerald-500/30 rounded-[24px] p-6 shadow-[0_6px_16px_rgba(0,150,90,0.10)] dark:shadow-[inset_0_1px_0_0_rgba(20,184,166,0.1),0_4px_16px_rgba(0,24,39,0.3)] backdrop-blur-sm mb-7">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-xl text-[#006400] dark:text-emerald-300 font-semibold">Your Rewards</h3>
-                <p className="text-sm text-[#006400]/70 dark:text-emerald-400/60 mt-1">
-                  Redeem exclusive features and perks using your Iskoins
-                </p>
-              </div>
-              <div className="relative">
-                {/* Off-white halo behind button */}
-                <div className="absolute inset-0 bg-[#F1FAF4] dark:bg-transparent rounded-[32px] blur-sm"></div>
-                <Button
-                  onClick={() => setShowRewardChest(true)}
-                  className="relative rounded-[32px] bg-gradient-to-r from-[#17D1A1] to-[#0FBF74] dark:from-green-400 dark:via-cyan-400 dark:to-emerald-400 border-0 dark:border-2 dark:border-cyan-300/50 text-white px-6 py-2.5 hover:from-[#14C094] hover:to-[#0DAD68] dark:hover:from-green-500 dark:hover:via-cyan-500 dark:hover:to-emerald-500 hover:scale-[1.05] shadow-[0_8px_20px_rgba(28,181,120,0.25)] dark:shadow-[0_0_25px_rgba(34,211,238,0.6),0_0_15px_rgba(16,185,129,0.4)] backdrop-blur-sm transition-all duration-300 tracking-wide"
-                >
-                  <motion.span 
-                    className="mr-2 text-xl filter drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-                    animate={{
-                      rotateY: [0, 360]
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
-                  >
-                    💎
-                  </motion.span>
-                  <span className="font-medium">Redeem Rewards</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Active Rewards Tracker */}
-          <ActiveRewardsTracker
-            activeRewards={activeRewards}
-            userIskoins={currentIskoins}
-            onExtend={handleExtendReward}
-            onRenew={handleRenewReward}
-          />
-        </TabsContent>
+        {/* Rewards tab removed per product design change */}
 
 
       </Tabs>
@@ -1351,50 +1284,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
 
       {/* Full Season Stats Modal removed */}
 
-      {/* Reward Chest Modal */}
-      <RewardChestModal
-        isOpen={showRewardChest}
-        onClose={() => setShowRewardChest(false)}
-        userIskoins={currentIskoins}
-        onRedeem={handleRedeemReward}
-        onIskoinChange={(amount) => {
-          const newIskoins = currentIskoins + amount;
-          setCurrentIskoins(newIskoins);
-          setIskoinChange(amount);
-          setTimeout(() => setIskoinChange(undefined), 2500);
-        }}
-        userCreditScore={currentUser?.creditScore || 70}
-        isAdmin={isAdmin}
-        isDarkMode={isDarkMode}
-      />
 
-      {/* Daily Spin Modal (Elite Only) */}
-      <DailySpinModal
-        isOpen={showDailySpin}
-        onClose={() => setShowDailySpin(false)}
-        currentIskoins={currentIskoins}
-        userCreditScore={currentUser?.creditScore || 70}
-        onSpinComplete={(iskoins) => {
-          const newIskoins = currentIskoins + iskoins;
-          setCurrentIskoins(newIskoins);
-          setIskoinChange(iskoins);
-          setTimeout(() => setIskoinChange(undefined), 2500);
-          
-          // Update daily spin state
-          if (iskoins >= 0) {
-            setDailySpinState(prev => ({
-              ...prev,
-              spinsLeft: prev.spinsLeft > 0 ? prev.spinsLeft - 1 : 0
-            }));
-          } else {
-            // Recharge used
-            setDailySpinState(prev => ({
-              spinsLeft: prev.spinsLeft + 1,
-              rechargesLeft: prev.rechargesLeft > 0 ? prev.rechargesLeft - 1 : 0
-            }));
-          }
-        }}
-      />
 
       {/* Floating Daily Spin Widget */}
       {/* REMOVED - Now displayed as a card in the stats overview */}
@@ -1409,7 +1299,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
       <RewardActivationPopup
         notifications={rewardNotifications}
         onDismiss={handleDismissNotification}
-        onOpenTracker={() => setActiveTab('rewards')}
+        onOpenTracker={() => setActiveTab('listings')}
       />
 
       {/* Iskoin Meter Widget - REMOVED */}

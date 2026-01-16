@@ -165,32 +165,7 @@ export function UserProfileHeader({
             boxShadow: '0 4px 24px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04)',
           }}
         >
-          {/* Iskoins Button - Top Right of Profile Frame */}
-          <div className="absolute top-5 right-5 z-20">
-            <motion.button
-              onClick={onIskoinClick}
-              animate={{ scale: [1, 1.02, 1] }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-              whileHover={{ scale: 1.05, y: -1 }}
-              whileTap={{ scale: 0.96 }}
-              className="px-4 py-2 rounded-[18px] bg-gradient-to-br from-amber-400 via-amber-500 to-orange-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
-              style={{
-                boxShadow:
-                  "0 4px 16px rgba(251, 191, 36, 0.4), 0 2px 6px rgba(251, 146, 60, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35)",
-              }}
-              title="Spin to earn more Iskoins"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <Coins className="h-3.5 w-3.5" />
-              <span className="text-[14px] font-semibold">
-                {currentIskoins} Iskoins
-              </span>
-            </motion.button>
-          </div>
+          {/* Iskoins display hidden on dashboard per design */}
 
           {/* Profile Content - Centered Vertically */}
           <div 

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } 
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { StarRating } from './StarRating';
 import { ChatModal } from './ChatModal';
+import { ForCauseBadge } from './ForCauseBadge'
 import { MeetupReminderModal } from './MeetupReminderModal';
 import { toast } from 'sonner';
 import { UsernameWithGlow } from './UsernameWithGlow';
@@ -403,8 +404,13 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
                 {displayProduct.title}
               </h1>
               
-              <div className="text-[#0A8730] dark:text-emerald-400 text-[28px] sm:text-[32px]">
-                {formatPrice(displayProduct.price)}
+              <div className="flex items-center gap-3">
+                <div className="text-[#0A8730] dark:text-emerald-400 text-[28px] sm:text-[32px]">
+                  {formatPrice(displayProduct.price)}
+                </div>
+                {((displayProduct as any).is_for_cause || (displayProduct as any).cause_organization) && (
+                  <ForCauseBadge status="approved" forSeller={false} />
+                )}
               </div>
 
               {/* Posted Date */}
