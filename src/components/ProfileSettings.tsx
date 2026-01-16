@@ -34,8 +34,13 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
   const handleSave = () => {
     const updatedUser = {
       ...currentUser,
-      ...formData,
-      name: formData.username.trim()
+      // Preserve username (immutable). Allow other editable fields to update.
+      username: currentUser?.username,
+      email: formData.email,
+      program: formData.program,
+      bio: formData.bio,
+      avatar: formData.avatar,
+      name: currentUser?.username || formData.username.trim(),
     };
     onUpdateProfile(updatedUser);
     onClose();
@@ -138,7 +143,7 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
               Edit Information
             </h4>
 
-            {/* Username Field */}
+            {/* Username (derived from CvSU email) - read-only */}
             <div className="space-y-2">
               <Label htmlFor="username" className="text-[14px] font-medium text-[#006400] dark:text-[#4ade80]">
                 Username
@@ -147,18 +152,17 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
                 <Input
                   id="username"
                   value={formData.username}
-                  onChange={(e) => {
-                    const value = e.target.value.slice(0, 10);
-                    handleInputChange('username', value);
-                  }}
-                  placeholder="Enter your username"
+                  onChange={() => { /* no-op: username is read-only */ }}
+                  placeholder="Your username"
                   maxLength={10}
-                  className="h-12 pr-14 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 transition-all"
+                  disabled
+                  className="h-12 pr-14 bg-muted/30 border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 transition-all"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#006400]/60 dark:text-[#4ade80]/60 pointer-events-none">
                   {formData.username.length}/10
                 </div>
               </div>
+              <div className="text-xs text-muted-foreground mt-1">Your username is derived from your CvSU email and cannot be changed.</div>
             </div>
 
             {/* Email Field */}

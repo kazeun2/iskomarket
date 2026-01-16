@@ -35,7 +35,7 @@ test.describe('Visual regression: Post Product modal', () => {
 
       // Use OTP stub approach consistent with existing e2e tests
       await page.getByRole('button', { name: 'Register' }).first().click()
-      await page.fill('input[placeholder="iskostudent"]', username)
+      // Username is derived on submit; fill only the CvSU email + password
       await page.fill('input[placeholder="your.name@cvsu.edu.ph"]', email)
       await page.fill('input[placeholder="Create a strong password"]', PASSWORD)
       await page.fill('input[placeholder="Confirm your password"]', PASSWORD)

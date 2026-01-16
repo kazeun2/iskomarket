@@ -12,11 +12,10 @@ test.describe('Auth flows (smoke)', () => {
 
     // Switch to Register tab
     await page.getByRole('button', { name: 'Register' }).first().click()
-    await expect(page.locator('text=Username')).toBeVisible()
+    // The UI derives username from the submitted CvSU email; ensure email input is present
+    await expect(page.locator('input[placeholder="your.name@cvsu.edu.ph"]')).toBeVisible()
 
-    // Fill registration form
-    const username = `pw${Date.now().toString().slice(-6)}`
-    await page.fill('input[placeholder="iskostudent"]', username)
+    // Fill registration form (username is derived from email automatically)
     await page.fill('input[placeholder="your.name@cvsu.edu.ph"]', TEST_REGISTER_EMAIL)
     await page.fill('input[placeholder="Create a strong password"]', TEST_REGISTER_PASS)
     await page.fill('input[placeholder="Confirm your password"]', TEST_REGISTER_PASS)

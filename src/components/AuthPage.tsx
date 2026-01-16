@@ -147,6 +147,17 @@ export function AuthPage({
     );
   };
 
+  // Compute a simple username from a CvSU email address.
+  // Rule: take local part (before @), then take the first dot-separated segment (e.g., example.admin -> example),
+  // strip any non-alphanumeric/underscore chars and truncate to 10 chars, and lowercase it.
+  export const computeUsernameFromEmail = (email: string | undefined | null) => {
+    if (!email) return '';
+    const local = String(email).split('@')[0] || '';
+    const firstSegment = local.split('.')[0] || local.split('_')[0] || local;
+    const cleaned = firstSegment.replace(/[^a-zA-Z0-9_]/g, '');
+    return cleaned.slice(0, 10).toLowerCase();
+  };
+
 
 
   const validatePassword = (password: string) => {
@@ -482,8 +493,8 @@ export function AuthPage({
         onAuthenticated({
           id: user.id,
           email: user.email,
-          username: profile?.username || user.email?.split("@")[0],
-          name: profile?.username || user.email?.split("@")[0],
+          username: profile?.username || computeUsernameFromEmail(user.email),
+          name: profile?.username || computeUsernameFromEmail(user.email),
           isAdmin: profile?.is_admin ?? isAdminEmail(user.email || ""),
           date_registered: profile?.created_at || user.created_at,
         });
@@ -519,15 +530,7 @@ const handleRegister = async (e: React.FormEvent) => {
     if (registrationStep === 1) {
       const newErrors: Record<string, string> = {};
 
-      if (!registerForm.username.trim()) {
-        newErrors.username = "Username is required";
-      } else if (registerForm.username.trim().length > 10) {
-        newErrors.username = "Username must be 10 characters or less";
-      } else if (!/^[a-zA-Z0-9_]+$/.test(registerForm.username.trim())) {
-        newErrors.username =
-          "Username can only contain letters, numbers, and underscores";
-      }
-
+      // Email must be a CvSU email
       if (!registerForm.email) {
         newErrors.email = "Email is required";
       } else if (!validateCvsuEmail(registerForm.email)) {
@@ -536,6 +539,19 @@ const handleRegister = async (e: React.FormEvent) => {
       } else if (isAdminEmail(registerForm.email)) {
         newErrors.email =
           "Admin accounts cannot register. Please log in directly.";
+      }
+
+      // Username will be derived from email automatically; ensure derivation yields a non-empty id
+      const derivedUsername = computeUsernameFromEmail(registerForm.email);
+      if (!derivedUsername) {
+        newErrors.email = 'Unable to extract a username from the provided email address';
+      }
+
+      if (!registerForm.password) {
+        newErrors.password = "Password is required";
+      } else if (!validatePassword(registerForm.password)) {
+        newErrors.password =
+          "Password must be at least 8 characters with uppercase, lowercase, and number";
       }
 
       if (!registerForm.password) {
@@ -559,9 +575,10 @@ const handleRegister = async (e: React.FormEvent) => {
       try {
         const { initiateRegistration } = await import('@/lib/auth')
         try {
+          const derivedUsername = computeUsernameFromEmail(registerForm.email.trim());
           await initiateRegistration({
             email: registerForm.email.trim(),
-            username: registerForm.username.trim(),
+            username: derivedUsername,
             password: registerForm.password,
           })
 
@@ -569,7 +586,7 @@ const handleRegister = async (e: React.FormEvent) => {
           setErrors({})
 
           // Open the floating verification modal (single verification UI) and keep pending user data for the modal
-          const pending = { email: registerForm.email.trim(), username: registerForm.username.trim(), password: registerForm.password }
+          const pending = { email: registerForm.email.trim(), username: derivedUsername, password: registerForm.password }
           setPendingUserData(pending)
           setIsVerifyModalOpen(true)
 
@@ -1651,37 +1668,24 @@ const handleRegister = async (e: React.FormEvent) => {
                     {/* Step 1: Registration Form */}
                     {registrationStep === 1 && (
                       <>
-                        {/* Username Field */}
+                        {/* Username Preview (derived from CvSU email) */}
                         <div>
                           <label className="block text-sm mb-2">
-                            Username
+                            Username (derived from your CvSU email)
                           </label>
                           <div className="relative">
                             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <Input
-                              placeholder="iskostudent"
-                              value={registerForm.username}
-                              onChange={(e) => {
-                                const value =
-                                  e.target.value.slice(0, 10); // Limit to 10 characters
-                                setRegisterForm((prev) => ({
-                                  ...prev,
-                                  username: value,
-                                }));
-                              }}
-                              maxLength={10}
-                              className="pl-10 pr-14"
+                              placeholder="derived from email"
+                              value={computeUsernameFromEmail(registerForm.email)}
+                              disabled
+                              className="pl-10 pr-14 bg-muted/30"
                             />
                             <div className="absolute right-3 top-3 text-xs text-muted-foreground pointer-events-none">
-                              {registerForm.username.length}/10
+                              {computeUsernameFromEmail(registerForm.email).length}/10
                             </div>
                           </div>
-                          {errors.username && (
-                            <div className="flex items-center space-x-1 mt-1 text-xs text-red-600">
-                              <AlertCircle className="h-3 w-3" />
-                              <span>{errors.username}</span>
-                            </div>
-                          )}
+                          <div className="text-xs text-muted-foreground mt-1">Your username will be automatically derived from your CvSU email and cannot be changed.</div>
                         </div>
 
                         {/* Email */}

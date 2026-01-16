@@ -8,4 +8,7 @@ Migration notes: sender_id/receiver_id vs buyer_id/seller_id
 
 - Verify by running the `scripts/test_transactions_insert.js` helper and by loading the app locally; inspect logs for RLS or schema cache errors.
 
+### New migration: prevent username updates
+- Added `migrations/20260116-prevent-username-updates.sql` which installs a trigger preventing non-privileged updates to `users.username` (enforces immutability at the DB level). Apply this migration as an admin in your Supabase SQL editor.
+
 If you'd like, I can prepare a PR with these migration updates and the tests; tell me when to proceed with remaining replacements across the repo.

@@ -17,12 +17,10 @@ test.describe('Registration + Verify flow (UI only)', () => {
 
     // Switch to Register tab
     await page.getByRole('button', { name: 'Register' }).first().click()
-    await expect(page.locator('text=Username')).toBeVisible()
+    // The UI derives username from the provided CvSU email; verify email input is present
+    await expect(page.locator('input[placeholder="your.name@cvsu.edu.ph"]')).toBeVisible()
 
-    // Fill registration form — target inputs by placeholder to avoid brittle nth() indexing
-    // Use a unique username that fits the 10-character limit (prefix + last 8 digits of timestamp)
-    const username = `pw${Date.now().toString().slice(-8)}`
-    await page.fill('input[placeholder="iskostudent"]', username)
+    // Fill registration form
     await page.fill('input[placeholder="your.name@cvsu.edu.ph"]', TEST_EMAIL)
     await page.fill('input[placeholder="Create a strong password"]', 'Aa123456')
     await page.fill('input[placeholder="Confirm your password"]', 'Aa123456')

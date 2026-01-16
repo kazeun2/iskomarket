@@ -26,7 +26,7 @@ test.describe('Meet-up scheduling (e2e)', () => {
 
     if (!sellerCreated) {
       await page.getByRole('button', { name: 'Register' }).first().click()
-      await page.fill('input[placeholder="iskostudent"]', sellerUser)
+      // Username is derived from the CvSU email on submit
       await page.fill('input[placeholder="your.name@cvsu.edu.ph"]', sellerEmail)
       await page.fill('input[placeholder="Create a strong password"]', PASSWORD)
       await page.fill('input[placeholder="Confirm your password"]', PASSWORD)
@@ -196,8 +196,6 @@ test.describe('Meet-up scheduling (e2e)', () => {
     await page.getByRole('button', { name: 'Register' }).first().click()
     // Use the provided deterministic test email (non-CVSU)
     const buyerEmail = process.env.TEST_BUYER_EMAIL || 'test+buyer@example.com'
-    const buyerUser = `buyer${Date.now().toString().slice(-6)}`
-    await page.fill('input[placeholder="iskostudent"]', buyerUser)
     await page.fill('input[placeholder="your.name@cvsu.edu.ph"]', buyerEmail)
     await page.fill('input[placeholder="Create a strong password"]', PASSWORD)
     await page.fill('input[placeholder="Confirm your password"]', PASSWORD)
@@ -368,6 +366,10 @@ test.describe('Meet-up scheduling (e2e)', () => {
     // Verify chat contains automated meetup message
     await expect(page.locator('text=Meet-up proposed')).toBeVisible({ timeout: 5000 })
 
+    // Mark the conversation as done (buyer action) and verify banner shows
+    await page.click('button[title="Mark as done"]')
+    await expect(page.locator('text=Conversation Marked as Done')).toBeVisible({ timeout: 5000 })
+
     // Go to My Dashboard and verify conversation card appears for buyer
     await page.getByTitle('My Dashboard').click()
     await expect(page.locator(`text=About: ${productTitle}`)).toBeVisible({ timeout: 5000 })
@@ -385,5 +387,9 @@ test.describe('Meet-up scheduling (e2e)', () => {
 
     await page.getByTitle('My Dashboard').click()
     await expect(page.locator(`text=About: ${productTitle}`)).toBeVisible({ timeout: 5000 })
+
+    // Open the conversation and assert seller sees the 'done' banner
+    await page.click(`text=About: ${productTitle}`)
+    await expect(page.locator('text=Conversation Marked as Done')).toBeVisible({ timeout: 8000 })
   })
 })
