@@ -1216,7 +1216,7 @@ export async function getConversationHeader(conversation_id: string, currentUser
       try {
         const { data: user, error: userError } = await supabase
           .from('users')
-          .select('id, username')
+          .select('id, username, name')
           .eq('id', otherUserId)
           .maybeSingle();
 

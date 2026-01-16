@@ -36,12 +36,14 @@ export interface TransactionWithDetails extends Transaction {
   buyer: {
     id?: string
     user_id?: string
+    name?: string
     username?: string
     avatar_url?: string | null
   }
   seller: {
     id?: string
     user_id?: string
+    name?: string
     username?: string
     avatar_url?: string | null
   }
@@ -215,8 +217,8 @@ export async function getTransaction(transactionId: string) {
     product: product ? { id: product.id, title: product.title, images: product.images || [] } : undefined,
     sender_id: txRow.sender_id,
     receiver_id: txRow.receiver_id,
-    buyer: buyer ? { id: buyer.id || buyer.user_id, username: buyer.username, avatar_url: buyer.avatar_url } : null,
-    seller: seller ? { id: seller.id || seller.user_id, username: seller.username, avatar_url: seller.avatar_url } : null,
+    buyer: buyer ? { id: buyer.id || buyer.user_id, name: buyer.display_name || buyer.username || undefined, username: buyer.username, avatar_url: buyer.avatar_url } : null,
+    seller: seller ? { id: seller.id || seller.user_id, name: seller.display_name || seller.username || undefined, username: seller.username, avatar_url: seller.avatar_url } : null,
     meetup_date: txRow.meetup_date,
     meetup_location: txRow.meetup_location,
     status: txRow.status,
@@ -274,8 +276,8 @@ export async function getUserTransactions(userId: string) {
     product: t.product_id ? (productsMap[t.product_id] ? { id: productsMap[t.product_id].id, title: productsMap[t.product_id].title, images: productsMap[t.product_id].images || [] } : undefined) : undefined,
     sender_id: t.sender_id,
     receiver_id: t.receiver_id,
-    buyer: profilesMap[t.sender_id] ? { id: profilesMap[t.sender_id].id || profilesMap[t.sender_id].user_id, username: profilesMap[t.sender_id].username, avatar_url: profilesMap[t.sender_id].avatar_url } : null,
-    seller: profilesMap[t.receiver_id] ? { id: profilesMap[t.receiver_id].id || profilesMap[t.receiver_id].user_id, username: profilesMap[t.receiver_id].username, avatar_url: profilesMap[t.receiver_id].avatar_url } : null,
+    buyer: profilesMap[t.sender_id] ? { id: profilesMap[t.sender_id].id || profilesMap[t.sender_id].user_id, name: profilesMap[t.sender_id].display_name || profilesMap[t.sender_id].username || undefined, username: profilesMap[t.sender_id].username, avatar_url: profilesMap[t.sender_id].avatar_url } : null,
+    seller: profilesMap[t.receiver_id] ? { id: profilesMap[t.receiver_id].id || profilesMap[t.receiver_id].user_id, name: profilesMap[t.receiver_id].display_name || profilesMap[t.receiver_id].username || undefined, username: profilesMap[t.receiver_id].username, avatar_url: profilesMap[t.receiver_id].avatar_url } : null,
     meetup_date: t.meetup_date,
     meetup_location: t.meetup_location,
     status: t.status,
@@ -645,8 +647,8 @@ export async function getPendingTransactions(userId: string) {
     product: t.product_id ? (productsMap[t.product_id] ? { id: productsMap[t.product_id].id, title: productsMap[t.product_id].title, images: productsMap[t.product_id].images || [] } : undefined) : undefined,
     sender_id: t.sender_id,
     receiver_id: t.receiver_id,
-    buyer: profilesMap[t.sender_id] ? { id: profilesMap[t.sender_id].id || profilesMap[t.sender_id].user_id, username: profilesMap[t.sender_id].username, avatar_url: profilesMap[t.sender_id].avatar_url } : null,
-    seller: profilesMap[t.receiver_id] ? { id: profilesMap[t.receiver_id].id || profilesMap[t.receiver_id].user_id, username: profilesMap[t.receiver_id].username, avatar_url: profilesMap[t.receiver_id].avatar_url } : null,
+    buyer: profilesMap[t.sender_id] ? { id: profilesMap[t.sender_id].id || profilesMap[t.sender_id].user_id, name: profilesMap[t.sender_id].display_name || profilesMap[t.sender_id].username || undefined, username: profilesMap[t.sender_id].username, avatar_url: profilesMap[t.sender_id].avatar_url } : null,
+    seller: profilesMap[t.receiver_id] ? { id: profilesMap[t.receiver_id].id || profilesMap[t.receiver_id].user_id, name: profilesMap[t.receiver_id].display_name || profilesMap[t.receiver_id].username || undefined, username: profilesMap[t.receiver_id].username, avatar_url: profilesMap[t.receiver_id].avatar_url } : null,
     meetup_date: t.meetup_date,
     meetup_location: t.meetup_location,
     status: t.status,

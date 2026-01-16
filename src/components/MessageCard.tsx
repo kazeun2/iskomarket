@@ -34,7 +34,8 @@ export function MessageCard({ transaction, currentUserId, onOpen }: MessageCardP
   const isCurrentReceiver = String(transaction.receiver_id) === String(currentUserId)
   const otherUser = isCurrentReceiver ? (transaction.buyer || {}) : (transaction.seller || {})
   const otherUserId = String(otherUser.user_id || otherUser.id || '')
-  const username = otherUser.display_name || otherUser.username || 'Unknown User'
+  // Prefer an explicit display_name/name, then fallback to username
+  const username = otherUser.display_name || otherUser.name || otherUser.username || 'Unknown User'
 
   // Product title fallback
   const productTitle = transaction.product?.title || 'Product'

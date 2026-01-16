@@ -1,0 +1,47 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - button "Switch to dark mode" [ref=e8] [cursor=pointer]:
+    - img
+  - generic [ref=e10]:
+    - generic [ref=e12]:
+      - img "IskoMarket Logo" [ref=e19]
+      - generic [ref=e20]:
+        - heading "IskoMarket" [level=1] [ref=e22]
+        - paragraph [ref=e24]: Cavite State University – Main Campus
+    - generic [ref=e26]:
+      - generic [ref=e27]:
+        - button "Sign In" [ref=e28]
+        - button "Register" [ref=e29]
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e33]: Username
+          - generic [ref=e34]:
+            - img [ref=e35]
+            - textbox "iskostudent" [ref=e38]: pw374937
+            - generic: 8/10
+        - generic [ref=e39]:
+          - generic [ref=e40]: CvSU Email Address
+          - generic [ref=e41]:
+            - img [ref=e42]
+            - textbox "your.name@cvsu.edu.ph" [ref=e45]: test+signup@cvsu.edu.ph
+        - generic [ref=e46]:
+          - generic [ref=e47]: Password
+          - generic [ref=e48]:
+            - img [ref=e49]
+            - textbox "Create a strong password" [ref=e52]: Aa123456
+            - button [ref=e53]:
+              - img [ref=e54]
+        - generic [ref=e57]:
+          - generic [ref=e58]: Confirm Password
+          - generic [ref=e59]:
+            - img [ref=e60]
+            - textbox "Confirm your password" [ref=e63]: Aa123456
+            - button [ref=e64]:
+              - img [ref=e65]
+        - generic [ref=e68]:
+          - img [ref=e69]
+          - generic [ref=e71]: An account with this email already exists. Please sign in or reset your password.
+        - button "Register" [ref=e72]
+```

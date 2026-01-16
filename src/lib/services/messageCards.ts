@@ -55,7 +55,8 @@ export async function getMessageCards(userId: string, limit: number = 100) {
 
   const enriched = (rows || []).map((r: any) => ({
     ...r,
-    other_user: profilesMap[r.other_user_id] ? { id: profilesMap[r.other_user_id].id || profilesMap[r.other_user_id].user_id, username: profilesMap[r.other_user_id].username, display_name: profilesMap[r.other_user_id].display_name, avatar_url: profilesMap[r.other_user_id].avatar_url } : null,
+    // Prefer explicit display_name then name then username for human-friendly label
+    other_user: profilesMap[r.other_user_id] ? { id: profilesMap[r.other_user_id].id || profilesMap[r.other_user_id].user_id, name: profilesMap[r.other_user_id].display_name || profilesMap[r.other_user_id].username, username: profilesMap[r.other_user_id].username, display_name: profilesMap[r.other_user_id].display_name, avatar_url: profilesMap[r.other_user_id].avatar_url } : null,
   }));
 
   return enriched as MessageCard[];
