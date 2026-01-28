@@ -1,0 +1,13 @@
+# Environment files (do not commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Node modules and build outputs
+node_modules/
+dist/
+build/
+
+# Editor/OS files
+.vscode/
+.DS_Store

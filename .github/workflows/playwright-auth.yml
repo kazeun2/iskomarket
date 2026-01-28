@@ -1,0 +1,43 @@
+name: Playwright E2E - Auth Flow
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  e2e-auth:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright auth tests
+        env:
+          # Use stub mode for reset and signup where appropriate
+          VITE_TEST_RESET_STUB: 'true'
+          VITE_TEST_RESET_OTP: '11111111'
+          VITE_TEST_VERIFY_OTP_STUB: 'true'
+          VITE_TEST_VERIFY_OTP_VALID: '12345678'
+          RESET_TEST_STUB: '1'
+          CI: 'true'
+          # Optionally set TEST_LOGIN_EMAIL and TEST_LOGIN_PASSWORD via repo Secrets for a real login test
+        run: |
+          npx playwright test tests/e2e/playwright/reset-invalid.spec.ts tests/e2e/playwright/reset-complete.spec.ts tests/e2e/playwright/register.spec.ts tests/e2e/playwright/auth.spec.ts --config=playwright.config.ts --project=chromium
