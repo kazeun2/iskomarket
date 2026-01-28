@@ -290,7 +290,11 @@ const DialogContent = React.forwardRef<
           ref={setRef}
           data-slot="dialog-content"
           className={cn(
+<<<<<<< HEAD
             "iskomarket-dialog-content forced-modal-bg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[9999] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-gray-200 bg-neutral-50 dark:bg-neutral-900 p-6 shadow-xl text-gray-900 duration-200 sm:max-w-lg [&>button]:hidden",
+=======
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[9999] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-gray-200 bg-neutral-50 dark:bg-neutral-900 p-6 shadow-xl text-gray-900 duration-200 sm:max-w-lg [&>button]:hidden",
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
             className,
           )}
           style={{ zIndex: Math.max(zIndex + 1, 9999), opacity: 1, isolation: 'isolate', boxShadow: '0 12px 30px rgba(0,0,0,0.08)' }}
@@ -302,6 +306,7 @@ const DialogContent = React.forwardRef<
             <DialogPrimitive.Description id={descriptionId} data-slot="dialog-description" className="sr-only">Dialog content</DialogPrimitive.Description>
           )}
 
+<<<<<<< HEAD
           {/* Triple-layer nuclear protection to avoid any late global transparency overrides */}
           <div className="forced-nuclear-bg !bg-[#f8fafc] !bg-slate-50/100 max-w-[100%] max-h-[90vh] overflow-auto w-full">
             <div className="!bg-white/98 rounded-2xl shadow-2xl p-8 border w-full">
@@ -315,6 +320,9 @@ const DialogContent = React.forwardRef<
               </div>
             </div>
           </div>
+=======
+          {children}
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
         </DialogPrimitive.Content>
       </DialogDescriptionIdContext.Provider>
 

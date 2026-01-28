@@ -149,15 +149,24 @@ export function AuthPage({
 
   // Compute a simple username from a CvSU email address.
   // Rule: take local part (before @), then take the first dot-separated segment (e.g., example.admin -> example),
+<<<<<<< HEAD
   // strip any non-alphanumeric/underscore chars and lowercase it.
+=======
+  // strip any non-alphanumeric/underscore chars and truncate to 10 chars, and lowercase it.
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   const computeUsernameFromEmail = (email: string | undefined | null) => {
     if (!email) return '';
     const local = String(email).split('@')[0] || '';
     const firstSegment = local.split('.')[0] || local.split('_')[0] || local;
     const cleaned = firstSegment.replace(/[^a-zA-Z0-9_]/g, '');
+<<<<<<< HEAD
     // No truncation - keep full derived username and lowercase it
     return cleaned.toLowerCase();
   }; 
+=======
+    return cleaned.slice(0, 10).toLowerCase();
+  };
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
 
 
 
@@ -178,6 +187,198 @@ export function AuthPage({
   };
 
 
+<<<<<<< HEAD
+=======
+//   setErrors({ general: 'Login failed. No user returned.' })
+//   setIsLoading(false)
+//   return
+// }
+
+// const isAdmin = isAdminEmail(user.email || '')
+
+// onAuthenticated({
+//   id: user.id,                 // 🔑 Supabase UUID (critical for chat)
+//   email: user.email,
+//   username: user.email?.split('@')[0],
+//   name: user.email?.split('@')[0],
+//   isAdmin,
+//   dateRegistered: user.created_at,
+// })
+
+// setLoginAttempts(0)
+// setIsLoginLocked(false)
+// setIsLoading(false)
+
+
+      // // Simulate login API call
+      // await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // // Check for example/testing accounts first
+      // if (loginForm.email.toLowerCase() === EXAMPLE_ACCOUNTS.normalUser.toLowerCase()) {
+      //   if (loginForm.password === EXAMPLE_PASSWORDS.normalUser) {
+      //     setLoginAttempts(0);
+      //     setIsLoginLocked(false);
+      //     const exampleUserData = {
+      //       id: 'example-user-001',
+      //       email: EXAMPLE_ACCOUNTS.normalUser,
+      //       username: 'ExampleUser',
+      //       name: 'Example User',
+      //       isAdmin: false,
+      //       program: 'BS Computer Science',
+      //       creditScore: 100,
+      //       dateRegistered: new Date().toISOString(),
+      //       iskoins: 500,
+      //     };
+      //     onAuthenticated(exampleUserData);
+      //     return;
+      //   }
+      // }
+
+      // if (loginForm.email.toLowerCase() === EXAMPLE_ACCOUNTS.adminUser.toLowerCase()) {
+      //   if (loginForm.password === EXAMPLE_PASSWORDS.adminUser) {
+      //     setLoginAttempts(0);
+      //     setIsLoginLocked(false);
+      //     const exampleAdminData = {
+      //       id: 'example-admin-001',
+      //       email: EXAMPLE_ACCOUNTS.adminUser,
+      //       username: 'ExampleAdmin',
+      //       name: 'Example Admin',
+      //       isAdmin: true,
+      //       program: 'Admin',
+      //       creditScore: 100,
+      //       dateRegistered: new Date().toISOString(),
+      //     };
+      //     onAuthenticated(exampleAdminData);
+      //     return;
+      //   }
+      // }
+
+      // // Check for admin credentials
+      // const ADMIN_ACCOUNTS = [
+      //   {
+      //     email: "mariakazandra.bendo@cvsu.edu.ph",
+      //     password: "123456zH",
+      //     id: "admin-001",
+      //     username: "AdminMKB",
+      //     name: "AdminMKB",
+      //   },
+      // ];
+
+
+      // // Check if the email matches any admin account
+      // const adminAccount = ADMIN_ACCOUNTS.find(
+      //   (admin) =>
+      //     admin.email.toLowerCase() ===
+      //     loginForm.email.toLowerCase(),
+      // );
+
+      // if (adminAccount) {
+
+      //   const currentPassword =
+      //     adminPasswords[loginForm.email.toLowerCase()] ||
+      //     adminAccount.password;
+
+      //   // Check if password matches
+      //   if (loginForm.password === currentPassword) {
+      //     // Login as admin with correct credentials - reset attempts
+      //     setLoginAttempts(0);
+      //     setIsLoginLocked(false);
+      //     const adminUserData = {
+      //       id: adminAccount.id,
+      //       email: loginForm.email,
+      //       username: adminAccount.username,
+      //       name: adminAccount.name,
+      //       isAdmin: true,
+      //       program: "Admin",
+      //       creditScore: 100,
+      //       dateRegistered: new Date().toISOString(),
+      //     };
+      //     onAuthenticated(adminUserData);
+  //         return;
+  //       } else {
+  //         // Admin email used but wrong password - increment attempts
+  //         const newAttempts = loginAttempts + 1;
+  //         setLoginAttempts(newAttempts);
+
+  //         if (newAttempts >= 5) {
+  //           setIsLoginLocked(true);
+  //           setLockoutTimer(30); // 30 seconds lockout
+  //           setErrors({
+  //             general:
+  //               "You've reached the maximum number of login attempts. Please reset your password to continue.",
+  //           });
+  //         } else {
+  //           setErrors({
+  //             general: `Invalid email or password. ${5 - newAttempts} attempt${5 - newAttempts !== 1 ? "s" : ""} remaining.`,
+  //           });
+  //         }
+  //         setIsLoading(false);
+  //         return;
+  //       }
+  //     }
+
+
+  //     const userData = storedUsers[loginForm.email];
+
+  //     if (!userData) {
+  //       // Account doesn't exist - increment attempts
+  //       const newAttempts = loginAttempts + 1;
+  //       setLoginAttempts(newAttempts);
+
+  //       if (newAttempts >= 5) {
+  //         setIsLoginLocked(true);
+  //         setLockoutTimer(30);
+  //         setErrors({
+  //           general:
+  //             "You've reached the maximum number of login attempts. Please reset your password to continue.",
+  //         });
+  //       } else {
+  //         setErrors({
+  //           general: `Account not found. Please register first. ${5 - newAttempts} attempt${5 - newAttempts !== 1 ? "s" : ""} remaining.`,
+  //         });
+  //       }
+  //       setIsLoading(false);
+  //       return;
+  //     }
+
+  //     // Verify password (in a real app, this would be hashed comparison)
+  //     if (userData.password !== loginForm.password) {
+  //       // Wrong password - increment attempts
+  //       const newAttempts = loginAttempts + 1;
+  //       setLoginAttempts(newAttempts);
+
+  //       if (newAttempts >= 5) {
+  //         setIsLoginLocked(true);
+  //         setLockoutTimer(30);
+  //         setErrors({
+  //           general:
+  //             "You've reached the maximum number of login attempts. Please reset your password to continue.",
+  //         });
+  //       } else {
+  //         setErrors({
+  //           general: `Invalid email or password. ${5 - newAttempts} attempt${5 - newAttempts !== 1 ? "s" : ""} remaining.`,
+  //         });
+  //       }
+  //       setIsLoading(false);
+  //       return;
+  //     }
+
+  //     // Successful login - reset attempts
+  //     setLoginAttempts(0);
+  //     setIsLoginLocked(false);
+  //     // Ensure we have the full name property for compatibility
+  //     userData.name = userData.username;
+  //     onAuthenticated(userData);
+  //   } catch (error) {
+  //     setErrors({
+  //       general: "Invalid email or password. Please try again.",
+  //     });
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -437,6 +638,88 @@ const handleRegister = async (e: React.FormEvent) => {
     
     }
 
+<<<<<<< HEAD
+=======
+    // ======================
+    // STEP 2: VERIFY + CREATE USER (DISABLED)
+    // The email-verification step is intentionally disabled in code for development. The original verification
+    // flow is preserved here as a comment for future re-enablement.
+    /*
+    else if (registrationStep === 2) {
+      if (!pendingUserData) {
+        setErrors({ general: 'No pending registration found. Please start over.' });
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const supabase = getSupabase();
+
+        // Attempt to sign in with the provided password. This will succeed only after email verification.
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: pendingUserData.email,
+          password: pendingUserData.password,
+        });
+
+        let user: any = signInData?.user;
+
+        if (signInError || !user) {
+          // Maybe the user was signed-in via the verification link redirect; check current session
+          const { data: currentUserData } = await supabase.auth.getUser();
+          if (currentUserData?.user && currentUserData.user.email === pendingUserData.email) {
+            user = currentUserData.user;
+          } else {
+            setErrors({ general: 'Please verify your email first. Click the verification link in the email and then press Verify.' });
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Upsert profile into users table
+        const profile = {
+          id: user.id,
+          email: pendingUserData.email,
+          username: pendingUserData.username,
+          is_admin: isAdminEmail(pendingUserData.email),
+          date_registered: new Date().toISOString(),
+        } as any;
+
+        const { data: profileData, error: profileError } = await supabase
+          .from('users')
+          .upsert([profile], { onConflict: 'id' })
+          .select()
+          .single();
+
+        if (profileError || !profileData) {
+          try {
+            await supabase.auth.admin?.deleteUser?.(user.id as any);
+          } catch (cleanupErr) {
+            console.warn('Failed to cleanup user after profile upsert error', cleanupErr);
+          }
+          console.error('Profile upsert failed:', profileError);
+          const perrMsg = profileError?.message || '';
+          if (perrMsg.toLowerCase().includes('row-level security') || perrMsg.toLowerCase().includes('violates row-level security')) {
+            setErrors({ general: 'Database row-level security prevented creating your profile. Run the SQL in src/supabase_users_insert_policy.sql (Supabase Dashboard → SQL editor) to allow users to insert their own profile rows, or create a server-side function to insert profiles using the service_role key.' });
+          } else {
+            const hint = ' If you see this during sign-up, add a `date_registered` column to `public.users` (see SUPABASE_ENV.md).';
+            setErrors({ general: `Database error saving new user: ${perrMsg || 'Unknown error'}${hint}` });
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        setRegistrationStep(3);
+        setIsLoading(false);
+        return;
+      } catch (err) {
+        console.error('Verification/sign-in error:', err);
+        setErrors({ general: 'Verification failed. Please try again.' });
+        setIsLoading(false);
+        return;
+      }
+    }
+    */
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   } catch (err) {
     setErrors({
       general: "Registration failed. Please try again.",
@@ -1404,11 +1687,16 @@ const handleRegister = async (e: React.FormEvent) => {
                         {/* Username Preview (derived from CvSU email) */}
                         <div>
                           <label className="block text-sm mb-2">
+<<<<<<< HEAD
                             Username
+=======
+                            Username (derived from your CvSU email)
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
                           </label>
                           <div className="relative">
                             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <Input
+<<<<<<< HEAD
                               placeholder="Derived from email"
                               value={computeUsernameFromEmail(registerForm.email)}
                               readOnly
@@ -1417,6 +1705,19 @@ const handleRegister = async (e: React.FormEvent) => {
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">Your username will be automatically derived from your CvSU email and cannot be changed.</div>
                         </div> 
+=======
+                              placeholder="derived from email"
+                              value={computeUsernameFromEmail(registerForm.email)}
+                              disabled
+                              className="pl-10 pr-14 bg-muted/30"
+                            />
+                            <div className="absolute right-3 top-3 text-xs text-muted-foreground pointer-events-none">
+                              {computeUsernameFromEmail(registerForm.email).length}/10
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">Your username will be automatically derived from your CvSU email and cannot be changed.</div>
+                        </div>
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
 
                         {/* Email */}
                         <div>

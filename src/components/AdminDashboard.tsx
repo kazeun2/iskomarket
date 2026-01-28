@@ -1878,6 +1878,7 @@ Cavite State University`;
           <Package className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
           <div className="text-sm text-muted-foreground">Active Products</div>
         </MinimalStatCard>
+<<<<<<< HEAD
 
         {/* View Reports – moved from Trust & Reports */}
         <MinimalStatCard
@@ -1895,6 +1896,8 @@ Cavite State University`;
           <div className="text-sm text-muted-foreground">For a Cause Review</div>
         </MinimalStatCard>
 
+=======
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
         {adminFlags.pendingReports && (
           <MinimalStatCard
             onClick={() => setSelectedStatModal("pendingReports")}
@@ -2245,7 +2248,26 @@ Cavite State University`;
           </div>
         </TabsContent>
 
+<<<<<<< HEAD
 
+=======
+        {/* Trust & Reports quick card */}
+        <Card className="hover:shadow-md border border-gray-200 rounded-[12px] p-4">
+          <CardHeader>
+            <CardTitle className="font-semibold">Trust & Reports</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setShowReportsModal(true)}>
+                <Flag className="h-4 w-4 mr-2" /> View Reports
+              </Button>
+              <Button variant="ghost" onClick={() => setShowForCauseModal(true)}>
+                <Users className="h-4 w-4 mr-2" /> For a Cause Review
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
 
         {adminFlags.activitiesTab && (
           <TabsContent value="activities" className="space-y-4">
@@ -4639,7 +4661,11 @@ Cavite State University`
       </Dialog>
 
 
+<<<<<<< HEAD
 
+=======
+      <div className="py-4 text-muted-foreground">Marketplace statistics removed</div>
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
 
       {/* Product Details Modal is now shown via OverlayManager (screen-level overlay) */}
 

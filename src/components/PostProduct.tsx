@@ -410,7 +410,11 @@ export function PostProduct({ meetupLocations, currentUser, onClose, onProductPo
 
   return (
     <>
+<<<<<<< HEAD
       <form onSubmit={handleSubmit} className="space-y-6 bg-inherit max-h-[80vh] overflow-auto forced-modal-inner">
+=======
+      <form onSubmit={handleSubmit} className="space-y-6">
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
         {/* Title */}
         <div>
           <label className="block text-sm mb-2">Title *</label>

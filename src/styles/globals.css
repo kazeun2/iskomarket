@@ -14,6 +14,7 @@
 
   /* Updated theme colors using the new palette */
   /* Page background: set to off-white so pages and modals in light mode use a warm neutral */
+<<<<<<< HEAD
   /* Use HSL variables for robust theme manipulation and to avoid comma-separated HSL parsing issues. */
   --background-h: 0 0% 98%;   /* light mode hsl: h s% l% */
   --card-h: 0 0% 97%;
@@ -24,6 +25,13 @@
   --card: hsl(var(--card-h));      /* off-white card surface (light mode) */
   --card-foreground: #003300;
   --popover: hsl(var(--popover-h));
+=======
+  --background: #f9fafb; /* off-white page background (light mode) */
+  --foreground: #003300;
+  --card: #f6f9f7;      /* off-white card surface (light mode) */
+  --card-foreground: #003300;
+  --popover: #ffffff;
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   --popover-foreground: #003300;
   --primary: #006400;
   --primary-foreground: #ffffff;
@@ -255,6 +263,7 @@ html[data-theme="dark"] .bg-muted {
   background: transparent !important;
 }
 
+<<<<<<< HEAD
 /* Ensure the same for light mode so glass-cards reveal the unified root gradient
    Exclude elements marked as dialog content to avoid unintended translucency on modal panels */
 html[data-theme="light"] [data-view-container]:not(.iskomarket-dialog-content),
@@ -262,6 +271,14 @@ html[data-theme="light"] .page-wrapper:not(.iskomarket-dialog-content),
 html[data-theme="light"] main:not(.iskomarket-dialog-content),
 html[data-theme="light"] .container:not(.iskomarket-dialog-content),
 html[data-theme="light"] .bg-muted:not(.iskomarket-dialog-content) {
+=======
+/* Ensure the same for light mode so glass-cards reveal the unified root gradient */
+html[data-theme="light"] [data-view-container],
+html[data-theme="light"] .page-wrapper,
+html[data-theme="light"] main,
+html[data-theme="light"] .container,
+html[data-theme="light"] .bg-muted {
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   background: transparent !important;
 }
 
@@ -2225,6 +2242,7 @@ html[data-theme="light"] .banner-enhanced .trusted-board-btn, .theme-user .banne
     border-color: #ffb300 !important;
   }
 
+<<<<<<< HEAD
   /* Dark theme HSL overrides (keeps HSL variables available for color functions). */
   html[data-theme="dark"], .dark {
     --background-h: 224 12% 6%; /* dark slate */
@@ -2232,6 +2250,8 @@ html[data-theme="light"] .banner-enhanced .trusted-board-btn, .theme-user .banne
     --popover-h: 224 12% 10%;
   }
 
+=======
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   /* ========================================
      ICON HOVER EFFECTS - No Scale
      ======================================== */
@@ -3140,6 +3160,7 @@ html[data-theme="light"] .banner-enhanced .trusted-board-btn, .theme-user .banne
     border-color: var(--border) !important;
   }
 
+<<<<<<< HEAD
   /* EMERGENCY: force solid dialog surfaces even if inline styles or later rules try to force transparency
      This targets dialog elements (role="dialog") and Radix dialog content, including cases where inline
      style attributes exist (e.g., style="background: transparent"). Placed at the end of the file so it wins
@@ -3163,6 +3184,8 @@ html[data-theme="light"] .banner-enhanced .trusted-board-btn, .theme-user .banne
     color: var(--card-foreground) !important;
   }
 
+=======
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   /* Broad fallback: ensure any dialog/modal content is solid in light mode, regardless of class names or inline styles */
   html[data-theme="light"] [role="dialog"] *,
   html[data-theme="light"] [aria-modal="true"] *,
@@ -4821,6 +4844,7 @@ html[data-theme="light"] .banner-enhanced .trusted-board-btn, .theme-user .banne
   box-shadow: 0 20px 50px rgba(0,0,0,0.06) !important;
 }
 
+<<<<<<< HEAD
 /* IskoMarket dialog content override
    Ensures dialog panels use a solid off-white surface in light mode and a proper dark surface in dark mode.
    This explicitly overrides broad transparent rules that affect page wrappers while preserving overlay dimming.
@@ -4919,6 +4943,16 @@ html[data-theme="dark"] .iskomarket-dialog-content,
 .ismodal-fullpage, .ismodal-fullpage .iskomarket-dialog-content {
   background-color: #fdfdf9 !important;
 }
+=======
+    from {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.96);
+    }
+>>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   }
 
   /* Enhanced overlay transitions with smooth fade */
