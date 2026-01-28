@@ -32,7 +32,7 @@ export function PriorityBadge({
   if (variant === 'compact') {
     return (
       <Badge 
-        className={`${sizeClasses[size]} bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-sm flex items-center gap-1 flex-shrink-0`}
+        className={`${sizeClasses[size]} bg-gradient-to-r from-orange-500 to-orange-600 text-foreground border-0 shadow-sm flex items-center gap-1 flex-shrink-0`}
       >
         {showIcon && <Crown className={iconSizes[size]} />}
         <span>Priority</span>
@@ -42,7 +42,7 @@ export function PriorityBadge({
 
   return (
     <Badge 
-      className={`${sizeClasses[size]} bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 shadow-sm flex items-center gap-1 flex-shrink-0`}
+      className={`${sizeClasses[size]} bg-gradient-to-r from-orange-500 to-orange-600 text-foreground border-0 shadow-sm flex items-center gap-1 flex-shrink-0`}
     >
       {showIcon && <Crown className={iconSizes[size]} />}
       <span>Priority Buyer</span>

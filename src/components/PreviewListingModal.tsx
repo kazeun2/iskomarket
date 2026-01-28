@@ -95,7 +95,7 @@ export function PreviewListingModal({
               {categoryName && (
                 <Badge 
                   className={isForACauseLocal 
-                    ? "bg-[#FFB300] hover:bg-[#FFA000] text-white border-0" 
+                    ? "bg-[#FFB300] hover:bg-[#FFA000] text-foreground border-0" 
                     : "bg-green-100 dark:bg-emerald-900/30 text-green-700 dark:text-emerald-300 border-0"
                   }
                 >
@@ -180,7 +180,7 @@ export function PreviewListingModal({
             <Button 
               type="button" 
               size="icon"
-              className="h-10 w-10 rounded-lg bg-green-600 hover:bg-green-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white shadow-md"
+              className="h-10 w-10 rounded-lg bg-green-600 hover:bg-green-700 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-foreground shadow-md"
               onClick={onConfirmPost}
             >
               <Check className="h-4 w-4" />

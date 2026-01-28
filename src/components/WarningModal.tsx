@@ -37,7 +37,7 @@ export function WarningModal({ isOpen, onClose, warning }: WarningModalProps) {
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-green-900/20 dark:bg-gradient-to-r dark:from-[#1a2f1a]/80 dark:via-[#1a2317]/80 dark:to-[#1a1f1a]/80 dark:backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <span className="text-3xl">{warning.emoji}</span>
-              <h2 className="text-[22px] md:text-[24px] dark:text-white">Warning Notice</h2>
+              <h2 className="text-[22px] md:text-[24px] dark:text-foreground">Warning Notice</h2>
             </div>
             <button
               onClick={onClose}
@@ -68,7 +68,7 @@ export function WarningModal({ isOpen, onClose, warning }: WarningModalProps) {
             {/* Violation details */}
             <div className="space-y-6">
               <div>
-                <h4 className="text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <h4 className="text-gray-900 dark:text-foreground mb-3 flex items-center gap-2">
                   <ShieldAlert className="size-5" />
                   Violation Details
                 </h4>
@@ -111,7 +111,7 @@ export function WarningModal({ isOpen, onClose, warning }: WarningModalProps) {
 
               {/* Warning levels */}
               <div>
-                <h4 className="text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <h4 className="text-gray-900 dark:text-foreground mb-3 flex items-center gap-2">
                   <FileText className="size-5" />
                   Warning System
                 </h4>
@@ -159,7 +159,7 @@ export function WarningModal({ isOpen, onClose, warning }: WarningModalProps) {
           <div className="px-6 py-4 border-t border-gray-200 dark:border-green-900/20 space-y-2">
             <button
               onClick={onClose}
-              className="w-full px-4 py-3 rounded-full bg-gradient-to-r from-green-500 to-orange-500 text-white hover:opacity-90 transition-opacity dark:shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
+              className="w-full px-4 py-3 rounded-full bg-gradient-to-r from-green-500 to-orange-500 text-foreground hover:opacity-90 transition-opacity dark:shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
             >
               I Understand
             </button>

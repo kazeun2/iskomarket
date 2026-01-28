@@ -40,7 +40,7 @@ export function ReportDetailsModal({
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[var(--border)] dark:bg-[var(--card)] backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <span className="text-3xl">{report.emoji}</span>
-              <h2 className="text-[22px] md:text-[24px] dark:text-white">Report Details</h2>
+              <h2 className="text-[22px] md:text-[24px] dark:text-foreground">Report Details</h2>
             </div>
             <button
               onClick={onClose}
@@ -53,7 +53,7 @@ export function ReportDetailsModal({
 
           {/* Content - scrollable */}
           <div className="flex-1 overflow-y-auto p-6">
-            <h3 className="text-gray-900 dark:text-white mb-2">
+            <h3 className="text-gray-900 dark:text-foreground mb-2">
               {report.title}
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -71,7 +71,7 @@ export function ReportDetailsModal({
             {/* Report timeline */}
             <div className="space-y-6">
               <div>
-                <h4 className="text-gray-900 dark:text-white mb-3">
+                <h4 className="text-gray-900 dark:text-foreground mb-3">
                   Report Timeline
                 </h4>
                 
@@ -80,7 +80,7 @@ export function ReportDetailsModal({
                   <div className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <div className="size-8 rounded-full bg-green-500 flex items-center justify-center">
-                        <CheckCircle className="size-4 text-white" />
+                        <CheckCircle className="size-4 text-foreground" />
                       </div>
                       <div className="w-0.5 h-12 bg-gray-200 dark:bg-gray-700" />
                     </div>
@@ -101,7 +101,7 @@ export function ReportDetailsModal({
                   <div className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <div className="size-8 rounded-full bg-blue-500 flex items-center justify-center">
-                        <Clock className="size-4 text-white" />
+                        <Clock className="size-4 text-foreground" />
                       </div>
                       <div className="w-0.5 h-12 bg-gray-200 dark:bg-gray-700" />
                     </div>
@@ -122,7 +122,7 @@ export function ReportDetailsModal({
                   <div className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <div className="size-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                        <AlertCircle className="size-4 text-white" />
+                        <AlertCircle className="size-4 text-foreground" />
                       </div>
                     </div>
                     <div className="flex-1 pt-1">
@@ -142,7 +142,7 @@ export function ReportDetailsModal({
 
               {/* Additional info */}
               <div className="glass-card bg-[var(--card)] dark:bg-[var(--card)] rounded-2xl p-4 border border-transparent dark:border-[var(--border)]">
-                <h4 className="text-gray-900 dark:text-white mb-2">
+                <h4 className="text-gray-900 dark:text-foreground mb-2">
                   Resolution
                 </h4>
                 <p className="text-gray-700 dark:text-gray-300">
@@ -157,7 +157,7 @@ export function ReportDetailsModal({
           <div className="px-6 py-4 border-t border-gray-200 dark:border-green-900/20">
             <button
               onClick={onClose}
-              className="w-full px-4 py-3 rounded-full bg-gradient-to-r from-green-500 to-orange-500 text-white hover:opacity-90 transition-opacity dark:shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
+              className="w-full px-4 py-3 rounded-full bg-gradient-to-r from-green-500 to-orange-500 text-foreground hover:opacity-90 transition-opacity dark:shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
             >
               Close
             </button>

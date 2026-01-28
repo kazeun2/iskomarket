@@ -26,8 +26,8 @@ function StatCard({ label, value, title }: { label: string; value: string; title
       className={`flex flex-col items-center sm:items-start text-center sm:text-left min-w-[120px] sm:min-w-[140px] w-full sm:w-auto glass-card dark:bg-[var(--card)] stat-card rounded-xl px-4 py-3 shadow-sm transition-all duration-150 border border-transparent pointer-events-none`}
       aria-label={label}
     >
-      <div className="text-lg md:text-xl font-semibold leading-tight text-white stat-number">{value}</div>
-      <div className="text-xs text-white/90 mt-1">{label}</div>
+      <div className="text-lg md:text-xl font-semibold leading-tight text-foreground stat-number">{value}</div>
+      <div className="text-xs text-foreground/90 mt-1">{label}</div>
     </div>
   );
 }
@@ -99,21 +99,21 @@ export function MarketplaceHero({ userRole, firstName, totalProducts, totalUsers
 
           {/* Right: metrics aligned to bottom-right, no containers */}
           <div className="flex-shrink-0 flex flex-col justify-end items-end text-right ml-auto">
-            <div className="text-sm text-white/90">
+            <div className="text-sm text-foreground/90">
               <div className="banner-metric-number flex items-center">
                 <span className="metric-value text-xl md:text-2xl font-semibold leading-tight" aria-label={`${nf(productsCount)} products`}>{nf(productsCount)}</span>
-                <span className="metric-label ml-2 text-base md:text-lg font-normal leading-tight text-white/90">{userRole === 'admin' ? 'total products' : 'products'}</span>
+                <span className="metric-label ml-2 text-base md:text-lg font-normal leading-tight text-foreground/90">{userRole === 'admin' ? 'total products' : 'products'}</span>
               </div> 
               <div className="mt-1 banner-metric-number flex items-center">
                 <span className="metric-value text-xl md:text-2xl font-semibold leading-tight" aria-label={`${nf(usersCount)} users`}>{nf(usersCount)}</span>
-                <span className="metric-label ml-2 text-base md:text-lg font-normal leading-tight text-white/90">{userRole === 'admin' ? 'total users' : 'users'}</span>
+                <span className="metric-label ml-2 text-base md:text-lg font-normal leading-tight text-foreground/90">{userRole === 'admin' ? 'total users' : 'users'}</span>
               </div>  
             </div>
 
             <button
               type="button"
               onClick={() => { if (onOpenTrustBoard) onOpenTrustBoard(); else window.location.assign('/trusted-student-board'); }}
-              className="trusted-board-btn inline-block mt-3 rounded-full px-4 py-2 text-white text-sm no-underline focus:outline-none"
+              className="trusted-board-btn inline-block mt-3 rounded-full px-4 py-2 text-foreground text-sm no-underline focus:outline-none"
               style={{ border: '1px solid rgba(255,217,122,0.10)', boxShadow: '0 10px 28px rgba(3,67,33,0.18), 0 0 12px rgba(255,217,122,0.04)', zIndex: 3, background: 'linear-gradient(180deg, #0b6b43 0%, #085c33 100%)' }}
               aria-label="Open Trusted Student Board"
             >

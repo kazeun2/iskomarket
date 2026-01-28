@@ -54,7 +54,7 @@ export function NotificationTabs({
               flex-shrink-0 px-4 py-2 rounded-full transition-all duration-200 relative
               ${
                 activeFilter === filter.value
-                  ? "bg-green-500 dark:bg-green-700 text-white shadow-md dark:shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
+                  ? "bg-green-500 dark:bg-green-700 text-foreground shadow-md dark:shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
                   : "bg-gray-100 dark:bg-green-900/30 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-green-900/40 hover:text-green-600 dark:hover:text-green-400 border border-transparent dark:border-green-700/30"
               }
             `}
@@ -64,8 +64,8 @@ export function NotificationTabs({
               {count > 0 && (
                 <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] ${
                   activeFilter === filter.value 
-                    ? "bg-white/20 dark:bg-[var(--card)]/20 text-white" 
-                    : "bg-green-500 dark:bg-green-600 text-white dark:shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+                    ? "bg-card/20 dark:bg-[var(--card)]/20 text-foreground" 
+                    : "bg-green-500 dark:bg-green-600 text-foreground dark:shadow-[0_0_8px_rgba(34,197,94,0.6)]"
                 }`}>
                   {count > 99 ? '99+' : count}
                 </span>

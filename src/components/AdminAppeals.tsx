@@ -12,7 +12,7 @@ export default function AdminAppeals({ transactionOnly = false }: { transactionO
       <h3 className="font-bold">Appeals (Admin)</h3>
       <div className="grid gap-2 mt-2">
         {appeals.map((a) => (
-          <div key={a.id} className="border rounded p-3 bg-white">
+          <div key={a.id} className="border rounded p-3 bg-card">
             <div className="text-sm font-medium">Reason: {a.reason}</div>
             <div className="text-xs text-muted">By: {a.submittedById} • {new Date(a.createdAt).toLocaleString()}</div>
             <div className="mt-2">{a.description}</div>

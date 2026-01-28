@@ -241,7 +241,7 @@ export function RewardActivationPopup({ notifications, onDismiss, onOpenTracker 
                       e.stopPropagation();
                       onDismiss(notification.id);
                     }}
-                    className="text-[#006400]/60 hover:text-[#006400] dark:text-[#4ade80]/60 dark:hover:text-[#4ade80] transition-colors p-1 hover:bg-white/20 dark:hover:bg-black/20 rounded-lg"
+                    className="text-[#006400]/60 hover:text-[#006400] dark:text-[#4ade80]/60 dark:hover:text-[#4ade80] transition-colors p-1 hover:bg-card/20 dark:hover:bg-black/20 rounded-lg"
                     aria-label="Dismiss notification"
                   >
                     <X className="w-4 h-4" />
@@ -249,7 +249,7 @@ export function RewardActivationPopup({ notifications, onDismiss, onOpenTracker 
                 </div>
 
                 {/* Progress Bar */}
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20 dark:bg-black/20">
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-card/20 dark:bg-black/20">
                   <div
                     className={`h-full bg-gradient-to-r ${colors.bg} animate-shrink-width-reward`}
                     style={{ animationDuration: '5000ms' }}

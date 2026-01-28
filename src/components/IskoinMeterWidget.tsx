@@ -124,7 +124,7 @@ export function IskoinMeterWidget({ iskoins, onChange, onClick }: IskoinMeterWid
             {/* Coin icon with animation */}
             <div className="relative z-10 animate-coin-rotate">
               <Coins 
-                className="w-5 h-5 text-white" 
+                className="w-5 h-5 text-foreground" 
                 style={{ 
                   filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4))',
                   transform: 'translateZ(10px)'
@@ -134,7 +134,7 @@ export function IskoinMeterWidget({ iskoins, onChange, onClick }: IskoinMeterWid
 
             {/* Iskoin count badge - positioned properly to avoid overlap */}
             <div 
-              className="absolute -bottom-2 -right-2 px-2 py-1 rounded-full text-[9px] font-bold text-white flex items-center justify-center min-w-[26px]"
+              className="absolute -bottom-2 -right-2 px-2 py-1 rounded-full text-[9px] font-bold text-foreground flex items-center justify-center min-w-[26px]"
               style={{
                 background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
                 boxShadow: '0 2px 6px rgba(22, 163, 74, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.3), inset 0 -1px 2px rgba(0, 0, 0, 0.2)',
@@ -170,8 +170,8 @@ export function IskoinMeterWidget({ iskoins, onChange, onClick }: IskoinMeterWid
                 absolute -top-2 -right-2 px-2 py-1 rounded-full text-[10px] font-bold
                 flex items-center gap-0.5 animate-in zoom-in duration-300
                 ${onChange > 0 
-                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' 
-                  : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-foreground' 
+                  : 'bg-gradient-to-r from-red-500 to-red-600 text-foreground'
                 }
               `}
               style={{
@@ -197,7 +197,7 @@ export function IskoinMeterWidget({ iskoins, onChange, onClick }: IskoinMeterWid
           )}
 
           {/* Hover tooltip */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 rounded-lg bg-[#006400] dark:bg-[#1e6b1e] text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-3 py-2 rounded-lg bg-[#006400] dark:bg-[#1e6b1e] text-foreground text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
             Click to open Reward Chest
             <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#006400] dark:border-t-[#1e6b1e]" />
           </div>

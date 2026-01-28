@@ -74,7 +74,7 @@ export function NewPasswordModal({ open, onCancel, onSuccess, email, otp }: NewP
 
   return (
     <Dialog open={open}>
-      <DialogContent data-testid="new-password-modal" className="w-full max-w-md rounded-lg bg-white border border-gray-200 shadow-xl text-gray-900">
+      <DialogContent data-testid="new-password-modal" className="w-full max-w-md rounded-lg bg-card border border-gray-200 shadow-xl text-gray-900">
         <DialogHeader>
           <DialogTitle>Set a New Password</DialogTitle>
           <DialogDescription>Enter a new password for your account and confirm it to complete the reset.</DialogDescription>
@@ -93,8 +93,8 @@ export function NewPasswordModal({ open, onCancel, onSuccess, email, otp }: NewP
           {error && <div className="text-red-600 text-sm">{error}</div>}
 
           <div className="flex gap-2 mt-2">
-            <button onClick={onCancel} className="flex-1 rounded-md border border-gray-300 bg-white py-2">Cancel</button>
-            <button onClick={handleConfirm} disabled={isLoading} className="flex-1 rounded-md bg-green-600 text-white py-2">{isLoading ? 'Saving…' : 'Confirm'}</button>
+            <button onClick={onCancel} className="flex-1 rounded-md border border-gray-300 bg-card py-2">Cancel</button>
+            <button onClick={handleConfirm} disabled={isLoading} className="flex-1 rounded-md bg-green-600 text-foreground py-2">{isLoading ? 'Saving…' : 'Confirm'}</button>
           </div>
         </div>
       </DialogContent>

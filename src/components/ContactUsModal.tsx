@@ -97,7 +97,7 @@ export function ContactUsModal({
           ${
             isDarkMode
               ? "bg-gradient-to-br from-[#003726] to-[#021223] border-[#14b8a6]/20"
-              : "bg-white border-[#cfe8ce]"
+              : "bg-card border-[#cfe8ce]"
           }
           border-2
           ${
@@ -302,8 +302,8 @@ export function ContactUsModal({
                 transition-all duration-200
                 ${
                   isDarkMode
-                    ? "bg-gradient-to-r from-[#14b8a6] to-[#0d9488] hover:from-[#0d9488] hover:to-[#0f766e] text-white shadow-[0_0_20px_rgba(20,184,166,0.3)] hover:shadow-[0_0_30px_rgba(20,184,166,0.5)]"
-                    : "bg-gradient-to-r from-[#4CAF50] to-[#45a049] hover:from-[#45a049] hover:to-[#3d8b40] text-white shadow-[0_4px_12px_rgba(76,175,80,0.25)] hover:shadow-[0_6px_16px_rgba(76,175,80,0.35)]"
+                    ? "bg-gradient-to-r from-[#14b8a6] to-[#0d9488] hover:from-[#0d9488] hover:to-[#0f766e] text-foreground shadow-[0_0_20px_rgba(20,184,166,0.3)] hover:shadow-[0_0_30px_rgba(20,184,166,0.5)]"
+                    : "bg-gradient-to-r from-[#4CAF50] to-[#45a049] hover:from-[#45a049] hover:to-[#3d8b40] text-foreground shadow-[0_4px_12px_rgba(76,175,80,0.25)] hover:shadow-[0_6px_16px_rgba(76,175,80,0.35)]"
                 }
               `}
             >

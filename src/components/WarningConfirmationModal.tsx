@@ -51,7 +51,7 @@ export function WarningConfirmationModal({
               </p>
             </div>
             <Badge 
-              className="text-xs bg-green-600 hover:bg-green-600 text-white"
+              className="text-xs bg-green-600 hover:bg-green-600 text-foreground"
             >
               {user.inactiveDays} days inactive
             </Badge>

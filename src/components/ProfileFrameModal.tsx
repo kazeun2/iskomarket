@@ -71,7 +71,7 @@ export function ProfileFrameModal({
         <div className="modal-header-standard">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-600 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-white" />
+              <Sparkles className="h-5 w-5 text-foreground" />
             </div>
             <div>
               <h2 className="text-lg">Choose your semester theme frame</h2>
@@ -97,7 +97,7 @@ export function ProfileFrameModal({
                 {/* Selection Checkmark */}
                 {selectedFrame === theme.name && (
                   <div className="absolute top-3 right-3 z-10 h-7 w-7 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                    <Check className="h-4 w-4 text-white" />
+                    <Check className="h-4 w-4 text-foreground" />
                   </div>
                 )}
 
@@ -107,7 +107,7 @@ export function ProfileFrameModal({
                   style={{ background: theme.gradient }}
                 >
                   {/* Mock Profile Card */}
-                  <div className="w-full h-full bg-white dark:bg-card rounded-lg shadow-lg p-3 flex flex-col items-center justify-center border-2"
+                  <div className="w-full h-full bg-card dark:bg-card rounded-lg shadow-lg p-3 flex flex-col items-center justify-center border-2"
                        style={{ borderColor: theme.accent }}>
                     <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 mb-2"></div>
                     <div className="h-2 w-20 bg-gray-300 dark:bg-gray-600 rounded mb-1"></div>

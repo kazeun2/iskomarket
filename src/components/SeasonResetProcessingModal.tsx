@@ -99,7 +99,7 @@ export function SeasonResetProcessingModal({
               <div className="flex-shrink-0">
                 {step.completed ? (
                   <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 dark:bg-emerald-500">
-                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                    <Check className="h-3 w-3 text-foreground" strokeWidth={3} />
                   </div>
                 ) : index === currentStep ? (
                   <Loader2 className="h-5 w-5 animate-spin text-blue-600 dark:text-blue-400" />

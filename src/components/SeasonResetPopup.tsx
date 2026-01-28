@@ -120,7 +120,7 @@ export function SeasonResetPopup({
                 {[...Array(12)].map((_, i) => (
                   <motion.div
                     key={i}
-                    className="absolute w-1 h-1 rounded-full dark:bg-[var(--card)] bg-white/18"
+                    className="absolute w-1 h-1 rounded-full dark:bg-[var(--card)] bg-card/18"
                     style={{
                       left: `${Math.random() * 100}%`,
                       top: `${Math.random() * 100}%`,
@@ -167,7 +167,7 @@ export function SeasonResetPopup({
                       boxShadow: '0 0 22px rgba(0, 255, 160, 0.45), inset 0 0 20px rgba(0, 255, 160, 0.1)',
                     }}
                   >
-                    <Trophy className="h-12 w-12 dark:text-[#34FF95] text-white" />
+                    <Trophy className="h-12 w-12 dark:text-[#34FF95] text-foreground" />
                     
                     {/* Glow Ring Animation */}
                     <motion.div
@@ -335,7 +335,7 @@ export function SeasonResetPopup({
                         e.currentTarget.style.boxShadow = '0 0 20px rgba(15, 191, 102, 0.35)';
                       }}
                     >
-                      <span className="relative z-10 text-white font-medium">
+                      <span className="relative z-10 text-foreground font-medium">
                         Got it!
                       </span>
                     </button>

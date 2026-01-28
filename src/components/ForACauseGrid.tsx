@@ -60,8 +60,8 @@ export function ForACauseGrid({ items, onItemClick }: ForACauseGridProps) {
             className={`
               group cursor-pointer rounded-xl overflow-hidden transition-all duration-200 ease-in-out
               ${special 
-                ? 'border-2 border-[#FFB300]/40 bg-white dark:bg-card shadow-[0_4px_8px_rgba(255,182,74,0.35)] hover:shadow-[0_8px_20px_rgba(255,182,74,0.35)] hover:scale-105 hover:-translate-y-1' 
-                : 'border border-[#2E7D32]/20 bg-white dark:bg-card hover:shadow-[0_8px_20px_rgba(46,125,50,0.2)] hover:scale-105 hover:-translate-y-1'
+                ? 'border-2 border-[#FFB300]/40 bg-card dark:bg-card shadow-[0_4px_8px_rgba(255,182,74,0.35)] hover:shadow-[0_8px_20px_rgba(255,182,74,0.35)] hover:scale-105 hover:-translate-y-1' 
+                : 'border border-[#2E7D32]/20 bg-card dark:bg-card hover:shadow-[0_8px_20px_rgba(46,125,50,0.2)] hover:scale-105 hover:-translate-y-1'
               }
             `}
           >

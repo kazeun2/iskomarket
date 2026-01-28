@@ -65,7 +65,7 @@ export function FloatingSeasonWidget({
               filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
             }}
           >
-            <Trophy className="h-5 w-5 text-white" style={{ filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))' }} />
+            <Trophy className="h-5 w-5 text-foreground" style={{ filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))' }} />
           </motion.div>
 
           {/* Sparkle particles */}
@@ -100,7 +100,7 @@ export function FloatingSeasonWidget({
 
           {/* "NEW" Badge */}
           <div className="absolute -top-1 -right-1 bg-transparent p-0.5">
-            <Badge className="h-5 px-1.5 min-w-[20px] rounded-full flex items-center justify-center bg-gradient-to-r from-amber-500 to-yellow-500 text-white border-2 border-white shadow-md text-[8px] font-bold">
+            <Badge className="h-5 px-1.5 min-w-[20px] rounded-full flex items-center justify-center bg-gradient-to-r from-amber-500 to-yellow-500 text-foreground border-2 border-white shadow-md text-[8px] font-bold">
               NEW
             </Badge>
           </div>
@@ -108,7 +108,7 @@ export function FloatingSeasonWidget({
 
         {/* Tooltip */}
         <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          <div className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-3 py-2 rounded-lg text-sm whitespace-nowrap shadow-xl">
+          <div className="bg-gray-900 dark:bg-gray-100 text-foreground dark:text-gray-900 px-3 py-2 rounded-lg text-sm whitespace-nowrap shadow-xl">
             <div className="flex items-center gap-2">
               <Trophy className="h-4 w-4" />
               <span>Season Info</span>

@@ -57,7 +57,7 @@ export function MessageCard({ transaction, currentUserId, onOpen }: MessageCardP
   return (
     <button
       onClick={() => onOpen(transaction)}
-      className="flex w-full items-center gap-3 rounded-xl bg-white shadow-sm px-4 py-3 hover:bg-emerald-50 transition"
+      className="flex w-full items-center gap-3 rounded-xl bg-card shadow-sm px-4 py-3 hover:bg-emerald-50 transition"
     >
       <div>
         <Avatar className="h-12 w-12">

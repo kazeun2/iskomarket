@@ -69,7 +69,7 @@ export function InactivityBanner({ accountStatus, inactiveDays, onAppeal }: Inac
               <Button
                 onClick={onAppeal}
                 size="sm"
-                className="bg-orange-600 hover:bg-orange-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_15px_rgba(251,146,60,0.6)]"
+                className="bg-orange-600 hover:bg-orange-700 text-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_15px_rgba(251,146,60,0.6)]"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Appeal to Reactivate
@@ -115,7 +115,7 @@ export function InactivityBanner({ accountStatus, inactiveDays, onAppeal }: Inac
               <Button
                 onClick={onAppeal}
                 size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_15px_rgba(239,68,68,0.6)]"
+                className="bg-red-600 hover:bg-red-700 text-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_15px_rgba(239,68,68,0.6)]"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Appeal Now

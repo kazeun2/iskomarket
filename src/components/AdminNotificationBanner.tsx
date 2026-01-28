@@ -51,12 +51,12 @@ export function AdminNotificationBanner({
                       <h4 className="font-semibold text-green-900 dark:text-green-100">
                         ✅ Account Reactivation Confirmed
                       </h4>
-                      <Badge className="bg-green-600 text-white">New</Badge>
+                      <Badge className="bg-green-600 text-foreground">New</Badge>
                     </div>
                     
                     <div className="flex items-center gap-3 mb-3">
                       <Avatar className="h-8 w-8 border-2 border-green-300">
-                        <AvatarFallback className="bg-green-600 text-white text-xs">
+                        <AvatarFallback className="bg-green-600 text-foreground text-xs">
                           {notification.username.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>

@@ -113,7 +113,7 @@ export function InactiveAccountsPanel({
       case "on-hold":
         return (
           <Badge
-            className="rounded-[12px] text-white border-0"
+            className="rounded-[12px] text-foreground border-0"
             style={{
               background: '#FFF6CC',
               color: '#9A7A00',
@@ -127,7 +127,7 @@ export function InactiveAccountsPanel({
       case "pending-deletion":
         return (
           <Badge
-            className="rounded-[12px] text-white border-0"
+            className="rounded-[12px] text-foreground border-0"
             style={{
               background: '#E87C22',
               boxShadow: '0 0 8px rgba(232,124,34,0.4)'
@@ -205,7 +205,7 @@ export function InactiveAccountsPanel({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          className="sm:max-w-4xl max-h-[90vh] rounded-[28px] bg-white border border-gray-200 shadow-xl text-gray-900"
+          className="sm:max-w-4xl max-h-[90vh] rounded-[28px] bg-card border border-gray-200 shadow-xl text-gray-900"
         >
           <div className="absolute inset-0 rounded-[28px] -z-10 dark:block hidden"
             style={{
@@ -243,19 +243,19 @@ export function InactiveAccountsPanel({
             <TabsList className="grid w-full grid-cols-3 bg-transparent border-0 p-1 gap-2">
               <TabsTrigger 
                 value="on-hold"
-                className="relative transition-all duration-200 rounded-[18px] data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0c8f4a] data-[state=active]:to-[#067232] data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(0,255,150,0.35)] dark:data-[state=active]:shadow-[0_0_15px_rgba(0,255,130,0.35)] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#3d7653] dark:data-[state=inactive]:text-[#7AD0A1] hover:scale-[1.02]"
+                className="relative transition-all duration-200 rounded-[18px] data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0c8f4a] data-[state=active]:to-[#067232] data-[state=active]:text-foreground data-[state=active]:shadow-[0_0_12px_rgba(0,255,150,0.35)] dark:data-[state=active]:shadow-[0_0_15px_rgba(0,255,130,0.35)] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#3d7653] dark:data-[state=inactive]:text-[#7AD0A1] hover:scale-[1.02]"
               >
                 On Hold ({onHoldUsers.length})
               </TabsTrigger>
               <TabsTrigger 
                 value="pending"
-                className="relative transition-all duration-200 rounded-[18px] data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0c8f4a] data-[state=active]:to-[#067232] data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(0,255,150,0.35)] dark:data-[state=active]:shadow-[0_0_15px_rgba(0,255,130,0.35)] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#3d7653] dark:data-[state=inactive]:text-[#7AD0A1] hover:scale-[1.02]"
+                className="relative transition-all duration-200 rounded-[18px] data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0c8f4a] data-[state=active]:to-[#067232] data-[state=active]:text-foreground data-[state=active]:shadow-[0_0_12px_rgba(0,255,150,0.35)] dark:data-[state=active]:shadow-[0_0_15px_rgba(0,255,130,0.35)] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#3d7653] dark:data-[state=inactive]:text-[#7AD0A1] hover:scale-[1.02]"
               >
                 Pending Deletion ({pendingDeletionUsers.length})
               </TabsTrigger>
               <TabsTrigger 
                 value="archived"
-                className="relative transition-all duration-200 rounded-[18px] data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0c8f4a] data-[state=active]:to-[#067232] data-[state=active]:text-white data-[state=active]:shadow-[0_0_12px_rgba(0,255,150,0.35)] dark:data-[state=active]:shadow-[0_0_15px_rgba(0,255,130,0.35)] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#3d7653] dark:data-[state=inactive]:text-[#7AD0A1] hover:scale-[1.02]"
+                className="relative transition-all duration-200 rounded-[18px] data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0c8f4a] data-[state=active]:to-[#067232] data-[state=active]:text-foreground data-[state=active]:shadow-[0_0_12px_rgba(0,255,150,0.35)] dark:data-[state=active]:shadow-[0_0_15px_rgba(0,255,130,0.35)] data-[state=inactive]:bg-transparent data-[state=inactive]:text-[#3d7653] dark:data-[state=inactive]:text-[#7AD0A1] hover:scale-[1.02]"
               >
                 Archived ({archivedUsers.length})
               </TabsTrigger>
@@ -268,7 +268,7 @@ export function InactiveAccountsPanel({
               {onHoldUsers.map((user) => (
                 <Card
                   key={user.id}
-                  className="border-[1.5px] rounded-[16px] bg-white dark:bg-[rgba(14,26,22,0.45)] border-[rgba(226,196,90,0.4)] dark:border-[rgba(226,196,90,0.25)]"
+                  className="border-[1.5px] rounded-[16px] bg-card dark:bg-[rgba(14,26,22,0.45)] border-[rgba(226,196,90,0.4)] dark:border-[rgba(226,196,90,0.25)]"
                   style={{
                     boxShadow: '0 2px 8px rgba(226,196,90,0.12)'
                   }}
@@ -335,7 +335,7 @@ export function InactiveAccountsPanel({
                       <div className="flex flex-col gap-2">
                         <Button
                           size="sm"
-                          className="w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-white shadow-[0_0_8px_rgba(6,132,62,0.25)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
+                          className="w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-foreground shadow-[0_0_8px_rgba(6,132,62,0.25)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
                           onClick={() => {
                             setSelectedUser(user);
                             setShowConfirmReactivate(true);
@@ -373,7 +373,7 @@ export function InactiveAccountsPanel({
                 return (
                   <Card
                     key={user.id}
-                    className="border-[1.5px] rounded-[16px] bg-white dark:bg-[rgba(14,26,22,0.45)] border-[rgba(232,124,34,0.4)] dark:border-[rgba(232,124,34,0.3)]"
+                    className="border-[1.5px] rounded-[16px] bg-card dark:bg-[rgba(14,26,22,0.45)] border-[rgba(232,124,34,0.4)] dark:border-[rgba(232,124,34,0.3)]"
                     style={{
                       boxShadow: '0 2px 8px rgba(232,124,34,0.15)'
                     }}
@@ -396,7 +396,7 @@ export function InactiveAccountsPanel({
                             {getStatusBadge(user.status)}
                             {daysLeft !== null && (
                               <Badge
-                                className="text-xs rounded-[10px] bg-gradient-to-r from-[#FF3030] to-[#D01010] text-white border-0"
+                                className="text-xs rounded-[10px] bg-gradient-to-r from-[#FF3030] to-[#D01010] text-foreground border-0"
                                 style={{
                                   boxShadow: '0 0 8px rgba(255,48,48,0.35)'
                                 }}
@@ -431,7 +431,7 @@ export function InactiveAccountsPanel({
                         <div className="flex flex-col gap-2">
                           <Button
                             size="sm"
-                            className="w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-white shadow-[0_0_8px_rgba(6,132,62,0.25)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
+                            className="w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-foreground shadow-[0_0_8px_rgba(6,132,62,0.25)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
                             onClick={() => {
                               setSelectedUser(user);
                               setShowConfirmReactivate(true);
@@ -453,7 +453,7 @@ export function InactiveAccountsPanel({
                           </Button>
                           <Button
                             size="sm"
-                            className="w-full bg-gradient-to-r from-[#FF3030] to-[#D01010] text-white shadow-[0_0_8px_rgba(255,48,48,0.35)] hover:brightness-110 transition-all"
+                            className="w-full bg-gradient-to-r from-[#FF3030] to-[#D01010] text-foreground shadow-[0_0_8px_rgba(255,48,48,0.35)] hover:brightness-110 transition-all"
                             onClick={() => {
                               setSelectedUser(user);
                               setShowConfirmDelete(true);
@@ -481,7 +481,7 @@ export function InactiveAccountsPanel({
                 return (
                   <Card
                     key={user.id}
-                    className="border-[1.5px] rounded-[16px] bg-white dark:bg-[rgba(14,26,22,0.45)] border-[rgba(120,120,120,0.3)] dark:border-[rgba(120,120,120,0.25)]"
+                    className="border-[1.5px] rounded-[16px] bg-card dark:bg-[rgba(14,26,22,0.45)] border-[rgba(120,120,120,0.3)] dark:border-[rgba(120,120,120,0.25)]"
                     style={{
                       boxShadow: '0 2px 8px rgba(100,100,100,0.1)'
                     }}
@@ -504,7 +504,7 @@ export function InactiveAccountsPanel({
                             {getStatusBadge(user.status)}
                             {daysLeft !== null && (
                               <Badge
-                                className="text-xs rounded-[10px] bg-gradient-to-r from-[#FF3030] to-[#D01010] text-white border-0"
+                                className="text-xs rounded-[10px] bg-gradient-to-r from-[#FF3030] to-[#D01010] text-foreground border-0"
                                 style={{
                                   boxShadow: '0 0 8px rgba(255,48,48,0.35)'
                                 }}
@@ -540,7 +540,7 @@ export function InactiveAccountsPanel({
                         <div className="flex flex-col gap-2">
                           <Button
                             size="sm"
-                            className="w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-white shadow-[0_0_8px_rgba(6,132,62,0.25)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
+                            className="w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-foreground shadow-[0_0_8px_rgba(6,132,62,0.25)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
                             onClick={() => {
                               setSelectedUser(user);
                               setShowConfirmReactivate(true);
@@ -551,7 +551,7 @@ export function InactiveAccountsPanel({
                           </Button>
                           <Button
                             size="sm"
-                            className="w-full bg-gradient-to-r from-[#FF3030] to-[#D01010] text-white shadow-[0_0_8px_rgba(255,48,48,0.35)] hover:brightness-110 transition-all"
+                            className="w-full bg-gradient-to-r from-[#FF3030] to-[#D01010] text-foreground shadow-[0_0_8px_rgba(255,48,48,0.35)] hover:brightness-110 transition-all"
                             onClick={() => {
                               setSelectedUser(user);
                               setShowConfirmDelete(true);

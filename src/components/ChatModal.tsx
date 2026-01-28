@@ -1979,7 +1979,7 @@ export function ChatModal({
     return (
       <div className={`w-full flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
         <div className="flex flex-col gap-1 max-w-[80%]">
-          <div className={`${isOwn ? 'ml-auto' : 'mr-auto'} ${isOwn ? 'bg-emerald-600 text-emerald-50' : 'bg-white text-foreground border border-border dark:bg-slate-800 dark:text-slate-50'} rounded-2xl px-3 py-2 text-sm`}>
+          <div className={`${isOwn ? 'ml-auto' : 'mr-auto'} ${isOwn ? 'bg-emerald-600 text-emerald-50' : 'bg-card text-foreground border border-border dark:bg-slate-800 dark:text-slate-50'} rounded-2xl px-3 py-2 text-sm`}>
             {hasContent ? content : <span className="italic text-muted-foreground">(No message)</span>}
             {isPending && <span className="ml-2 text-[10px] opacity-80"> • Queued</span>}
           </div>

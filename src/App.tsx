@@ -1986,7 +1986,7 @@ export default function App() {
                 {/* Post Product Button - Fixed width with responsive text */}
                 <Button
                   onClick={() => setShowPostProduct(true)}
-                  className="flex items-center justify-center h-10 w-10 flex-shrink-0 rounded-xl dark:bg-gradient-to-r dark:from-[#003920] dark:to-[#00C47A] dark:text-white dark:hover:shadow-[0_0_20px_rgba(0,255,160,0.25)] bg-gradient-to-r from-[#EFFEF4] to-[#D8FEE7] text-[#0A6633] hover:shadow-[0_0_16px_rgba(50,199,122,0.25)]"
+                  className="flex items-center justify-center h-10 w-10 flex-shrink-0 rounded-xl dark:bg-gradient-to-r dark:from-[#003920] dark:to-[#00C47A] dark:text-foreground dark:hover:shadow-[0_0_20px_rgba(0,255,160,0.25)] bg-gradient-to-r from-[#EFFEF4] to-[#D8FEE7] text-[#0A6633] hover:shadow-[0_0_16px_rgba(50,199,122,0.25)]"
                   size="default"
                   aria-label="Post Product"
                   style={{
@@ -2367,7 +2367,7 @@ export default function App() {
                                   ₱
                                   {item.raisedAmount.toLocaleString()}
                                 </span>
-                                <span className="text-muted-foreground dark:text-white/60">
+                                <span className="text-muted-foreground dark:text-foreground/60">
                                   {progress.toFixed(0)}%
                                 </span>
                               </div>
@@ -2502,7 +2502,7 @@ export default function App() {
                                   ₱
                                   {item.raisedAmount.toLocaleString()}
                                 </span>
-                                <span className="text-muted-foreground dark:text-white/60">
+                                <span className="text-muted-foreground dark:text-foreground/60">
                                   {progress.toFixed(0)}%
                                 </span>
                               </div>
@@ -3093,7 +3093,7 @@ export default function App() {
         open={showPostProduct}
         onClose={() => setShowPostProduct(false)}
         title="Post a Product"
-        className="!max-w-2xl"
+        className="iskomarket-twitter-modal p-0 max-w-[32rem]"
       >
         <PostProduct
           currentUser={currentUser}
@@ -3176,7 +3176,7 @@ export default function App() {
         open={showPostForCause}
         onOpenChange={setShowPostForCause}
       >
-        <DialogContent className="modal-standard">
+        <DialogContent className="iskomarket-twitter-modal p-0 max-w-[32rem]">
           <DialogTitle className="sr-only">
             Post for a Cause
           </DialogTitle>
@@ -3277,7 +3277,7 @@ export default function App() {
         open={showMarketingSchedule}
         onOpenChange={setShowMarketingSchedule}
       >
-        <DialogContent className="modal-standard !w-[400px]">
+        <DialogContent className="iskomarket-twitter-modal p-0 !w-[400px]">
           <DialogTitle className="sr-only">
             CvSU Marketing Office
           </DialogTitle>

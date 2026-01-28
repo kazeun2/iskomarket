@@ -37,19 +37,19 @@ export function AnnouncementPopup({
     switch (priority) {
       case 'urgent':
         return (
-          <Badge className="bg-red-500 text-white border-0">
+          <Badge className="bg-red-500 text-foreground border-0">
             🔴 Urgent
           </Badge>
         );
       case 'important':
         return (
-          <Badge className="bg-orange-500 text-white border-0">
+          <Badge className="bg-orange-500 text-foreground border-0">
             🟡 Important
           </Badge>
         );
       default:
         return (
-          <Badge className="bg-green-500 text-white border-0">
+          <Badge className="bg-green-500 text-foreground border-0">
             🟢 Normal
           </Badge>
         );
@@ -97,7 +97,7 @@ export function AnnouncementPopup({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="sm:max-w-[600px] max-h-[85vh] flex flex-col border rounded-[28px] dark:border-[rgba(0,255,150,0.18)] bg-[var(--card)] dark:bg-[rgba(240,255,248,0.40)] dark:backdrop-blur-[18px]"
+        className="iskomarket-twitter-modal p-0 sm:max-w-[600px] max-h-[85vh]"
         style={{
           boxShadow: '0 4px 16px rgba(10,140,70,0.1)'
         }}
@@ -124,8 +124,8 @@ export function AnnouncementPopup({
                 {!isSystemAlert && priority && getPriorityBadge(priority)}
                 {isSystemAlert && alertType && (
                   <Badge className={alertType === 'maintenance' 
-                    ? 'bg-orange-500 text-white border-0' 
-                    : 'bg-blue-500 text-white border-0'
+                    ? 'bg-orange-500 text-foreground border-0' 
+                    : 'bg-blue-500 text-foreground border-0'
                   }>
                     {alertType === 'maintenance' ? '🔧 Maintenance' : '🔔 Alert'}
                   </Badge>
@@ -194,7 +194,7 @@ export function AnnouncementPopup({
         <div className="flex-shrink-0 pt-4">
           <Button
             onClick={onClose}
-            className="w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-white shadow-[0_0_12px_rgba(0,255,150,0.35)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
+            className="w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-foreground shadow-[0_0_12px_rgba(0,255,150,0.35)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
           >
             Got It
           </Button>

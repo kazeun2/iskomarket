@@ -60,7 +60,7 @@ export function TrustedStudentBoardModal({
         <DialogHeader className="px-6 py-4 border-b relative">
           <div className="flex items-center gap-3 pr-10">
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md">
-              <Trophy className="h-4 w-4 text-white" />
+              <Trophy className="h-4 w-4 text-foreground" />
             </div>
             <div>
               <DialogTitle className="text-lg">
@@ -106,7 +106,7 @@ export function TrustedStudentBoardModal({
                     <div className="flex flex-col items-center text-center gap-2">
                       {/* Circle Avatar with Initials */}
                       <Avatar className="h-14 w-14 border-2 border-amber-400 dark:border-amber-600">
-                        <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white text-sm">
+                        <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-foreground text-sm">
                           {getInitials(student.username)}
                         </AvatarFallback>
                       </Avatar>

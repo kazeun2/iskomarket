@@ -111,7 +111,7 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
                 {/* Change Photo Button Overlay */}
                 <label 
                   htmlFor="avatar-upload" 
-                  className="absolute bottom-0 right-0 bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white rounded-full p-2 cursor-pointer hover:scale-110 transition-all shadow-lg z-10"
+                  className="absolute bottom-0 right-0 bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-foreground rounded-full p-2 cursor-pointer hover:scale-110 transition-all shadow-lg z-10"
                   title="Change photo"
                 >
                   <Camera className="h-4 w-4" />
@@ -176,7 +176,7 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 placeholder="Enter your CvSU email"
-                className="h-12 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 transition-all"
+                className="h-12 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 transition-all"
               />
             </div>
 
@@ -190,7 +190,7 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
                 value={formData.program}
                 onChange={(e) => handleInputChange('program', e.target.value)}
                 placeholder="e.g., BS Computer Science"
-                className="h-12 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 transition-all"
+                className="h-12 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 transition-all"
               />
             </div>
 
@@ -204,7 +204,7 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
                 value={formData.bio}
                 onChange={(e) => handleInputChange('bio', e.target.value)}
                 placeholder="Share something about yourself that other users should know…"
-                className="h-12 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 transition-all"
+                className="h-12 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 transition-all"
               />
             </div>
           </div>
@@ -269,7 +269,7 @@ export function ProfileSettings({ currentUser, onUpdateProfile, onClose }: Profi
             {/* Save Changes Button - Right */}
             <Button 
               onClick={handleSave}
-              className="h-11 px-6 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white hover:scale-105 transition-all shadow-lg hover:shadow-xl"
+              className="h-11 px-6 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-foreground hover:scale-105 transition-all shadow-lg hover:shadow-xl"
             >
               <Save className="h-4 w-4 mr-2" />
               Save Changes

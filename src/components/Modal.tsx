@@ -28,16 +28,12 @@ export function Modal({ open, onClose, title, children, className, forceZIndex }
       {/* Content is a responsive, centered panel */}
       <DialogContent
         className={cn(
-<<<<<<< HEAD
           "forced-modal-bg bg-[#f8fafc]/95 w-full max-w-xl rounded-2xl p-6 sm:p-8 shadow-lg max-h-[90vh] overflow-y-auto bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223]",
-=======
-          "w-full max-w-xl rounded-2xl p-6 sm:p-8 shadow-lg max-h-[90vh] overflow-y-auto bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223]",
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
           className || ''
         )}
         aria-describedby="modal-description"
       >
-        <DialogHeader className="modal-header-standard relative">
+        <DialogHeader className="iskomarket-modal-header modal-header-standard relative">
           {title ? (
             <DialogTitle className="text-center w-full">{title}</DialogTitle>
           ) : null}
@@ -51,7 +47,7 @@ export function Modal({ open, onClose, title, children, className, forceZIndex }
           </button>
         </DialogHeader>
 
-        <div className="modal-content-standard mt-2">{children}</div>
+        <div className="iskomarket-modal-content">{children}</div>
       </DialogContent>
     </Dialog>
   );

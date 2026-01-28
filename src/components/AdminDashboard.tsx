@@ -1856,7 +1856,7 @@ Cavite State University`;
             </div>
           </div>
 
-          <Badge className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white border-0">
+          <Badge className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-foreground border-0">
             <Shield className="h-3 w-3 mr-1" />
             Admin Access
           </Badge>
@@ -1878,7 +1878,6 @@ Cavite State University`;
           <Package className="h-6 w-6 text-primary dark:text-emerald-400 mx-auto mb-2" />
           <div className="text-sm text-muted-foreground">Active Products</div>
         </MinimalStatCard>
-<<<<<<< HEAD
 
         {/* View Reports – moved from Trust & Reports */}
         <MinimalStatCard
@@ -1896,8 +1895,6 @@ Cavite State University`;
           <div className="text-sm text-muted-foreground">For a Cause Review</div>
         </MinimalStatCard>
 
-=======
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
         {adminFlags.pendingReports && (
           <MinimalStatCard
             onClick={() => setSelectedStatModal("pendingReports")}
@@ -1959,14 +1956,14 @@ Cavite State University`;
         <TabsList className="grid w-full grid-cols-2 bg-gradient-to-br from-white to-gray-50 dark:from-[#003726]/30 dark:to-[#021223]/50 border border-gray-200/50 dark:border-[#14b8a6]/20 rounded-[20px] p-1.5 dark:shadow-[0_0_20px_rgba(20,184,166,0.08)] backdrop-blur-sm">
           <TabsTrigger
             value="overview"
-            className="rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+            className="rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-foreground data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
           >
             Overview
           </TabsTrigger>
           {adminFlags.activitiesTab && (
             <TabsTrigger
               value="activities"
-              className="rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+              className="rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-foreground data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
             >
               Activities
             </TabsTrigger>
@@ -1988,7 +1985,7 @@ Cavite State University`;
 
               <CardHeader className="relative z-10 backdrop-blur-md bg-gradient-to-b from-green-50/30 to-white/70 dark:from-emerald-900/10 dark:to-white/5 border-b-2 border-green-500/40 dark:border-[#14b8a6]/50 pl-5 pt-4 pb-3 rounded-t-[20px] transition-all duration-200 hover:from-green-50/40 hover:to-white/80 dark:hover:from-emerald-900/15 dark:hover:to-white/8 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:shadow-[inset_0_1px_0_0_rgba(20,184,166,0.06)]">
                 <CardTitle
-                  className="text-[#005a00] dark:text-white font-semibold dark:[text-shadow:_0_1px_2px_rgb(0_0_0_/_40%)]"
+                  className="text-[#005a00] dark:text-foreground font-semibold dark:[text-shadow:_0_1px_2px_rgb(0_0_0_/_40%)]"
                   style={{ letterSpacing: "0.2px" }}
                 >
                   Season Calendar
@@ -2011,7 +2008,7 @@ Cavite State University`;
                         Current Season {currentSeason}
                       </span>
                     </div>
-                    <Badge className="bg-emerald-600 dark:bg-emerald-500 text-white">
+                    <Badge className="bg-emerald-600 dark:bg-emerald-500 text-foreground">
                       Active
                     </Badge>
                   </div>
@@ -2059,7 +2056,7 @@ Cavite State University`;
             {/* System Alert - quick action (ALWAYS VISIBLE for admins) */}
             <div className="mb-4">
               <button
-                className="w-full rounded-[12px] py-3 px-4 bg-red-600 text-white hover:bg-red-700 font-medium"
+                className="w-full rounded-[12px] py-3 px-4 bg-red-600 text-foreground hover:bg-red-700 font-medium"
                 onClick={() => setShowSystemAlert(true)}
                 data-quick-action="system-alert"
               >
@@ -2094,7 +2091,7 @@ Cavite State University`;
                   className="
     font-semibold tracking-[0.2px]
     text-[#005a00] 
-    dark:text-white dark:text-shadow-[0_1px_2px_rgba(0,0,0,0.4)]
+    dark:text-foreground dark:text-shadow-[0_1px_2px_rgba(0,0,0,0.4)]
   "
                 >
                   Quick Actions
@@ -2125,8 +2122,8 @@ Cavite State University`;
                       boxShadow: "inset 0 1px 2px rgba(0,0,0,0.3)",
                     }}
                   />
-                  <FileText className="h-6 w-6 mr-2.5 relative z-10 text-white/90 dark:text-[#C8FFDC]" strokeWidth={1.5} />
-                  <span className="text-[15px] font-medium relative z-10 text-white dark:text-[#C8FFDC]">
+                  <FileText className="h-6 w-6 mr-2.5 relative z-10 text-foreground/90 dark:text-[#C8FFDC]" strokeWidth={1.5} />
+                  <span className="text-[15px] font-medium relative z-10 text-foreground dark:text-[#C8FFDC]">
                     Audit Logs
                   </span>
                 </button>
@@ -2157,8 +2154,8 @@ Cavite State University`;
                       boxShadow: "inset 0 1px 2px rgba(0,0,0,0.3)",
                     }}
                   />
-                  <UserX className="h-6 w-6 mr-2.5 relative z-10 text-white/90 dark:text-[#C8FFDC]" strokeWidth={1.5} />
-                  <span className="text-[15px] font-medium relative z-10 text-white dark:text-[#C8FFDC]">
+                  <UserX className="h-6 w-6 mr-2.5 relative z-10 text-foreground/90 dark:text-[#C8FFDC]" strokeWidth={1.5} />
+                  <span className="text-[15px] font-medium relative z-10 text-foreground dark:text-[#C8FFDC]">
                     Manage Inactive
                   </span>
                 </button>
@@ -2188,8 +2185,8 @@ Cavite State University`;
                       boxShadow: "inset 0 1px 2px rgba(0,0,0,0.3)",
                     }}
                   />
-                  <AlertOctagon className="h-6 w-6 mr-2.5 relative z-10 text-white/90 dark:text-[#C8FFDC]" strokeWidth={1.5} />
-                  <span className="text-[15px] font-medium relative z-10 text-white dark:text-[#C8FFDC]">
+                  <AlertOctagon className="h-6 w-6 mr-2.5 relative z-10 text-foreground/90 dark:text-[#C8FFDC]" strokeWidth={1.5} />
+                  <span className="text-[15px] font-medium relative z-10 text-foreground dark:text-[#C8FFDC]">
                     System Alert
                   </span>
                 </button>
@@ -2247,28 +2244,6 @@ Cavite State University`;
             )}
           </div>
         </TabsContent>
-
-<<<<<<< HEAD
-
-=======
-        {/* Trust & Reports quick card */}
-        <Card className="hover:shadow-md border border-gray-200 rounded-[12px] p-4">
-          <CardHeader>
-            <CardTitle className="font-semibold">Trust & Reports</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setShowReportsModal(true)}>
-                <Flag className="h-4 w-4 mr-2" /> View Reports
-              </Button>
-              <Button variant="ghost" onClick={() => setShowForCauseModal(true)}>
-                <Users className="h-4 w-4 mr-2" /> For a Cause Review
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
-
         {adminFlags.activitiesTab && (
           <TabsContent value="activities" className="space-y-4">
           <Card className="hover:shadow-[0_0_0_1px_rgba(20,184,166,0.2),0_8px_24px_rgba(20,184,166,0.15)] dark:shadow-lg transition-all duration-300 bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] border border-gray-200 dark:border-[#14b8a6]/20 rounded-[20px] overflow-hidden relative">
@@ -2282,7 +2257,7 @@ Cavite State University`;
             />
             <CardHeader className="relative z-10 backdrop-blur-md bg-gradient-to-b from-green-50/30 to-white/70 dark:from-emerald-900/10 dark:to-white/5 border-b-2 border-green-500/40 dark:border-[#14b8a6]/50 pl-5 pt-4 pb-3 rounded-t-[20px] transition-all duration-200 hover:from-green-50/40 hover:to-white/80 dark:hover:from-emerald-900/15 dark:hover:to-white/8 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] dark:shadow-[inset_0_1px_0_0_rgba(20,184,166,0.06)]">
               <CardTitle
-                className="flex items-center gap-2 text-[#005a00] dark:text-white font-semibold dark:[text-shadow:_0_1px_2px_rgb(0_0_0_/_40%)]"
+                className="flex items-center gap-2 text-[#005a00] dark:text-foreground font-semibold dark:[text-shadow:_0_1px_2px_rgb(0_0_0_/_40%)]"
                 style={{ letterSpacing: "0.2px" }}
               >
                 <Activity className="h-5 w-5 text-[#005a00] dark:text-emerald-400" />
@@ -2298,62 +2273,62 @@ Cavite State University`;
                 <TabsList className="grid w-full grid-cols-5 mb-4 bg-gradient-to-br from-white to-gray-50 dark:from-[#003726] dark:to-[#021223] border border-gray-200/50 dark:border-[#14b8a6]/20 rounded-[20px] p-1.5 shadow-sm backdrop-blur-sm gap-2">
                   <TabsTrigger
                     value="all"
-                    className="rounded-[16px] text-gray-600 dark:text-white/70 data-[state=active]:text-white data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+                    className="rounded-[16px] text-gray-600 dark:text-foreground/70 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
                   >
                     All
                     <Badge
                       variant="secondary"
-                      className="ml-2 bg-white/20 dark:bg-[var(--card)] text-current text-xs"
+                      className="ml-2 bg-card/20 dark:bg-[var(--card)] text-current text-xs"
                     >
                       {systemLogs.length}
                     </Badge>
                   </TabsTrigger>
                   <TabsTrigger
                     value="transactions"
-                    className="rounded-[16px] text-gray-600 dark:text-white/70 data-[state=active]:text-white data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+                    className="rounded-[16px] text-gray-600 dark:text-foreground/70 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
                   >
                     Transactions
                     <Badge
                       variant="secondary"
-                      className="ml-2 bg-white/20 dark:bg-[var(--card)] text-current text-xs"
+                      className="ml-2 bg-card/20 dark:bg-[var(--card)] text-current text-xs"
                     >
                       {transactionActivities.length}
                     </Badge>
                   </TabsTrigger>
                   <TabsTrigger
                     value="credit"
-                    className="rounded-[16px] text-gray-600 dark:text-white/70 data-[state=active]:text-white data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+                    className="rounded-[16px] text-gray-600 dark:text-foreground/70 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
                   >
                     Credit Logs
                     <Badge
                       variant="secondary"
-                      className="ml-2 bg-white/20 dark:bg-[var(--card)] text-current text-xs"
+                      className="ml-2 bg-card/20 dark:bg-[var(--card)] text-current text-xs"
                     >
                       {creditScoreLogs.length}
                     </Badge>
                   </TabsTrigger>
                   <TabsTrigger
                     value="errors"
-                    className="rounded-[16px] text-gray-600 dark:text-white/70 data-[state=active]:text-white data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+                    className="rounded-[16px] text-gray-600 dark:text-foreground/70 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
                   >
                     <AlertOctagon className="h-3 w-3 mr-1" />
                     Errors
                     <Badge
                       variant="secondary"
-                      className="ml-2 bg-white/20 dark:bg-[var(--card)] text-current text-xs"
+                      className="ml-2 bg-card/20 dark:bg-[var(--card)] text-current text-xs"
                     >
                       {systemErrors.length}
                     </Badge>
                   </TabsTrigger>
                   <TabsTrigger
                     value="slow"
-                    className="rounded-[16px] text-gray-600 dark:text-white/70 data-[state=active]:text-white data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+                    className="rounded-[16px] text-gray-600 dark:text-foreground/70 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
                   >
                     <Zap className="h-3 w-3 mr-1" />
                     Slow
                     <Badge
                       variant="secondary"
-                      className="ml-2 bg-white/20 dark:bg-[var(--card)] text-current text-xs"
+                      className="ml-2 bg-card/20 dark:bg-[var(--card)] text-current text-xs"
                     >
                       {slowResponses.length}
                     </Badge>
@@ -2424,17 +2399,17 @@ Cavite State University`;
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className="text-gray-900 dark:text-white">
+                        <p className="text-gray-900 dark:text-foreground">
                           {activity.action}
                         </p>
-                        <p className="text-gray-700 dark:text-white/80">
+                        <p className="text-gray-700 dark:text-foreground/80">
                           {activity.user}
                         </p>
-                        <p className="text-gray-600 dark:text-white/60 mt-1">
+                        <p className="text-gray-600 dark:text-foreground/60 mt-1">
                           {typeof activity.details === 'object' && activity.details !== null ? (activity.details.summary ?? JSON.stringify(activity.details)) : (activity.details || '')}
                         </p>
                       </div>
-                      <span className="text-gray-500 dark:text-white/60 whitespace-nowrap">
+                      <span className="text-gray-500 dark:text-foreground/60 whitespace-nowrap">
                         {activity.time}
                       </span>
                     </div>
@@ -2462,36 +2437,36 @@ Cavite State University`;
                     <TabsList className="grid w-full grid-cols-3 mb-4 bg-gradient-to-br from-white to-gray-50 dark:from-[#003726] dark:to-[#021223] border border-gray-200/50 dark:border-[#14b8a6]/20 rounded-[20px] p-1.5 shadow-sm backdrop-blur-sm gap-2">
                       <TabsTrigger
                         value="all"
-                        className="rounded-[16px] text-gray-600 dark:text-white/70 data-[state=active]:text-white data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+                        className="rounded-[16px] text-gray-600 dark:text-foreground/70 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
                       >
                         All
                         <Badge
                           variant="secondary"
-                          className="ml-2 bg-white/20 dark:bg-[var(--card)] text-current text-xs"
+                          className="ml-2 bg-card/20 dark:bg-[var(--card)] text-current text-xs"
                         >
                           {transactionActivities.length}
                         </Badge>
                       </TabsTrigger>
                       <TabsTrigger
                         value="successful"
-                        className="rounded-[16px] text-gray-600 dark:text-white/70 data-[state=active]:text-white data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+                        className="rounded-[16px] text-gray-600 dark:text-foreground/70 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
                       >
                         Successful
                         <Badge
                           variant="secondary"
-                          className="ml-2 bg-white/20 dark:bg-[var(--card)] text-current text-xs"
+                          className="ml-2 bg-card/20 dark:bg-[var(--card)] text-current text-xs"
                         >
                           {successfulTransactions.length}
                         </Badge>
                       </TabsTrigger>
                       <TabsTrigger
                         value="unsuccessful"
-                        className="rounded-[16px] text-gray-600 dark:text-white/70 data-[state=active]:text-white data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+                        className="rounded-[16px] text-gray-600 dark:text-foreground/70 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
                       >
                         Unsuccessful
                         <Badge
                           variant="secondary"
-                          className="ml-2 bg-white/20 dark:bg-[var(--card)] text-current text-xs"
+                          className="ml-2 bg-card/20 dark:bg-[var(--card)] text-current text-xs"
                         >
                           {unsuccessfulTransactions.length}
                         </Badge>
@@ -2534,13 +2509,13 @@ Cavite State University`;
                             )}
                           </div>
                           <div className="flex-1">
-                            <p className="text-gray-900 dark:text-white">
+                            <p className="text-gray-900 dark:text-foreground">
                               {activity.action}
                             </p>
-                            <p className="text-gray-700 dark:text-white/80">
+                            <p className="text-gray-700 dark:text-foreground/80">
                               {activity.user}
                             </p>
-                            <p className="text-gray-600 dark:text-white/60 mt-1">
+                            <p className="text-gray-600 dark:text-foreground/60 mt-1">
                               {activity.details}
                             </p>
                           </div>
@@ -2581,13 +2556,13 @@ Cavite State University`;
                               <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                             </div>
                             <div className="flex-1">
-                              <p className="text-gray-900 dark:text-white">
+                              <p className="text-gray-900 dark:text-foreground">
                                 {activity.action}
                               </p>
-                              <p className="text-gray-700 dark:text-white/80">
+                              <p className="text-gray-700 dark:text-foreground/80">
                                 {activity.user}
                               </p>
-                              <p className="text-gray-600 dark:text-white/60 mt-1">
+                              <p className="text-gray-600 dark:text-foreground/60 mt-1">
                                 {typeof activity.details === 'object' && activity.details !== null ? (activity.details.summary ?? JSON.stringify(activity.details)) : (activity.details || '')}
                               </p>
                             </div>
@@ -2623,13 +2598,13 @@ Cavite State University`;
                               <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                             </div>
                             <div className="flex-1">
-                              <p className="text-gray-900 dark:text-white">
+                              <p className="text-gray-900 dark:text-foreground">
                                 {activity.action}
                               </p>
-                              <p className="text-gray-700 dark:text-white/80">
+                              <p className="text-gray-700 dark:text-foreground/80">
                                 {activity.user}
                               </p>
-                              <p className="text-gray-600 dark:text-white/60 mt-1">
+                              <p className="text-gray-600 dark:text-foreground/60 mt-1">
                                 {typeof activity.details === 'object' && activity.details !== null ? (activity.details.summary ?? JSON.stringify(activity.details)) : (activity.details || '')}
                               </p>
                             </div>
@@ -2689,7 +2664,7 @@ Cavite State University`;
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-gray-900 dark:text-white">
+                          <p className="text-gray-900 dark:text-foreground">
                             {activity.action}
                           </p>
                           {activity.change && (
@@ -2706,14 +2681,14 @@ Cavite State University`;
                             </Badge>
                           )}
                         </div>
-                        <p className="text-gray-700 dark:text-white/80">
+                        <p className="text-gray-700 dark:text-foreground/80">
                           {activity.user}
                         </p>
-                        <p className="text-gray-600 dark:text-white/60 mt-1">
+                        <p className="text-gray-600 dark:text-foreground/60 mt-1">
                           {activity.details}
                         </p>
                       </div>
-                      <span className="text-gray-500 dark:text-white/60 whitespace-nowrap">
+                      <span className="text-gray-500 dark:text-foreground/60 whitespace-nowrap">
                         {activity.time}
                       </span>
                     </div>
@@ -2755,7 +2730,7 @@ Cavite State University`;
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-gray-900 dark:text-white">
+                          <p className="text-gray-900 dark:text-foreground">
                             {activity.action}
                           </p>
                           <Badge
@@ -2816,7 +2791,7 @@ Cavite State University`;
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-gray-900 dark:text-white">
+                          <p className="text-gray-900 dark:text-foreground">
                             {activity.action}
                           </p>
                           <Badge className="bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-200 text-xs border border-orange-200 dark:border-orange-300/30">
@@ -2854,7 +2829,7 @@ Cavite State University`;
         }}
       >
         <DialogContent
-          className="modal-standard sm:max-w-[800px] max-h-[90vh] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[24px] bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] shadow-2xl dark:shadow-[0_0_0_1px_rgba(20,184,166,0.15),0_0_25px_rgba(20,184,166,0.2)]"
+          className="iskomarket-twitter-modal p-0 max-w-2xl max-h-[95vh]"
           style={{
             boxShadow: "0 8px 32px rgba(0, 100, 0, 0.08)",
           }}
@@ -3044,7 +3019,7 @@ Cavite State University`;
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-green-600 text-white">
+                        <AvatarFallback className="bg-green-600 text-foreground">
                           {user.username
                             .substring(0, 2)
                             .toUpperCase()}
@@ -3107,7 +3082,7 @@ Cavite State University`;
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                       <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-orange-600 text-white">
+                        <AvatarFallback className="bg-orange-600 text-foreground">
                           {user.username
                             .substring(0, 2)
                             .toUpperCase()}
@@ -3163,7 +3138,7 @@ Cavite State University`;
         onOpenChange={() => setSelectedStatModal(null)}
       >
         <DialogContent
-          className="modal-standard sm:max-w-[700px] max-h-[90vh] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[24px] bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] shadow-2xl dark:shadow-[0_0_0_1px_rgba(20,184,166,0.15),0_0_25px_rgba(20,184,166,0.2)]"
+          className="iskomarket-twitter-modal p-0 max-w-2xl max-h-[95vh]"
           style={{
             boxShadow: "0 8px 32px rgba(0, 100, 0, 0.08)",
           }}
@@ -3203,7 +3178,7 @@ Cavite State University`;
                 <CardContent className="p-4">
                   <div className="flex items-center gap-4">
                     <Avatar className="h-12 w-12">
-                      <AvatarFallback className="bg-green-600 text-white">
+                      <AvatarFallback className="bg-green-600 text-foreground">
                         {user.username
                           .substring(0, 2)
                           .toUpperCase()}
@@ -3261,7 +3236,7 @@ Cavite State University`;
         open={selectedStatModal === "pendingReports"}
         onOpenChange={() => setSelectedStatModal(null)}
       >
-        <DialogContent className="modal-standard sm:max-w-[700px] max-h-[90vh]">
+        <DialogContent className="iskomarket-twitter-modal p-0 max-w-2xl max-h-[90vh]">
           <DialogHeader className="sticky top-0 bg-background z-50 pb-4 border-b">
             <div className="pr-12">
               <DialogTitle className="flex items-center gap-2">
@@ -3340,11 +3315,11 @@ Cavite State University`;
 
                             {/* User Preview */}
                             {report.type === "user" && report.reportedUser && (
-                              <div className="bg-white/60 dark:bg-gray-900/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-4 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-200 cursor-pointer" onClick={(e) => { e.stopPropagation(); const reportedUser = allUsers.find(u => u.username === report.reportedUser.username); if (reportedUser) { setSelectedSellerProfile(reportedUser); setSelectedStatModal(null); } }} title="Click to view user profile">
+                              <div className="bg-card/60 dark:bg-gray-900/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-4 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-200 cursor-pointer" onClick={(e) => { e.stopPropagation(); const reportedUser = allUsers.find(u => u.username === report.reportedUser.username); if (reportedUser) { setSelectedSellerProfile(reportedUser); setSelectedStatModal(null); } }} title="Click to view user profile">
                                 <div className="flex items-start gap-3">
-                                  <Avatar className="h-12 w-12 ring-2 ring-emerald-500/20"><AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">{(((report.reportedUser as any)?.username) || ((report.reportedUser as any)?.name) || 'U').charAt(0).toUpperCase()}</AvatarFallback></Avatar>
+                                  <Avatar className="h-12 w-12 ring-2 ring-emerald-500/20"><AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-foreground">{(((report.reportedUser as any)?.username) || ((report.reportedUser as any)?.name) || 'U').charAt(0).toUpperCase()}</AvatarFallback></Avatar>
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1"><h5 className="text-gray-900 dark:text-gray-100"><UsernameWithGlow username={report.reportedUser.username} glowEffect={(report.reportedUser as any)?.glowEffect} showTimer={false} /></h5><Badge className="bg-red-500 text-white border-0 text-xs px-2 py-0.5">Reported</Badge></div>
+                                    <div className="flex items-center gap-2 mb-1"><h5 className="text-gray-900 dark:text-gray-100"><UsernameWithGlow username={report.reportedUser.username} glowEffect={(report.reportedUser as any)?.glowEffect} showTimer={false} /></h5><Badge className="bg-red-500 text-foreground border-0 text-xs px-2 py-0.5">Reported</Badge></div>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">{allUsers.find(u => u.username === report.reportedUser.username)?.program || 'Student'}</p>
                                   </div>
                                 </div>
@@ -3373,7 +3348,7 @@ Cavite State University`;
         open={selectedStatModal === "todaysActivity"}
         onOpenChange={() => setSelectedStatModal(null)}
       >
-        <DialogContent className="modal-standard sm:max-w-[700px] max-h-[90vh]">
+        <DialogContent className="iskomarket-twitter-modal p-0 max-w-2xl max-h-[90vh]">
           <DialogHeader className="sticky top-0 bg-background z-50 pb-4 border-b">
             <div className="pr-12">
               <DialogTitle className="flex items-center gap-2">
@@ -3445,7 +3420,7 @@ Cavite State University`;
         open={selectedStatModal === "flaggedUsers"}
         onOpenChange={() => setSelectedStatModal(null)}
       >
-        <DialogContent className="modal-standard sm:max-w-[700px] max-h-[90vh]">
+        <DialogContent className="iskomarket-twitter-modal p-0 max-w-2xl max-h-[90vh]">
           <DialogHeader className="sticky top-0 bg-background z-50 pb-4 border-b">
             <div className="pr-12">
               <DialogTitle className="flex items-center gap-2">
@@ -3490,7 +3465,7 @@ Cavite State University`;
                         setSelectedStatModal(null); // Close Flagged Users modal
                       }}
                     >
-                      <AvatarFallback className="bg-red-600 text-white">
+                      <AvatarFallback className="bg-red-600 text-foreground">
                         {user.username
                           .substring(0, 2)
                           .toUpperCase()}
@@ -3565,7 +3540,7 @@ Cavite State University`;
         open={selectedStatModal === "appeals"}
         onOpenChange={() => setSelectedStatModal(null)}
       >
-        <DialogContent className="modal-standard sm:max-w-[800px] max-h-[90vh]">
+        <DialogContent className="iskomarket-twitter-modal p-0 max-w-2xl max-h-[90vh]">
           <DialogHeader className="sticky top-0 bg-background z-50 pb-4 border-b">
             <div className="pr-12">
               <DialogTitle className="flex items-center gap-2">
@@ -3648,7 +3623,7 @@ Cavite State University`;
                               setSelectedStatModal(null); // Close Account Deletion Appeals modal
                             }}
                           >
-                            <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white">
+                            <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-foreground">
                               {appeal.user.username
                                 .substring(0, 2)
                                 .toUpperCase()}
@@ -3780,7 +3755,7 @@ Cavite State University`;
         open={selectedProduct !== null}
         onOpenChange={() => setSelectedProduct(null)}
       >
-        <DialogContent className="modal-standard sm:max-w-[600px]">
+        <DialogContent className="iskomarket-twitter-modal p-0 sm:max-w-[600px]">
           {selectedProduct && (
             <>
               <DialogHeader className="sticky top-0 bg-background z-50 pb-4 border-b">
@@ -3809,7 +3784,7 @@ Cavite State University`;
                   <ImageWithFallback
                     src={getPrimaryImage(selectedProduct)}
                     alt={selectedProduct.title}
-                    className="w-32 h-32 object-contain p-2 rounded-lg flex-shrink-0 bg-white dark:bg-[var(--card)]"
+                    className="w-32 h-32 object-contain p-2 rounded-lg flex-shrink-0 bg-card dark:bg-[var(--card)]"
                   />
                   <div className="flex-1">
                     <h3 className="text-lg font-medium mb-2">
@@ -4022,7 +3997,7 @@ Cavite State University`;
                           Seller Information
                         </h4>
                         <div 
-                          className="bg-white/60 dark:bg-gray-900/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-5 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg transition-all duration-200 cursor-pointer group"
+                          className="bg-card/60 dark:bg-gray-900/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-5 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg transition-all duration-200 cursor-pointer group"
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
@@ -4049,7 +4024,7 @@ Cavite State University`;
                           <div className="flex items-start gap-4">
                             {/* Avatar */}
                             <Avatar className="h-14 w-14 ring-2 ring-emerald-500/20 group-hover:ring-emerald-500/40 transition-all duration-200">
-                              <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white text-lg">
+                              <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-foreground text-lg">
                                 {(selectedReport.productDetails.seller.username || selectedReport.productDetails.seller.name || 'S').charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
@@ -4058,7 +4033,7 @@ Cavite State University`;
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="text-gray-900 dark:text-gray-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors duration-200">{selectedReport.productDetails.seller.name || selectedReport.productDetails.seller.username}</h4>
-                                <Badge className="bg-red-500 text-white border-0 text-xs px-2 py-0.5">
+                                <Badge className="bg-red-500 text-foreground border-0 text-xs px-2 py-0.5">
                                   Reported User
                                 </Badge>
                               </div>
@@ -4112,7 +4087,7 @@ Cavite State University`;
                                     <ImageWithFallback
                                       src={getPrimaryImage(product)}
                                       alt={product.title}
-                                      className="w-16 h-16 object-contain p-1 rounded bg-white dark:bg-[var(--card)]"
+                                      className="w-16 h-16 object-contain p-1 rounded bg-card dark:bg-[var(--card)]"
                                     />
                                     <div className="flex-1">
                                       <div className="flex items-start justify-between gap-2">
@@ -4173,7 +4148,7 @@ Cavite State University`;
                       </h4>
                       <Card className="border-2 border-orange-300 dark:border-orange-700">
                         <div 
-                          className="bg-white/60 dark:bg-gray-900/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-5 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg transition-all duration-200 cursor-pointer group"
+                          className="bg-card/60 dark:bg-gray-900/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-5 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg transition-all duration-200 cursor-pointer group"
                           onClick={(e) => {
                             e.stopPropagation();
                             // Find the full user object from allUsers
@@ -4192,7 +4167,7 @@ Cavite State University`;
                           <div className="flex items-start gap-4">
                             {/* Avatar */}
                             <Avatar className="h-14 w-14 ring-2 ring-emerald-500/20 group-hover:ring-emerald-500/40 transition-all duration-200">
-                              <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white text-lg">
+                              <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-foreground text-lg">
                                 {(selectedReport.userDetails.username || selectedReport.userDetails.name || 'U').charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
@@ -4201,7 +4176,7 @@ Cavite State University`;
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="text-gray-900 dark:text-gray-100 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors duration-200">{selectedReport.userDetails.username}</h4>
-                                <Badge className="bg-red-500 text-white border-0 text-xs px-2 py-0.5">
+                                <Badge className="bg-red-500 text-foreground border-0 text-xs px-2 py-0.5">
                                   Reported User
                                 </Badge>
                               </div>
@@ -4661,11 +4636,6 @@ Cavite State University`
       </Dialog>
 
 
-<<<<<<< HEAD
-
-=======
-      <div className="py-4 text-muted-foreground">Marketplace statistics removed</div>
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
 
       {/* Product Details Modal is now shown via OverlayManager (screen-level overlay) */}
 
@@ -4742,7 +4712,7 @@ Cavite State University`
         onOpenChange={setShowAuditLogs}
       >
         <DialogContent
-          className="modal-standard sm:max-w-[900px] max-h-[90vh] border-2 rounded-[24px] border-[#cfe8ce] dark:border-[#14b8a6]/20 bg-[var(--card)] dark:bg-gradient-to-br dark:from-[#003726] dark:to-[#021223] shadow-2xl dark:shadow-[0_0_0_1px_rgba(20,184,166,0.15),0_0_25px_rgba(20,184,166,0.2)]"
+          className="iskomarket-twitter-modal p-0 max-w-2xl max-h-[95vh]"
           style={{
             boxShadow: "0 8px 32px rgba(0, 100, 0, 0.08)",
           }}
@@ -4803,37 +4773,37 @@ Cavite State University`
             >
               <option
                 value="all"
-                className="bg-white dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
+                className="bg-card dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
               >
                 All Actions
               </option>
               <option
                 value="deleted"
-                className="bg-white dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
+                className="bg-card dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
               >
                 Deleted
               </option>
               <option
                 value="suspended"
-                className="bg-white dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
+                className="bg-card dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
               >
                 Suspended
               </option>
               <option
                 value="approved"
-                className="bg-white dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
+                className="bg-card dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
               >
                 Approved
               </option>
               <option
                 value="declined"
-                className="bg-white dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
+                className="bg-card dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
               >
                 Declined
               </option>
               <option
                 value="warned"
-                className="bg-white dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
+                className="bg-card dark:bg-[#003726] text-[#006400] dark:text-[#4ade80] py-2"
               >
                 Warned
               </option>
@@ -4844,7 +4814,7 @@ Cavite State University`
             {getFilteredAuditLogs().map((log) => (
               <Card
                 key={log.id}
-                className="border-l-4 border-2 rounded-[20px] border-[#cfe8ce] dark:border-[#14b8a6]/20 hover:shadow-xl dark:hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all duration-300 hover:scale-[1.01] bg-white/50 dark:bg-[var(--card)] backdrop-blur-sm"
+                className="border-l-4 border-2 rounded-[20px] border-[#cfe8ce] dark:border-[#14b8a6]/20 hover:shadow-xl dark:hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all duration-300 hover:scale-[1.01] bg-card/50 dark:bg-[var(--card)] backdrop-blur-sm"
                 style={{
                   boxShadow: "0 4px 16px rgba(0,100,0,0.08)",
                   borderLeftColor:
@@ -4864,7 +4834,7 @@ Cavite State University`
                           {log.adminEmail}
                         </span>
                         <Badge
-                          className="mx-2 rounded-[12px] text-white"
+                          className="mx-2 rounded-[12px] text-foreground"
                           style={{
                             background:
                               log.action === "deleted"
@@ -4912,7 +4882,7 @@ Cavite State University`
 
       {/* Reports Modal */}
       <Dialog open={showReportsModal} onOpenChange={setShowReportsModal}>
-        <DialogContent className="modal-standard sm:max-w-3xl max-h-[90vh]">
+        <DialogContent className="iskomarket-twitter-modal p-0 max-w-2xl max-h-[90vh]">
           <DialogHeader className="sticky top-0 z-50 pb-4 border-b">
             <div className="flex justify-between items-start w-full">
               <DialogTitle className="flex items-center gap-2">
@@ -4932,7 +4902,7 @@ Cavite State University`
 
       {/* For a Cause Review Modal */}
       <Dialog open={showForCauseModal} onOpenChange={setShowForCauseModal}>
-        <DialogContent className="modal-standard sm:max-w-3xl max-h-[90vh]">
+        <DialogContent className="iskomarket-twitter-modal p-0 max-w-2xl max-h-[90vh]">
           <DialogHeader className="sticky top-0 z-50 pb-4 border-b">
             <div className="flex justify-between items-start w-full">
               <DialogTitle className="flex items-center gap-2">
@@ -4971,7 +4941,7 @@ Cavite State University`
 
       {/* Cancel Maintenance Confirmation */}
       <Dialog open={showCancelMaintenanceConfirmation} onOpenChange={() => setShowCancelMaintenanceConfirmation(false)}>
-        <DialogContent className="modal-standard sm:max-w-lg [&>button]:hidden">
+        <DialogContent className="iskomarket-twitter-modal p-0 sm:max-w-lg [&>button]:hidden">
           <DialogHeader className="sticky top-0 bg-background z-50 pb-4 border-b">
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-orange-600" />
@@ -5047,7 +5017,7 @@ Cavite State University`
         open={showActivityDetailModal}
         onOpenChange={setShowActivityDetailModal}
       >
-        <DialogContent className="modal-standard sm:max-w-[600px]">
+        <DialogContent className="iskomarket-twitter-modal p-0 sm:max-w-[600px]">
           <DialogHeader className="px-6 py-4 border-b relative">
             <div className="pr-12">
               <DialogTitle className="flex items-center gap-2">

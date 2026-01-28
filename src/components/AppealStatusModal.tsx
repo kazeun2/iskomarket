@@ -99,7 +99,7 @@ export function AppealStatusModal({ isOpen, onClose, appealData }: AppealStatusM
           {/* Header - sticky */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-green-900/20 dark:bg-gradient-to-r dark:from-[#1a2f1a]/80 dark:via-[#1a2317]/80 dark:to-[#1a1f1a]/80 backdrop-blur-sm">
             <div>
-              <h2 className="text-[22px] md:text-[24px] flex items-center gap-2 dark:text-white">
+              <h2 className="text-[22px] md:text-[24px] flex items-center gap-2 dark:text-foreground">
                 <FileText className="h-5 w-5 text-green-600 dark:text-green-500" />
                 Appeal Status
               </h2>
@@ -146,7 +146,7 @@ export function AppealStatusModal({ isOpen, onClose, appealData }: AppealStatusM
 
               {/* Transaction Details */}
               <div className="bg-muted/50 dark:bg-green-900/20 rounded-lg p-4 space-y-3 border border-transparent dark:border-green-900/20">
-                <h3 className="font-medium text-sm mb-3 dark:text-white">Transaction Details</h3>
+                <h3 className="font-medium text-sm mb-3 dark:text-foreground">Transaction Details</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2">
@@ -195,7 +195,7 @@ export function AppealStatusModal({ isOpen, onClose, appealData }: AppealStatusM
 
               {/* Appeal Reason */}
               <div>
-                <h3 className="font-medium text-sm mb-2 dark:text-white">Your Appeal Reason</h3>
+                <h3 className="font-medium text-sm mb-2 dark:text-foreground">Your Appeal Reason</h3>
                 <div className="bg-muted/30 dark:bg-green-900/20 rounded-lg p-4 border border-border dark:border-green-900/20">
                   <p className="text-sm leading-relaxed whitespace-pre-wrap dark:text-gray-300">
                     {appealData.reason}
@@ -206,7 +206,7 @@ export function AppealStatusModal({ isOpen, onClose, appealData }: AppealStatusM
               {/* Admin Response */}
               {appealData.adminResponse && (
                 <div>
-                  <h3 className="font-medium text-sm mb-2 flex items-center gap-2 dark:text-white">
+                  <h3 className="font-medium text-sm mb-2 flex items-center gap-2 dark:text-foreground">
                     Admin Response
                     {appealData.status === 'approved' && <CheckCircle className="h-4 w-4 text-green-500" />}
                     {appealData.status === 'rejected' && <XCircle className="h-4 w-4 text-red-500" />}
@@ -229,13 +229,13 @@ export function AppealStatusModal({ isOpen, onClose, appealData }: AppealStatusM
 
               {/* Status Timeline */}
               <div>
-                <h3 className="font-medium text-sm mb-3 dark:text-white">Status Timeline</h3>
+                <h3 className="font-medium text-sm mb-3 dark:text-foreground">Status Timeline</h3>
                 <div className="space-y-3">
                   {/* Step 1: Pending */}
                   <div className="flex items-start gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       appealData.status === 'pending' || appealData.status === 'under_evaluation' || appealData.status === 'approved' || appealData.status === 'rejected'
-                        ? 'bg-green-500 text-white'
+                        ? 'bg-green-500 text-foreground'
                         : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
                     }`}>
                       <Clock className="h-4 w-4" />
@@ -250,7 +250,7 @@ export function AppealStatusModal({ isOpen, onClose, appealData }: AppealStatusM
                   <div className="flex items-start gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       appealData.status === 'under_evaluation' || appealData.status === 'approved' || appealData.status === 'rejected'
-                        ? 'bg-green-500 text-white'
+                        ? 'bg-green-500 text-foreground'
                         : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
                     }`}>
                       <Search className="h-4 w-4" />
@@ -266,8 +266,8 @@ export function AppealStatusModal({ isOpen, onClose, appealData }: AppealStatusM
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       appealData.status === 'approved' || appealData.status === 'rejected'
                         ? appealData.status === 'approved' 
-                          ? 'bg-green-500 text-white'
-                          : 'bg-red-500 text-white'
+                          ? 'bg-green-500 text-foreground'
+                          : 'bg-red-500 text-foreground'
                         : 'bg-gray-200 dark:bg-gray-700 text-gray-400'
                     }`}>
                       {appealData.status === 'approved' ? (

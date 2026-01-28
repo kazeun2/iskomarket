@@ -340,7 +340,7 @@ export function NotificationsModal({
         >
           {/* Header - sticky */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-green-900/20 bg-[var(--card)] dark:bg-gradient-to-r dark:from-[#1a2f1a]/90 dark:via-[#1a2317]/90 dark:to-[#1a1f1a]/90 dark:backdrop-blur-sm flex-shrink-0">
-            <h2 className="text-[22px] md:text-[24px] dark:text-white">Notifications</h2>
+            <h2 className="text-[22px] md:text-[24px] dark:text-foreground">Notifications</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors text-green-600 dark:text-green-500"
@@ -375,7 +375,7 @@ export function NotificationsModal({
               // Loading state
               <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
                 <div className="text-6xl mb-4">⏳</div>
-                <h3 className="text-gray-900 dark:text-white mb-2">
+                <h3 className="text-gray-900 dark:text-foreground mb-2">
                   Loading notifications...
                 </h3>
               </div>
@@ -383,7 +383,7 @@ export function NotificationsModal({
               // Empty state
               <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
                 <div className="text-6xl mb-4">📭</div>
-                <h3 className="text-gray-900 dark:text-white mb-2">
+                <h3 className="text-gray-900 dark:text-foreground mb-2">
                   You're all caught up!
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400">

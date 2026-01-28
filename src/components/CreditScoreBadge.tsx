@@ -12,7 +12,7 @@ export function CreditScoreBadge({ score, size = 'md', showLabel = true }: Credi
   const getScoreColor = () => {
     if (score >= 85) return 'bg-primary text-primary-foreground';
     if (score >= 70) return 'bg-secondary text-secondary-foreground';
-    if (score >= 60) return 'bg-yellow-600 text-white';
+    if (score >= 60) return 'bg-yellow-600 text-foreground';
     return 'bg-destructive text-destructive-foreground';
   };
 

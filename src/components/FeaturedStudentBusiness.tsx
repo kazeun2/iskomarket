@@ -140,7 +140,7 @@ export function FeaturedStudentBusiness({
                   "0 4px 12px rgba(245, 158, 11, 0.35)",
               }}
             >
-              <Star className="h-5 w-5 text-white fill-white" />
+              <Star className="h-5 w-5 text-foreground fill-white" />
             </div>
             <h2 className="dark:text-[#C7FFD9] text-[#0A4D28]" style={{ fontSize: '16px', fontWeight: 600 }}>
               Featured Student Businesses

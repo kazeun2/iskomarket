@@ -43,7 +43,7 @@ export function ExtraProductSlotModal({
         <div className="modal-header-standard">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center">
-              <Package className="h-5 w-5 text-white" />
+              <Package className="h-5 w-5 text-foreground" />
             </div>
             <div>
               <h2 className="text-lg">Add one more product slot</h2>

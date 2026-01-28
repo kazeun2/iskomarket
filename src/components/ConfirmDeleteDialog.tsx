@@ -75,7 +75,7 @@ export function ConfirmDeleteDialog({
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button className="bg-destructive text-white" disabled={isLoading} onClick={handleConfirmClick}>
+            <Button className="bg-destructive text-foreground" disabled={isLoading} onClick={handleConfirmClick}>
               {isLoading ? 'Deleting…' : 'Delete'}
             </Button>
           </AlertDialogAction>

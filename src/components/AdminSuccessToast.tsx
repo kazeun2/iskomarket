@@ -41,13 +41,13 @@ export function AdminSuccessToast({ message, onClose, duration = 3000 }: AdminSu
           boxShadow: '0px 4px 16px rgba(0, 0, 0, 0.2)',
         }}
       >
-        <CheckCircle className="h-5 w-5 text-white flex-shrink-0" />
-        <p className="text-white flex-1" style={{ fontSize: '14px', fontWeight: 500 }}>
+        <CheckCircle className="h-5 w-5 text-foreground flex-shrink-0" />
+        <p className="text-foreground flex-1" style={{ fontSize: '14px', fontWeight: 500 }}>
           {message}
         </p>
         <button
           onClick={handleClose}
-          className="text-white hover:bg-white/20 dark:hover:bg-[var(--card)]/20 rounded-full p-1 transition-colors duration-200"
+          className="text-foreground hover:bg-card/20 dark:hover:bg-[var(--card)]/20 rounded-full p-1 transition-colors duration-200"
           aria-label="Close toast"
         >
           <X className="h-4 w-4" />

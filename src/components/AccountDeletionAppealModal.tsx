@@ -70,7 +70,7 @@ export function AccountDeletionAppealModal({
               <div className="p-2 rounded-full bg-red-100 dark:bg-red-950/50">
                 <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
-              <h2 className="text-lg md:text-xl text-[#003300] dark:text-white">
+              <h2 className="text-lg md:text-xl text-[#003300] dark:text-foreground">
                 Submit Appeal
               </h2>
             </div>
@@ -108,7 +108,7 @@ export function AccountDeletionAppealModal({
 
             {/* Deletion Reason (Read-Only) */}
             <div>
-              <label className="block text-sm mb-2 text-[#003300] dark:text-white">
+              <label className="block text-sm mb-2 text-[#003300] dark:text-foreground">
                 Reason for Deletion (Read-only)
               </label>
               <div className="p-4 rounded-[16px] bg-muted dark:bg-green-900/20 border border-gray-300 dark:border-green-900/20 text-sm">
@@ -130,7 +130,7 @@ export function AccountDeletionAppealModal({
 
             {/* Appeal Message */}
             <div>
-              <label className="block text-sm mb-2 text-[#003300] dark:text-white">
+              <label className="block text-sm mb-2 text-[#003300] dark:text-foreground">
                 Appeal Message (optional)
               </label>
               <Textarea
@@ -196,7 +196,7 @@ export function AccountDeletionAppealModal({
             <Button
               onClick={handleSubmitAppeal}
               disabled={isSubmitting}
-              className="w-full bg-primary hover:bg-primary/90 text-white py-6 rounded-[16px]"
+              className="w-full bg-primary hover:bg-primary/90 text-foreground py-6 rounded-[16px]"
             >
               {isSubmitting ? (
                 "Submitting..."

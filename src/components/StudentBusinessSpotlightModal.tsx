@@ -186,11 +186,11 @@ export function StudentBusinessSpotlightModal({
           {/* Header with Premium Spotlight Badge */}
           <div className="modal-header-standard relative !bg-gradient-to-br !from-orange-50/80 !to-amber-50/80 dark:!from-orange-950/30 dark:!to-amber-950/30 backdrop-blur-sm !border-b-2 !border-orange-200/50 dark:!border-orange-500/20">
             <div className="flex items-center justify-between w-full">
-              <h2 className="text-lg text-gray-900 dark:text-white">Post a Product</h2>
+              <h2 className="text-lg text-gray-900 dark:text-foreground">Post a Product</h2>
               
               {/* Premium Spotlight Badge */}
               <Badge 
-                className="bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white border-0 shadow-lg px-3 py-1.5"
+                className="bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-foreground border-0 shadow-lg px-3 py-1.5"
                 style={{
                   fontSize: '13px',
                   fontWeight: 600,
@@ -209,7 +209,7 @@ export function StudentBusinessSpotlightModal({
             <div className="mb-6 p-4 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border-2 border-orange-300/50 dark:border-orange-500/30 rounded-xl">
               <div className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="h-5 w-5 text-white" />
+                  <Sparkles className="h-5 w-5 text-foreground" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-1">
@@ -225,27 +225,27 @@ export function StudentBusinessSpotlightModal({
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Title */}
               <div>
-                <label className="block text-sm mb-2 text-gray-900 dark:text-white">Title *</label>
+                <label className="block text-sm mb-2 text-gray-900 dark:text-foreground">Title *</label>
                 <Input
                   placeholder="e.g., Advanced Calculus Textbook - 3rd Edition"
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   maxLength={100}
-                  className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                  className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-foreground"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formData.title.length}/100 characters</p>
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm mb-2 text-gray-900 dark:text-white">Description *</label>
+                <label className="block text-sm mb-2 text-gray-900 dark:text-foreground">Description *</label>
                 <Textarea
                   placeholder="Describe your item's condition, usage, and any important details..."
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={4}
                   maxLength={500}
-                  className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                  className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-foreground"
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{formData.description.length}/500 characters</p>
               </div>
@@ -253,21 +253,21 @@ export function StudentBusinessSpotlightModal({
               {/* Price and Category */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm mb-2 text-gray-900 dark:text-white">Price (PHP) *</label>
+                  <label className="block text-sm mb-2 text-gray-900 dark:text-foreground">Price (PHP) *</label>
                   <Input
                     type="number"
                     placeholder="1000"
                     value={formData.price}
                     onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                     min="1"
-                    className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-white"
+                    className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-foreground"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Cash payments only</p>
                 </div>
                 <div>
-                  <label className="block text-sm mb-2 text-gray-900 dark:text-white">Category *</label>
+                  <label className="block text-sm mb-2 text-gray-900 dark:text-foreground">Category *</label>
                   <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                    <SelectTrigger className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-white">
+                    <SelectTrigger className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-foreground">
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -284,9 +284,9 @@ export function StudentBusinessSpotlightModal({
               {/* Condition and Meetup Location */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm mb-2 text-gray-900 dark:text-white">Condition *</label>
+                  <label className="block text-sm mb-2 text-gray-900 dark:text-foreground">Condition *</label>
                   <Select value={formData.condition} onValueChange={(value) => setFormData(prev => ({ ...prev, condition: value }))}>
-                    <SelectTrigger className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-white">
+                    <SelectTrigger className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-foreground">
                       <SelectValue placeholder="Select condition" />
                     </SelectTrigger>
                     <SelectContent>
@@ -299,9 +299,9 @@ export function StudentBusinessSpotlightModal({
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm mb-2 text-gray-900 dark:text-white">Preferred Meetup Location *</label>
+                  <label className="block text-sm mb-2 text-gray-900 dark:text-foreground">Preferred Meetup Location *</label>
                   <Select value={formData.location} onValueChange={(value) => setFormData(prev => ({ ...prev, location: value }))}>
-                    <SelectTrigger className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-white">
+                    <SelectTrigger className="dark:bg-gray-800/50 dark:border-gray-700 dark:text-foreground">
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                     <SelectContent>
@@ -317,7 +317,7 @@ export function StudentBusinessSpotlightModal({
 
               {/* Image Upload */}
               <div>
-                <label className="block text-sm mb-2 text-gray-900 dark:text-white">Images * (Max 5)</label>
+                <label className="block text-sm mb-2 text-gray-900 dark:text-foreground">Images * (Max 5)</label>
                 <div className="space-y-4">
                   {/* Upload Area */}
                   <div>
@@ -341,7 +341,7 @@ export function StudentBusinessSpotlightModal({
                       <div className="mt-3">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-xs text-gray-600 dark:text-gray-400">Uploading images...</span>
-                          <span className="text-xs text-gray-900 dark:text-white">{Math.round(imageUploadProgress)}%</span>
+                          <span className="text-xs text-gray-900 dark:text-foreground">{Math.round(imageUploadProgress)}%</span>
                         </div>
                         <Progress value={imageUploadProgress} className="h-2" />
                       </div>
@@ -394,7 +394,7 @@ export function StudentBusinessSpotlightModal({
                 </Button>
                 <Button 
                   type="submit" 
-                  className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white border-0 shadow-lg"
+                  className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-foreground border-0 shadow-lg"
                   disabled={isUploading}
                   style={{
                     boxShadow: '0 4px 12px rgba(251, 146, 60, 0.3)'

@@ -122,7 +122,7 @@ export function OtpVerifyModal({ open, title = 'Verify', description, email, cod
 
   return (
     <Dialog open={open}>
-      <DialogContent className="w-full max-w-md rounded-lg bg-white border border-gray-200 shadow-xl text-gray-900">
+      <DialogContent className="w-full max-w-md rounded-lg bg-card border border-gray-200 shadow-xl text-gray-900">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
@@ -156,7 +156,7 @@ export function OtpVerifyModal({ open, title = 'Verify', description, email, cod
               type="button"
               data-testid="otp-verify-button"
               onClick={handleVerifyClick}
-              className="w-full rounded-md bg-green-600 text-white py-2 font-medium hover:bg-green-700 disabled:opacity-60"
+              className="w-full rounded-md bg-green-600 text-foreground py-2 font-medium hover:bg-green-700 disabled:opacity-60"
               disabled={isLoading}
             >
               {isLoading ? 'Verifying…' : 'Verify'}
@@ -165,7 +165,7 @@ export function OtpVerifyModal({ open, title = 'Verify', description, email, cod
             <button
               type="button"
               onClick={onCancel}
-              className="w-full rounded-md border border-gray-300 bg-white py-2 text-gray-800 hover:bg-gray-50"
+              className="w-full rounded-md border border-gray-300 bg-card py-2 text-gray-800 hover:bg-gray-50"
             >
               Cancel
             </button>

@@ -40,7 +40,7 @@ export function IskoMarketLogo({ size = 'md', variant = 'full', className = '' }
         />
       </div>
       <div>
-        <h1 className="text-xl text-foreground dark:text-white font-bold">IskoMarket</h1>
+        <h1 className="text-xl text-foreground dark:text-foreground font-bold">IskoMarket</h1>
       </div>
     </div>
   );

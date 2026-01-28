@@ -51,7 +51,7 @@ export function ActivityDetailModal({ isOpen, onClose, activity }: ActivityDetai
         >
           {/* Header - sticky */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-green-900/20 dark:bg-gradient-to-r dark:from-[#1a2f1a]/80 dark:via-[#1a2317]/80 dark:to-[#1a1f1a]/80 dark:backdrop-blur-sm">
-            <h2 className="text-[22px] md:text-[24px] flex items-center gap-2 dark:text-white">
+            <h2 className="text-[22px] md:text-[24px] flex items-center gap-2 dark:text-foreground">
               {activity.type === "transaction" && (
                 <ShoppingCart
                   className={`h-5 w-5 ${

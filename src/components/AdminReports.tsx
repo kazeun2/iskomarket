@@ -35,7 +35,7 @@ export function AdminReports() {
         <Button variant={tab==='users'?'default':'ghost'} onClick={()=>setTab('users')}>Users</Button>
       </div>
 
-      <div className="mt-4 bg-white rounded shadow p-3">
+      <div className="mt-4 bg-card rounded shadow p-3">
         <table className="w-full text-sm">
           <thead className="text-xs text-muted-foreground text-left"><tr><th>Target</th><th>Reason</th><th>Reporter</th><th>Has transaction</th><th>Status</th><th></th></tr></thead>
           <tbody>
@@ -49,7 +49,7 @@ export function AdminReports() {
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-11/12 max-w-2xl p-4 bg-white rounded">
+          <div className="w-11/12 max-w-2xl p-4 bg-card rounded">
             <h4 className="font-semibold">Report detail</h4>
             <div className="mt-3 text-sm">Target: {selected.targetType} {selected.targetId}</div>
             <div className="mt-2 text-sm">Reason: {selected.reason}</div>

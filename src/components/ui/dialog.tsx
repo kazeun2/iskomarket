@@ -103,6 +103,9 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 // their own `aria-describedby` it will be honored; otherwise a generated id is used.
 const DialogDescriptionIdContext = React.createContext<string | undefined>(undefined);
 
+// Context to signal child header/footer to render Twitter-compact variants
+const DialogTwitterContext = React.createContext<boolean>(false);
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
@@ -124,6 +127,7 @@ const DialogContent = React.forwardRef<
     });
   };
   const hasDescription = containsDescription(children);
+  const isTwitterModal = typeof className === 'string' && className.includes('iskomarket-twitter-modal');
 
   // Local ref so we can inspect the exact content element at runtime (for diagnostics)
   const innerRef = React.useRef<HTMLElement | null>(null);
@@ -144,9 +148,9 @@ const DialogContent = React.forwardRef<
 
       const neutralizeNode = (n: HTMLElement) => {
         try {
-          // Force neutral surface and shadow
-          n.style.background = '#ffffff';
-          n.style.backgroundColor = '#ffffff';
+          // Allow neutralizer to run for modal elements so the JS normalization applies to the atomic modal (no skip)
+
+          // Force neutral surface and shadow for elements that are unexpectedly translucent
           n.style.boxShadow = '0 12px 30px rgba(0,0,0,0.08)';
           n.style.mixBlendMode = 'normal';
           n.style.isolation = 'isolate';
@@ -290,11 +294,7 @@ const DialogContent = React.forwardRef<
           ref={setRef}
           data-slot="dialog-content"
           className={cn(
-<<<<<<< HEAD
-            "iskomarket-dialog-content forced-modal-bg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[9999] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-gray-200 bg-neutral-50 dark:bg-neutral-900 p-6 shadow-xl text-gray-900 duration-200 sm:max-w-lg [&>button]:hidden",
-=======
-            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[9999] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border border-gray-200 bg-neutral-50 dark:bg-neutral-900 p-6 shadow-xl text-gray-900 duration-200 sm:max-w-lg [&>button]:hidden",
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
+            "iskomarket-dialog-content forced-modal-bg iskomarket-twitter-modal p-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[9999] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 text-gray-900 duration-200 sm:max-w-[64rem] [&>button]:hidden",
             className,
           )}
           style={{ zIndex: Math.max(zIndex + 1, 9999), opacity: 1, isolation: 'isolate', boxShadow: '0 12px 30px rgba(0,0,0,0.08)' }}
@@ -306,23 +306,19 @@ const DialogContent = React.forwardRef<
             <DialogPrimitive.Description id={descriptionId} data-slot="dialog-description" className="sr-only">Dialog content</DialogPrimitive.Description>
           )}
 
-<<<<<<< HEAD
-          {/* Triple-layer nuclear protection to avoid any late global transparency overrides */}
-          <div className="forced-nuclear-bg !bg-[#f8fafc] !bg-slate-50/100 max-w-[100%] max-h-[90vh] overflow-auto w-full">
-            <div className="!bg-white/98 rounded-2xl shadow-2xl p-8 border w-full">
-              <div className="!bg-slate-50 p-2 rounded-xl w-full">
-                {/* Keep the aria-describedby content and children inside the safeguarded layers */}
-                {!hasDescription && (
-                  <DialogPrimitive.Description id={descriptionId} data-slot="dialog-description" className="sr-only">Dialog content</DialogPrimitive.Description>
-                )}
+          {/* Unified modal wrapper to avoid double borders, clipping, and to support glass surfaces */}
 
-                {children}
-              </div>
+          <DialogTwitterContext.Provider value={isTwitterModal}>
+            <div className={cn(
+              isTwitterModal ? "iskomarket-twitter-content w-full max-h-[95vh] overflow-y-auto p-0" : "iskomarket-modal-content w-full max-h-[95vh] overflow-y-auto p-0",
+            )}>
+              {!hasDescription && (
+                <DialogPrimitive.Description id={descriptionId} data-slot="dialog-description" className="sr-only">Dialog content</DialogPrimitive.Description>
+              )}
+
+              {children}
             </div>
-          </div>
-=======
-          {children}
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
+          </DialogTwitterContext.Provider>
         </DialogPrimitive.Content>
       </DialogDescriptionIdContext.Provider>
 
@@ -337,21 +333,28 @@ const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+  const isTwitter = React.useContext(DialogTwitterContext);
+
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-0 items-center text-center sm:text-left", className)}
+      className={cn(
+        isTwitter ? "iskomarket-twitter-title flex flex-col gap-0 items-center text-center sm:text-left" : "iskomarket-modal-header flex flex-col gap-0 items-center text-center sm:text-left",
+        className,
+      )}
       {...props}
     />
   );
 }
 
 function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
+  const isTwitter = React.useContext(DialogTwitterContext);
+
   return (
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        isTwitter ? "iskomarket-twitter-buttons flex flex-col-reverse gap-2 sm:flex-row sm:justify-end" : "iskomarket-modal-footer flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
         className,
       )}
       {...props}

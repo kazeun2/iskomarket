@@ -858,19 +858,19 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
         <TabsList className="flex w-full gap-2 bg-gradient-to-br from-white to-gray-50 dark:from-[#003726]/30 dark:to-[#021223]/50 border border-gray-200/50 dark:border-[#14b8a6]/20 rounded-[20px] p-1.5 dark:shadow-[0_0_20px_rgba(20,184,166,0.08)] backdrop-blur-sm">
           <TabsTrigger 
             value="listings"
-            className="flex-1 text-center rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+            className="flex-1 text-center rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-foreground data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
           >
             My Products
           </TabsTrigger>
           <TabsTrigger 
             value="messages"
-            className="flex-1 text-center rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+            className="flex-1 text-center rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-foreground data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
           >
             Messages
           </TabsTrigger>
           <TabsTrigger 
             value="reviews"
-            className="flex-1 text-center rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
+            className="flex-1 text-center rounded-[16px] data-[state=active]:bg-gradient-to-br data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-foreground data-[state=active]:shadow-[0_4px_12px_rgba(52,211,153,0.3)] transition-all duration-300"
           >
             Reviews
           </TabsTrigger>
@@ -926,7 +926,7 @@ export function UserDashboard({ currentUser, isDarkMode = true, isAdmin = false,
                         <ImageWithFallback
                           src={getPrimaryImage(product)}
                           alt={product.title}
-                          className="w-16 h-16 object-contain bg-white dark:bg-[var(--card)] p-1 rounded-[12px] flex-shrink-0 shadow-md"
+                          className="w-16 h-16 object-contain bg-card dark:bg-[var(--card)] p-1 rounded-[12px] flex-shrink-0 shadow-md"
                         />
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium truncate">{product.title}</h3>

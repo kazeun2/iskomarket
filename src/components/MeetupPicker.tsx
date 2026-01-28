@@ -11,7 +11,7 @@ export default function MeetupPicker({ onPick, onCancel }: { onPick: (iso: strin
   }
 
   return (
-    <div className="p-4 border rounded bg-white">
+    <div className="p-4 border rounded bg-card">
       <div className="mb-2">
         <label className="block text-sm">Date</label>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />

@@ -83,7 +83,7 @@ export function ConversationModal({ isOpen, onClose, contact }: ConversationModa
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="modal-standard w-full max-w-[720px] max-h-[90vh] flex flex-col p-0 rounded-2xl shadow-elev-3 gap-0 overflow-hidden">
+      <DialogContent className="iskomarket-twitter-modal p-0 w-full max-w-2xl max-h-[90vh] flex flex-col gap-0 overflow-hidden">
         {/* Header - Fixed */}
         <DialogHeader 
           className={`px-4 py-4 border-b flex-shrink-0 ${

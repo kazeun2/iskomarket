@@ -410,11 +410,7 @@ export function PostProduct({ meetupLocations, currentUser, onClose, onProductPo
 
   return (
     <>
-<<<<<<< HEAD
       <form onSubmit={handleSubmit} className="space-y-6 bg-inherit max-h-[80vh] overflow-auto forced-modal-inner">
-=======
-      <form onSubmit={handleSubmit} className="space-y-6">
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
         {/* Title */}
         <div>
           <label className="block text-sm mb-2">Title *</label>
@@ -538,7 +534,7 @@ export function PostProduct({ meetupLocations, currentUser, onClose, onProductPo
 
               {!formData.proofDocument ? (
                 <div>
-                  <div className="border-2 border-dashed border-[#FFB300]/40 rounded-lg p-4 text-center hover:border-[#FFB300] transition-colors bg-white dark:bg-card">
+                  <div className="border-2 border-dashed border-[#FFB300]/40 rounded-lg p-4 text-center hover:border-[#FFB300] transition-colors bg-card dark:bg-card">
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
@@ -566,7 +562,7 @@ export function PostProduct({ meetupLocations, currentUser, onClose, onProductPo
                   )}
                 </div>
               ) : (
-                <Card className="border-[#FFB300]/40 bg-white dark:bg-card">
+                <Card className="border-[#FFB300]/40 bg-card dark:bg-card">
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -706,24 +702,27 @@ export function PostProduct({ meetupLocations, currentUser, onClose, onProductPo
           </CardContent>
         </Card>
 
-        {/* Submit Button */}
-        <div className="flex justify-end gap-3">
+        {/* Footer */}
+      </form>
+
+      <div className="iskomarket-modal-footer">
+        <div className="flex justify-end gap-3 w-full">
           {onClose && (
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
           )}
           <Button 
-            type="submit" 
+            type="button" 
             className="bg-green-600 hover:bg-green-700"
+            onClick={handlePreview}
             disabled={isUploading}
           >
             <Eye className="h-4 w-4 mr-2" />
             Preview Listing
           </Button>
         </div>
-      </form>
-
+      </div>
       {/* Preview Modal */}
       <PreviewListingModal
         isOpen={showPreview}

@@ -53,7 +53,7 @@ export function ReportProductModal({ productId, productTitle, productSellerId, o
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-lg p-4 bg-white rounded">
+      <div className="w-full max-w-lg p-4 bg-card rounded">
         <h3 className="text-lg font-semibold">Report Product</h3>
         <p className="text-sm text-muted-foreground">Help us maintain a safe marketplace by reporting inappropriate products.</p>
 

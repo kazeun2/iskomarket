@@ -275,7 +275,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                   </SelectContent>
                 </Select>
               </div>
-              <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-400 dark:to-teal-400 text-white border-0 text-[11px] px-3 py-1">
+              <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-400 dark:to-teal-400 text-foreground border-0 text-[11px] px-3 py-1">
                 <Shield className="h-3 w-3 mr-1" />
                 Admin View
               </Badge>
@@ -327,15 +327,15 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                       {/* Right - Tags in Single Row */}
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Badge 
-                          className="bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white border-0 text-[11px] px-2 py-1"
+                          className="bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-foreground border-0 text-[11px] px-2 py-1"
                         >
                           {getFeedbackTypeLabel(feedback.type)}
                         </Badge>
                         <Badge 
                           className={
                             feedback.status === 'pending'
-                              ? 'bg-amber-500 dark:bg-amber-400 text-white border-0 text-[11px] px-2 py-1'
-                              : 'bg-emerald-500 dark:bg-emerald-400 text-white border-0 text-[11px] px-2 py-1'
+                              ? 'bg-amber-500 dark:bg-amber-400 text-foreground border-0 text-[11px] px-2 py-1'
+                              : 'bg-emerald-500 dark:bg-emerald-400 text-foreground border-0 text-[11px] px-2 py-1'
                           }
                         >
                           {feedback.status === 'pending' ? '🔔 Pending' : '✓ Reviewed'}
@@ -374,7 +374,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                             size="sm"
                             onClick={() => handleSendResponse(feedback.id)}
                             disabled={isSendingResponse || !responseMessage.trim()}
-                            className="flex-1 h-10 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white hover:scale-105 transition-all"
+                            className="flex-1 h-10 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-foreground hover:scale-105 transition-all"
                           >
                             {isSendingResponse ? (
                               <>
@@ -444,7 +444,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
               {/* Selected feedback type info */}
               {feedbackType && (
                 <div className="bg-[var(--card)] dark:bg-[var(--card)] rounded-[16px] p-4 border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20">
-                  <Badge className="bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white border-0 mb-2">
+                  <Badge className="bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-foreground border-0 mb-2">
                     {feedbackTypes.find(t => t.value === feedbackType)?.label}
                   </Badge>
                   <p className="text-[13px] text-[#006400]/70 dark:text-[#4ade80]/70">
@@ -493,7 +493,7 @@ export function FeedbackModal({ isOpen, onClose, currentUser, isDarkMode = false
                 <Button
                   type="submit"
                   disabled={!feedbackType || !message.trim() || isSubmitting}
-                  className="flex-1 h-11 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white hover:scale-105 transition-all shadow-lg hover:shadow-xl"
+                  className="flex-1 h-11 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-foreground hover:scale-105 transition-all shadow-lg hover:shadow-xl"
                 >
                   {isSubmitting ? (
                     <div className="flex items-center space-x-2">

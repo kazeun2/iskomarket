@@ -274,7 +274,7 @@ export function UserProfileHeader({
               <div className="flex-1 min-w-0 space-y-2.5">
                 {/* Username - Large & Bold (Premium) */}
                 <div className="space-y-0.5">
-                  <h1 className="text-[34px] leading-[1.1] font-bold text-[#1a1a1a] dark:text-white tracking-[-0.02em]">
+                  <h1 className="text-[34px] leading-[1.1] font-bold text-[#1a1a1a] dark:text-foreground tracking-[-0.02em]">
                     <UsernameWithGlow 
                       username={currentUser?.username || currentUser?.name || 'User'}
                       glowEffect={currentUser?.glowEffect}
@@ -313,14 +313,14 @@ export function UserProfileHeader({
 
                   {/* Trustworthy Badge - Clean Green */}
                   {score >= 80 && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[12px] font-semibold shadow-sm border border-white/40">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 text-foreground text-[12px] font-semibold shadow-sm border border-white/40">
                       <span className="text-[14px]">✓</span>
                       <span>Trustworthy</span>
                     </div>
                   )}
 
                   {/* Rating - Amber Pill with Star */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[12px] font-semibold shadow-sm border border-white/40">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-foreground text-[12px] font-semibold shadow-sm border border-white/40">
                     <Star className="h-3 w-3 fill-white" />
                     <span>{userStats.rating}</span>
                     <span className="opacity-80">

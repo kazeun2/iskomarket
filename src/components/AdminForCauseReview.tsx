@@ -41,7 +41,7 @@ export function AdminForCauseReview() {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">For a Cause Review</h3>
-      <div className="bg-white rounded shadow p-3">
+      <div className="bg-card rounded shadow p-3">
         <table className="w-full text-sm">
           <thead className="text-left text-xs text-muted-foreground"><tr><th>Product</th><th>Seller</th><th>Cause</th><th>Org</th><th>Submitted</th><th></th></tr></thead>
           <tbody>
@@ -55,7 +55,7 @@ export function AdminForCauseReview() {
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-11/12 max-w-3xl p-4 bg-white rounded">
+          <div className="w-11/12 max-w-3xl p-4 bg-card rounded">
             <div className="flex items-start justify-between">
               <h4 className="font-semibold">Review For a Cause</h4>
               <div><ForCauseBadge status={selected.status} forSeller={true} /></div>

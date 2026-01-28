@@ -57,7 +57,7 @@ export function ReportUserModal({ reportedUserId, open, onClose, reporterId, has
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-lg p-4 bg-white rounded">
+      <div className="w-full max-w-lg p-4 bg-card rounded">
         <h3 className="text-lg font-semibold">Report User</h3>
         <p className="text-sm text-muted-foreground">False reports may result in account restrictions.</p>
 

@@ -84,7 +84,7 @@ export function IskoinWallet({
           ease: "linear"
         }}
       >
-        <span className={`${config.coinText} ${isLocked ? 'text-gray-100' : 'text-white'}`}>
+        <span className={`${config.coinText} ${isLocked ? 'text-gray-100' : 'text-foreground'}`}>
           🪙
         </span>
       </motion.div>
@@ -355,7 +355,7 @@ export function IskoinEarnAnimation({ onComplete }: { onComplete?: () => void })
         >
           🪙
         </motion.div>
-        <div className="text-center text-white">
+        <div className="text-center text-foreground">
           <div className="text-xl font-medium">+1 Iskoin!</div>
           <div className="text-sm opacity-90">Keep up the great work!</div>
         </div>

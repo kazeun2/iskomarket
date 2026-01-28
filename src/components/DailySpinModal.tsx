@@ -174,7 +174,7 @@ export function DailySpinModal({
           <div className="modal-content-standard !max-h-[300px]">
             <div className="text-center space-y-4 py-8">
               <div className="h-20 w-20 mx-auto rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center opacity-20">
-                <Trophy className="h-10 w-10 text-white" />
+                <Trophy className="h-10 w-10 text-foreground" />
               </div>
               <div className="space-y-2">
                 <p className="text-lg">
@@ -217,9 +217,9 @@ export function DailySpinModal({
         <div className="modal-header-standard relative bg-[var(--card)] dark:!bg-gradient-to-br dark:!from-[#003726]/80 dark:!via-[#004d3d]/70 dark:!to-[#002818]/80 backdrop-blur-xl !border-b !border-gray-200/50 dark:!border-[#14b8a6]/20">
           <DialogTitle className="flex items-center gap-3 text-left w-full">
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg">
-              <Trophy className="h-5 w-5 text-white" />
+              <Trophy className="h-5 w-5 text-foreground" />
             </div>
-            <span className="flex-1 text-gray-900 dark:text-white">Daily Spin for Iskoins</span>
+            <span className="flex-1 text-gray-900 dark:text-foreground">Daily Spin for Iskoins</span>
             
             {/* Live Iskoin Balance Badge */}
             <motion.div
@@ -227,7 +227,7 @@ export function DailySpinModal({
               initial={{ scale: 1.1 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 text-white text-sm font-medium shadow-lg ml-auto mr-2"
+              className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 text-foreground text-sm font-medium shadow-lg ml-auto mr-2"
             >
               <Coins className="h-3 w-3 inline mr-1" />
               {currentIskoins} Iskoins
@@ -394,7 +394,7 @@ export function DailySpinModal({
                           }}
                         >
                           <span 
-                            className="text-white text-2xl font-bold"
+                            className="text-foreground text-2xl font-bold"
                             style={{
                               textShadow: `
                                 0 3px 10px rgba(0, 0, 0, 0.5),
@@ -475,12 +475,12 @@ export function DailySpinModal({
                     earned!
                   </div>
                   {result === 7 && (
-                    <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0 text-lg px-4 py-1">
+                    <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-foreground border-0 text-lg px-4 py-1">
                       🎉 JACKPOT!
                     </Badge>
                   )}
                   {result >= 4 && result < 7 && (
-                    <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white border-0">
+                    <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-foreground border-0">
                       ✨ Great Spin!
                     </Badge>
                   )}
@@ -540,7 +540,7 @@ export function DailySpinModal({
               <Button
                 onClick={handleSpin}
                 disabled={isSpinning || spinsLeft === 0}
-                className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-[16px] h-12 shadow-[0_4px_12px_rgba(16,185,129,0.3)] hover:shadow-[0_6px_16px_rgba(16,185,129,0.4)] transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-foreground rounded-[16px] h-12 shadow-[0_4px_12px_rgba(16,185,129,0.3)] hover:shadow-[0_6px_16px_rgba(16,185,129,0.4)] transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 size="lg"
               >
                 {isSpinning ? (
@@ -607,7 +607,7 @@ export function DailySpinModal({
                     className="text-center"
                   >
                     <div
-                      className="h-10 w-10 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-bold shadow-lg"
+                      className="h-10 w-10 rounded-full mx-auto mb-2 flex items-center justify-center text-foreground font-bold shadow-lg"
                       style={{ 
                         backgroundColor: prize.color,
                         boxShadow: `0 4px 12px ${prize.color}40, inset 0 1px 2px rgba(255, 255, 255, 0.3)`

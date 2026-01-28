@@ -249,7 +249,7 @@ export function RankUpAnimationModal({
                         boxShadow: `0 0 40px ${newConfig.glow}, inset 0 0 20px rgba(255,255,255,0.2)`,
                       }}
                     >
-                      <Award className="h-10 w-10 text-white" />
+                      <Award className="h-10 w-10 text-foreground" />
                     </div>
                   </motion.div>
 
@@ -392,7 +392,7 @@ export function RankUpAnimationModal({
                     {newConfig.emoji}
                   </motion.span>
                   <span 
-                    className="text-xs font-bold text-center px-2 text-white"
+                    className="text-xs font-bold text-center px-2 text-foreground"
                     style={{ 
                       textShadow: `0 0 10px ${newConfig.glow}`,
                     }}
@@ -455,7 +455,7 @@ export function RankUpAnimationModal({
                 }}
               >
                 <motion.span
-                  className="relative z-10 flex items-center gap-2 text-white font-semibold"
+                  className="relative z-10 flex items-center gap-2 text-foreground font-semibold"
                   whileHover={{ scale: 1.05 }}
                 >
                   <Sparkles className="h-5 w-5" />

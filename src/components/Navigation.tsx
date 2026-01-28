@@ -388,7 +388,7 @@ export function Navigation({
                 align="end" 
                 className={`
                   w-56
-                  bg-white
+                  bg-card
                   ${isDarkMode ? 'border-[#14b8a6]/20' : 'border-[rgba(0,0,0,0.06)]'}
                   ${isDarkMode 
                     ? 'shadow-[0_0_0_1px_rgba(20,184,166,0.15),0_0_25px_rgba(20,184,166,0.2),0_8px_32px_rgba(0,55,38,0.4)]' 
@@ -594,7 +594,7 @@ export function Navigation({
             sm:max-w-[480px] rounded-2xl
             ${isDarkMode 
               ? 'bg-gradient-to-br from-[#003726] to-[#021223] border-[#14b8a6]/20' 
-              : 'bg-white border-[#cfe8ce]'
+              : 'bg-card border-[#cfe8ce]'
             }
             border-2
             ${isDarkMode 
@@ -691,7 +691,7 @@ export function Navigation({
             sm:max-w-[480px] rounded-2xl
             ${isDarkMode 
               ? 'bg-gradient-to-br from-[#003726] to-[#021223] border-[#14b8a6]/20' 
-              : 'bg-white border-[#cfe8ce]'
+              : 'bg-card border-[#cfe8ce]'
             }
             border-2
             ${isDarkMode 
@@ -734,7 +734,7 @@ export function Navigation({
                   ${passwordError ? "border-red-500" : ""}
                   ${isDarkMode 
                     ? 'bg-[#0a2f1f]/40 border-[#14b8a6]/20 text-[#C7EAC3] placeholder:text-[#C7EAC3]/50' 
-                    : 'bg-white border-[#cfe8ce] text-[#004d1a] placeholder:text-[#004d1a]/50'
+                    : 'bg-card border-[#cfe8ce] text-[#004d1a] placeholder:text-[#004d1a]/50'
                   }
                 `}
               />

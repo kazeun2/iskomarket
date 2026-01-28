@@ -169,7 +169,7 @@ For questions or concerns, please contact the admin team.
             <div className="grid grid-cols-2 gap-3">
               <Button
                 className={alertType === 'maintenance' 
-                  ? 'w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-white shadow-[0_0_12px_rgba(0,255,150,0.35)] hover:brightness-110' 
+                  ? 'w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-foreground shadow-[0_0_12px_rgba(0,255,150,0.35)] hover:brightness-110' 
                   : 'w-full bg-transparent border-[rgba(0,120,60,0.35)] dark:border-[rgba(0,255,160,0.45)] text-[#3d7653] dark:text-[#7AD0A1] hover:bg-[rgba(0,120,60,0.05)] dark:hover:bg-[rgba(0,255,160,0.05)]'
                 }
                 onClick={() => setAlertType('maintenance')}
@@ -178,7 +178,7 @@ For questions or concerns, please contact the admin team.
               </Button>
               <Button
                 className={alertType === 'alert' 
-                  ? 'w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-white shadow-[0_0_12px_rgba(0,255,150,0.35)] hover:brightness-110' 
+                  ? 'w-full bg-gradient-to-r from-[#0c8f4a] to-[#067232] text-foreground shadow-[0_0_12px_rgba(0,255,150,0.35)] hover:brightness-110' 
                   : 'w-full bg-transparent border-[rgba(0,120,60,0.35)] dark:border-[rgba(0,255,160,0.45)] text-[#3d7653] dark:text-[#7AD0A1] hover:bg-[rgba(0,120,60,0.05)] dark:hover:bg-[rgba(0,255,160,0.05)]'
                 }
                 onClick={() => setAlertType('alert')}
@@ -204,7 +204,7 @@ For questions or concerns, please contact the admin team.
               value={alertMessage}
               onChange={(e) => setAlertMessage(e.target.value)}
               rows={12}
-              className="resize-none bg-white dark:bg-[rgba(14,24,20,0.55)] border-[rgba(0,128,64,0.18)] dark:border-[rgba(0,255,160,0.22)] text-[#064E33] dark:text-[#E9FFF4] focus:ring-2 focus:ring-[rgba(0,255,150,0.45)] transition-all"
+              className="resize-none bg-card dark:bg-[rgba(14,24,20,0.55)] border-[rgba(0,128,64,0.18)] dark:border-[rgba(0,255,160,0.22)] text-[#064E33] dark:text-[#E9FFF4] focus:ring-2 focus:ring-[rgba(0,255,150,0.45)] transition-all"
             />
             <p className="text-xs text-[#7FAF97] dark:text-[#A8EFD0]">
               This message will be displayed to all active users
@@ -263,7 +263,7 @@ For questions or concerns, please contact the admin team.
               Cancel
             </Button>
             <Button
-              className="flex-1 bg-gradient-to-r from-[#FF7A30] to-[#E85B00] text-white shadow-[0_0_12px_rgba(255,120,40,0.4)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
+              className="flex-1 bg-gradient-to-r from-[#FF7A30] to-[#E85B00] text-foreground shadow-[0_0_12px_rgba(255,120,40,0.4)] hover:brightness-110 hover:translate-y-[-1px] transition-all"
               onClick={handleSendAlert}
               disabled={isSubmitting}
             >

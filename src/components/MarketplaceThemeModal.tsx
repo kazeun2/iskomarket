@@ -94,7 +94,7 @@ export function MarketplaceThemeModal({
         <div className="modal-header-standard">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center">
-              <Palette className="h-5 w-5 text-white" />
+              <Palette className="h-5 w-5 text-foreground" />
             </div>
             <div>
               <h2 className="text-lg">Choose your marketplace theme</h2>
@@ -135,7 +135,7 @@ export function MarketplaceThemeModal({
                     </div>
                     {selectedTheme === theme.name && (
                       <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0 ml-2">
-                        <Check className="h-3 w-3 text-white" />
+                        <Check className="h-3 w-3 text-foreground" />
                       </div>
                     )}
                   </div>
@@ -209,7 +209,7 @@ export function MarketplaceThemeModal({
                   {/* Mock Button */}
                   <div className="mt-3 h-10 rounded-lg flex items-center justify-center"
                        style={{ backgroundColor: currentTheme.colors.secondary }}>
-                    <span className="text-xs text-white">Sample Button</span>
+                    <span className="text-xs text-foreground">Sample Button</span>
                   </div>
                 </div>
               ) : (

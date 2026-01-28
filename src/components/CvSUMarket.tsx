@@ -1281,8 +1281,8 @@ export default function CvSUMarket({ onRequestEdit, userType }: { onRequestEdit?
                 }}
               />
               <div className="relative z-10 flex items-center gap-2 px-4">
-                <Building2 className="h-4 w-4 dark:text-white text-[#0A5C2E]" />
-                <span className="dark:text-white text-[#0A5C2E]">
+                <Building2 className="h-4 w-4 dark:text-foreground text-[#0A5C2E]" />
+                <span className="dark:text-foreground text-[#0A5C2E]">
                   CvSU Marketing Office
                 </span>
               </div>
@@ -1325,7 +1325,7 @@ export default function CvSUMarket({ onRequestEdit, userType }: { onRequestEdit?
 
                   {/* Gradient overlay for title/category */}
                   <div className="absolute left-0 right-0 bottom-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
-                    <div className="text-sm font-semibold text-white truncate">
+                    <div className="text-sm font-semibold text-foreground truncate">
                       {/* Highlight simple match in title when searching */}
                       {(() => {
                         const t = product.title || product.name || '';
@@ -1347,7 +1347,7 @@ export default function CvSUMarket({ onRequestEdit, userType }: { onRequestEdit?
                       <button
                         onClick={(e) => { e.stopPropagation(); handleEditProduct(product); }}
                         aria-label="Edit product"
-                        className="h-9 w-9 rounded-full bg-[#0A8F46] text-white shadow-md flex items-center justify-center border border-[rgba(0,128,40,0.12)]"
+                        className="h-9 w-9 rounded-full bg-[#0A8F46] text-foreground shadow-md flex items-center justify-center border border-[rgba(0,128,40,0.12)]"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -1355,7 +1355,7 @@ export default function CvSUMarket({ onRequestEdit, userType }: { onRequestEdit?
                         onClick={(e) => { e.stopPropagation(); handleDeleteProduct(product); }}
                         aria-label="Delete product"
                         disabled={deletingIds.has(String(product.id) || String(product.product_id || ''))}
-                        className={`h-9 w-9 rounded-full ${deletingIds.has(String(product.id) || String(product.product_id || '')) ? 'bg-yellow-400 cursor-wait' : 'bg-red-500'} text-white shadow-md flex items-center justify-center border border-[rgba(0,0,0,0.06)]`}
+                        className={`h-9 w-9 rounded-full ${deletingIds.has(String(product.id) || String(product.product_id || '')) ? 'bg-yellow-400 cursor-wait' : 'bg-red-500'} text-foreground shadow-md flex items-center justify-center border border-[rgba(0,0,0,0.06)]`}
                       >
                         {deletingIds.has(String(product.id) || String(product.product_id || '')) ? (
                           <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>

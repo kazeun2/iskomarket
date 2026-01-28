@@ -5,7 +5,7 @@ export default function RateModal({ onSubmit, onCancel, otherName }: { onSubmit:
   const [note, setNote] = useState('')
 
   return (
-    <div className="p-4 border rounded bg-white">
+    <div className="p-4 border rounded bg-card">
       <h3 className="font-bold">Rate {otherName}</h3>
       <div className="mt-2">
         <label className="block text-sm">Rating</label>

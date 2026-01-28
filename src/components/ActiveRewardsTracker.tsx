@@ -179,7 +179,7 @@ export function ActiveRewardsTracker({ activeRewards, userIskoins, onExtend, onR
                       flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-1
                       ${
                         canAffordExtend(reward.rewardId)
-                          ? 'bg-blue-500/90 hover:bg-blue-600 text-white shadow-sm hover:shadow-md hover:scale-[1.02]'
+                          ? 'bg-blue-500/90 hover:bg-blue-600 text-foreground shadow-sm hover:shadow-md hover:scale-[1.02]'
                           : 'bg-[#EEF5EF] dark:bg-gray-600/30 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                       }
                     `}
@@ -198,7 +198,7 @@ export function ActiveRewardsTracker({ activeRewards, userIskoins, onExtend, onR
                       flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-1
                       ${
                         canAffordRenew(reward.rewardId)
-                          ? 'bg-amber-500/90 hover:bg-amber-600 text-white shadow-sm hover:shadow-md hover:scale-[1.02]'
+                          ? 'bg-amber-500/90 hover:bg-amber-600 text-foreground shadow-sm hover:shadow-md hover:scale-[1.02]'
                           : 'bg-[#EEF5EF] dark:bg-gray-600/30 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                       }
                     `}
@@ -265,7 +265,7 @@ export function ActiveRewardsTracker({ activeRewards, userIskoins, onExtend, onR
                       className={`
                         flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all duration-200
                         ${canAffordRenew(reward.rewardId)
-                          ? 'bg-[#006400] hover:bg-[#004d00] dark:bg-[#1e6b1e] dark:hover:bg-[#155815] text-white shadow-sm'
+                          ? 'bg-[#006400] hover:bg-[#004d00] dark:bg-[#1e6b1e] dark:hover:bg-[#155815] text-foreground shadow-sm'
                           : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-600 cursor-not-allowed'
                         }
                       `}

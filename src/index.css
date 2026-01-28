@@ -16880,7 +16880,6 @@
   --iskomarket-accent-green: #32cd32;
   --iskomarket-muted-green: #90ee90;
   --iskomarket-pure-white: #fff;
-<<<<<<< HEAD
   /* Theme surface HSL variables (avoid transparent defaults) */
   --background-h: 0 0% 98%; /* off-white */
   --card-h: 0 0% 97%;
@@ -16890,13 +16889,6 @@
   --card: hsl(var(--card-h));
   --card-foreground: #030;
   --popover: hsl(var(--popover-h));
-=======
-  --background: transparent;
-  --foreground: #030;
-  --card: #fff;
-  --card-foreground: #030;
-  --popover: #fff;
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   --popover-foreground: #030;
   --primary: #006400;
   --primary-foreground: #fff;
@@ -16992,11 +16984,7 @@
 }
 
 .dark {
-<<<<<<< HEAD
   --background: hsl(var(--background-h));
-=======
-  --background: transparent;
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   --foreground: #fff;
   --card: #1e3a2e;
   --card-foreground: #fff;

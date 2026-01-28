@@ -3,7 +3,7 @@ import { Badge } from './ui/badge'
 
 export function ForCausePreview({ data }: { data: any }) {
   return (
-    <div className="p-4 bg-white/80 rounded-md shadow-sm">
+    <div className="p-4 bg-card/80 rounded-md shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">{data.title}</h3>
         <Badge>💛 For a Cause</Badge>

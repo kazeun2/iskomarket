@@ -323,7 +323,7 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
       >
       {/* Premium Glassmorphism Container */}
       <div 
-        className={`relative w-full max-w-3xl max-h-[92vh] overflow-hidden rounded-[32px] bg-white product-detail-radial dark:bg-[#0a120e]/65 border-[1.5px] border-[rgba(0,0,0,0.06)] dark:border-[rgba(0,255,180,0.15)] animate-in zoom-in-95 duration-300 transition-opacity duration-200 ${
+        className={`relative w-full max-w-3xl max-h-[92vh] overflow-hidden rounded-[32px] bg-card product-detail-radial dark:bg-[#0a120e]/65 border-[1.5px] border-[rgba(0,0,0,0.06)] dark:border-[rgba(0,255,180,0.15)] animate-in zoom-in-95 duration-300 transition-opacity duration-200 ${
           isSecondaryModalOpen ? 'opacity-60' : 'opacity-100'
         }`}
         style={{
@@ -460,7 +460,7 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
                 <h3 className="text-sm uppercase tracking-wide text-gray-500 dark:text-gray-400">Seller Information</h3>
                 
                 <div 
-                  className="bg-white/60 dark:bg-[var(--card)]/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-5 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-200 cursor-pointer"
+                  className="bg-card/60 dark:bg-[var(--card)]/30 border border-gray-200/70 dark:border-gray-700/50 rounded-[20px] p-5 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all duration-200 cursor-pointer"
                   onClick={() => {
                     if (onSellerClick) {
                       onSellerClick(displayProduct.seller);
@@ -472,7 +472,7 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     <Avatar className="h-14 w-14 ring-2 ring-emerald-500/20">
-                      <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white text-lg">
+                      <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-foreground text-lg">
                         {(displayProduct.seller.username || displayProduct.seller.name || 'M').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -481,7 +481,7 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="text-gray-900 dark:text-gray-100"><UsernameWithGlow username={displayProduct.seller.username || displayProduct.seller.name || 'MariaBendo'} glowEffect={displayProduct.seller?.glowEffect} showTimer={false} /></h4>
-                        <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0 text-xs px-2 py-0.5">
+                        <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-foreground border-0 text-xs px-2 py-0.5">
                           Trustworthy Badge
                         </Badge>
                       </div>
@@ -531,7 +531,7 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
                   {recentReviews.map((review) => (
                     <div 
                       key={review.id}
-                      className="bg-white/40 dark:bg-gray-900/20 border border-gray-200/50 dark:border-gray-700/30 rounded-2xl p-4"
+                      className="bg-card/40 dark:bg-gray-900/20 border border-gray-200/50 dark:border-gray-700/30 rounded-2xl p-4"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <StarRating rating={review.rating} size="sm" />
@@ -675,7 +675,7 @@ export function ProductDetail({ product, onClose, meetupLocations, onSellerClick
             {!isOwner && (
               <Button
                 onClick={handleContactSeller}
-                className="flex-1 h-12 px-8 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 dark:from-emerald-500 dark:to-emerald-600 dark:hover:from-emerald-600 dark:hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                className="flex-1 h-12 px-8 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 dark:from-emerald-500 dark:to-emerald-600 dark:hover:from-emerald-600 dark:hover:to-emerald-700 text-foreground shadow-lg hover:shadow-xl transition-all duration-200"
                 style={{
                   boxShadow: '0 4px 12px rgba(0,0,0,0.15), 0 0 0 0 rgba(0,255,180,0)',
                 }}
@@ -893,13 +893,13 @@ return (
             {allReviews.map((review) => (
               <div 
                 key={review.id}
-                className="bg-white/40 dark:bg-gray-900/20 
+                className="bg-card/40 dark:bg-gray-900/20 
                            border border-gray-200/50 dark:border-gray-700/30 
                            rounded-2xl p-5"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+                    <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-foreground">
                       {(review.buyerName || 'U').charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>

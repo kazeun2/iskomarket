@@ -35,7 +35,7 @@ export function TrustworthyBadge({
         type: 'trustworthy',
         label: 'Trustworthy',
         icon: <ShieldCheck className={iconSizes[size]} />,
-        className: 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 shadow-md',
+        className: 'bg-gradient-to-r from-green-600 to-emerald-600 text-foreground border-0 shadow-md',
         emoji: '✅',
         accessLevel: 'Full access – buy, sell, message, view profiles',
         description: 'Verified credibility and consistent positive marketplace behavior'
@@ -48,7 +48,7 @@ export function TrustworthyBadge({
         type: 'under-review',
         label: 'Under Review',
         icon: <ShieldAlert className={iconSizes[size]} />,
-        className: 'bg-gradient-to-r from-red-600 to-rose-600 text-white border-0 shadow-md',
+        className: 'bg-gradient-to-r from-red-600 to-rose-600 text-foreground border-0 shadow-md',
         emoji: '🔴',
         accessLevel: 'Limited access – can only view marketplace listings',
         description: 'Account under review – subject to removal. Cannot contact sellers, view seller profiles, or post products until trust is rebuilt'

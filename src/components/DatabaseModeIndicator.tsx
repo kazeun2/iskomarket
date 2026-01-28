@@ -20,7 +20,7 @@ export function DatabaseModeIndicator() {
       {isExpanded ? (
         <div className="bg-[var(--card)] dark:bg-[var(--card)] rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 w-80 animate-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-start justify-between mb-2">
-            <h4 className="font-semibold text-gray-900 dark:text-white">
+            <h4 className="font-semibold text-gray-900 dark:text-foreground">
               {isConfigured ? '✅ Supabase Connected' : '⚠️ Database Not Connected'}
             </h4>
             <button
@@ -38,7 +38,7 @@ export function DatabaseModeIndicator() {
                 Connected to Supabase database
               </p>
               <div className="space-y-1">
-                <p className="font-medium text-gray-900 dark:text-white">Features:</p>
+                <p className="font-medium text-gray-900 dark:text-foreground">Features:</p>
                 <ul className="list-disc list-inside space-y-1 text-xs">
                   <li>Real-time data synchronization</li>
                   <li>User authentication & OTP</li>
@@ -57,7 +57,7 @@ export function DatabaseModeIndicator() {
               </div>
               
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <p className="font-medium text-gray-900 dark:text-white text-xs mb-2">
+                <p className="font-medium text-gray-900 dark:text-foreground text-xs mb-2">
                   Setup Instructions:
                 </p>
                 <ol className="list-decimal list-inside space-y-1 text-xs">
@@ -76,8 +76,8 @@ export function DatabaseModeIndicator() {
           onClick={() => setIsExpanded(true)}
           className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all duration-200 hover:scale-105 ${
             isConfigured
-              ? 'bg-green-500 hover:bg-green-600 text-white'
-              : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+              ? 'bg-green-500 hover:bg-green-600 text-foreground'
+              : 'bg-yellow-500 hover:bg-yellow-600 text-foreground'
           }`}
         >
           {isConfigured ? (

@@ -76,7 +76,7 @@ export function ShoutOutFeatureModal({
             <div className="flex flex-col items-center text-center gap-2">
               {/* Circle Avatar with Initials */}
               <Avatar className="h-14 w-14 border-2 border-amber-400 dark:border-amber-600">
-                <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white text-sm">
+                <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-foreground text-sm">
                   {getInitials(currentUser?.username || "U")}
                 </AvatarFallback>
               </Avatar>

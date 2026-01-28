@@ -92,7 +92,7 @@ export function ActiveProductsModal({ isOpen, onClose, initialCount, onSelectPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="modal-standard sm:max-w-[800px] max-h-[90vh]">
+      <DialogContent className="iskomarket-twitter-modal p-0 max-w-none max-h-[95vh]">
         <DialogHeader className="sticky top-0 bg-background z-50 pb-4 border-b">
           <div className="pr-12">
             <DialogTitle className="flex items-center gap-2">

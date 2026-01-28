@@ -391,7 +391,7 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                   </div>
                   {/* Camera Icon Badge */}
                   <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] flex items-center justify-center shadow-lg">
-                    <Camera className="h-5 w-5 text-white" />
+                    <Camera className="h-5 w-5 text-foreground" />
                   </div>
                 </div>
 
@@ -406,7 +406,7 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                     setTempPreview(imagePreview || existingImageUrl || '');
                     setIsEditingImage(true);
                   }}
-                  className="h-11 px-6 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white hover:scale-105 transition-all shadow-lg hover:shadow-xl"
+                  className="h-11 px-6 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-foreground hover:scale-105 transition-all shadow-lg hover:shadow-xl"
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Change Image
@@ -414,7 +414,7 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
 
                 {/* Image Edit Options */}
                 {isEditingImage && (
-                  <div className="w-full space-y-4 p-5 bg-white dark:bg-[var(--card)] rounded-[16px] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20">
+                  <div className="w-full space-y-4 p-5 bg-card dark:bg-[var(--card)] rounded-[16px] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20">
                     {/* Upload from device */}
                     <div className="space-y-2">
                       <Label htmlFor="image-upload" className="text-[13px] font-medium text-[#006400] dark:text-[#4ade80]">
@@ -425,7 +425,7 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                         type="file"
                         accept="image/*"
                         onChange={handleTempFileChange}
-                        className="cursor-pointer h-11 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]"
+                        className="cursor-pointer h-11 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]"
                       />
                     </div>
 
@@ -440,7 +440,7 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                         placeholder="https://example.com/image.jpg"
                         value={tempUrlInput}
                         onChange={(e) => handleTempUrlChange(e.target.value)}
-                        className="h-11 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40"
+                        className="h-11 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40"
                       />
                     </div>
 
@@ -456,7 +456,7 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                       <Button
                         type="button"
                         onClick={handleConfirmImageEdit}
-                        className="flex-1 h-10 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-white hover:scale-105 transition-all"
+                        className="flex-1 h-10 rounded-[12px] bg-gradient-to-r from-[#006400] to-[#228b22] dark:from-[#14b8a6] dark:to-[#0d9488] text-foreground hover:scale-105 transition-all"
                       >
                         Confirm
                       </Button>
@@ -477,7 +477,7 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="Enter item title"
                 required
-                className="h-12 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 px-4"
+                className="h-12 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 px-4"
               />
             </div>
 
@@ -499,7 +499,7 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                   min="0"
                   step="0.01"
                   required
-                  className="h-12 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 pl-9 pr-4"
+                  className="h-12 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 pl-9 pr-4"
                 />
               </div>
               <p className="text-[12px] text-[#006400]/60 dark:text-[#4ade80]/60">
@@ -518,7 +518,7 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Describe your item..."
                 rows={4}
-                className="bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 p-4 resize-none"
+                className="bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80] placeholder:text-[#006400]/40 dark:placeholder:text-[#4ade80]/40 p-4 resize-none"
               />
               <p className="text-[12px] text-[#006400]/60 dark:text-[#4ade80]/60">
                 Buyers will see this in your product listing
@@ -531,10 +531,10 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                 Category *
               </Label>
               <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                <SelectTrigger className="h-12 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]">
+                <SelectTrigger className="h-12 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#003726] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[12px]">
+                <SelectContent className="bg-card dark:bg-[#003726] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[12px]">
                   {categories.filter(c => c !== 'All Categories').map(category => (
                     <SelectItem 
                       key={category} 
@@ -554,10 +554,10 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                 Condition *
               </Label>
               <Select value={formData.condition} onValueChange={(value) => handleInputChange('condition', value)}>
-                <SelectTrigger className="h-12 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]">
+                <SelectTrigger className="h-12 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]">
                   <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#003726] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[12px]">
+                <SelectContent className="bg-card dark:bg-[#003726] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[12px]">
                   {conditions.map(condition => (
                     <SelectItem 
                       key={condition} 
@@ -577,10 +577,10 @@ export function EditListingModal({ isOpen, onClose, listing, onUpdateListing, po
                 Preferred Meetup Location *
               </Label>
               <Select value={formData.location} onValueChange={(value) => handleInputChange('location', value)}>
-                <SelectTrigger className="h-12 bg-white dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]">
+                <SelectTrigger className="h-12 bg-card dark:bg-[var(--card)] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 focus:border-[#006400] dark:focus:border-[#14b8a6] rounded-[12px] text-[#006400] dark:text-[#4ade80]">
                   <SelectValue placeholder="Select location" />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-[#003726] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[12px]">
+                <SelectContent className="bg-card dark:bg-[#003726] border-2 border-[#cfe8ce] dark:border-[#14b8a6]/20 rounded-[12px]">
                   {meetupLocations.map(location => (
                     <SelectItem 
                       key={location} 

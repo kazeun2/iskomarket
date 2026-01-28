@@ -61,9 +61,9 @@ export function SellerProfile({
 
   const content = (
     <div className="relative w-full max-w-3xl max-h-[92vh] overflow-hidden rounded-[24px] bg-[var(--card)] p-0">
-      <div className="flex flex-col h-full min-h-0 bg-white dark:bg-[var(--card)]">
+      <div className="flex flex-col h-full min-h-0 bg-card dark:bg-[var(--card)]">
         <div className="flex items-center justify-between px-6 py-4 rounded-t-[24px] border-b">
-          <h2 className="text-lg text-[#003300] dark:text-white">Profile</h2>
+          <h2 className="text-lg text-[#003300] dark:text-foreground">Profile</h2>
           <div className="flex items-center gap-2">
             {onReport && (
               <Button variant="ghost" size="icon" title="Report" onClick={() => onReport(seller)}>

@@ -416,7 +416,7 @@ export function CommunityGuidelines({ isOpen, onClose }: CommunityGuidelinesProp
             <div className="flex justify-center">
               <button 
                 onClick={onClose}
-                className="px-12 py-3 font-semibold text-white transition-all relative overflow-hidden"
+                className="px-12 py-3 font-semibold text-foreground transition-all relative overflow-hidden"
                 style={{
                   background: 'linear-gradient(135deg, #22C96B 0%, #119B47 100%)',
                   border: '1px solid #34E57A',

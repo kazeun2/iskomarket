@@ -93,7 +93,7 @@ export function TotalProductsModal({ isOpen, onClose, products }: TotalProductsM
                     <ImageWithFallback
                       src={getPrimaryImage(product)}
                       alt={product.title}
-                      className="w-20 h-20 object-contain p-1 rounded-lg flex-shrink-0 bg-white dark:bg-[var(--card)]"
+                      className="w-20 h-20 object-contain p-1 rounded-lg flex-shrink-0 bg-card dark:bg-[var(--card)]"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">

@@ -216,7 +216,7 @@ export function ForCauseProductForm({ sellerId }: { sellerId?: string }) {
 
       {previewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-11/12 max-w-2xl p-4 bg-white rounded">
+          <div className="w-11/12 max-w-2xl p-4 bg-card rounded">
             <ForCausePreview data={{ title, description, price, fundraisingGoal, fundraisingCause, organizationName }} />
 
             <div className="flex justify-end mt-4 space-x-3">

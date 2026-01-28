@@ -104,17 +104,17 @@ export function SeasonResetCountdown({ onManualReset }: SeasonResetCountdownProp
       <div className="bg-gradient-to-r from-[#1a481d] to-[#5dbb3f] rounded-2xl p-5 shadow-lg">
         {/* Main Info */}
         <div className="flex items-center gap-2 mb-3">
-          <Clock className="h-5 w-5 text-white" />
-          <h3 className="text-white font-medium">
+          <Clock className="h-5 w-5 text-foreground" />
+          <h3 className="text-foreground font-medium">
             Next Season Reset: {formattedResetDate}
           </h3>
         </div>
         
-        <div className="text-white/80 text-sm mb-3">(Every 6 Months)</div>
+        <div className="text-foreground/80 text-sm mb-3">(Every 6 Months)</div>
 
         {/* Countdown Badge */}
         <div className="flex items-center gap-2 mb-4">
-          <span className={`text-base ${getTextColor()} bg-white/90 dark:bg-[var(--card)] px-3 py-1.5 rounded-lg font-medium`}>
+          <span className={`text-base ${getTextColor()} bg-card/90 dark:bg-[var(--card)] px-3 py-1.5 rounded-lg font-medium`}>
             🕓 Season Reset in: <strong>{daysRemaining} days</strong>
           </span>
           {daysRemaining < 30 && (
@@ -124,7 +124,7 @@ export function SeasonResetCountdown({ onManualReset }: SeasonResetCountdownProp
 
         {/* Progress Bar */}
         <div className="w-full">
-          <div className="relative h-3 bg-white/20 dark:bg-[var(--card)]/20 rounded-full overflow-hidden">
+          <div className="relative h-3 bg-card/20 dark:bg-[var(--card)]/20 rounded-full overflow-hidden">
             <div 
               className={`h-full ${getProgressColor()} transition-all duration-1000 ease-out rounded-full`}
               style={{ width: `${Math.min(progressPercentage, 100)}%` }}
@@ -132,7 +132,7 @@ export function SeasonResetCountdown({ onManualReset }: SeasonResetCountdownProp
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer dark:via-black/20"></div>
             </div>
           </div>
-          <div className="flex justify-between text-xs text-white/80 mt-1">
+          <div className="flex justify-between text-xs text-foreground/80 mt-1">
             <span>Season Progress</span>
             <span>{Math.round(progressPercentage)}%</span>
           </div>
@@ -168,7 +168,7 @@ export function SeasonResetCountdown({ onManualReset }: SeasonResetCountdownProp
             <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleManualReset}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-foreground rounded-xl"
             >
               ✅ Confirm Reset
             </AlertDialogAction>

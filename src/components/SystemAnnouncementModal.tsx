@@ -39,7 +39,7 @@ export function SystemAnnouncementModal({
         >
           {/* Header - sticky */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-[var(--border)] dark:bg-[var(--card)] dark:backdrop-blur-sm">
-            <h2 className="text-[22px] md:text-[24px] dark:text-white">System Announcement</h2>
+            <h2 className="text-[22px] md:text-[24px] dark:text-foreground">System Announcement</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full transition-colors text-green-600 dark:text-green-500"
@@ -55,7 +55,7 @@ export function SystemAnnouncementModal({
               // Maintenance-specific content
               <div className="space-y-6">
                 <div className="text-center mb-6">
-                  <h3 className="text-gray-900 dark:text-white mb-3">
+                  <h3 className="text-gray-900 dark:text-foreground mb-3">
                     SCHEDULED MAINTENANCE
                   </h3>
                   <p className="text-gray-700 dark:text-gray-300">
@@ -67,7 +67,7 @@ export function SystemAnnouncementModal({
                   <div className="flex items-start gap-3">
                     <Calendar className="size-5 text-teal-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-teal-900 dark:text-white">
+                      <p className="text-teal-900 dark:text-foreground">
                         <span>Duration: </span>
                         <span className="text-teal-700 dark:text-gray-300">December 1, 2025 - 2:00 PM to 4:00 PM</span>
                       </p>
@@ -76,7 +76,7 @@ export function SystemAnnouncementModal({
                   <div className="flex items-start gap-3">
                     <Clock className="size-5 text-teal-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-teal-900 dark:text-white">
+                      <p className="text-teal-900 dark:text-foreground">
                         <span>Purpose: </span>
                         <span className="text-teal-700 dark:text-gray-300">System upgrades and performance improvements</span>
                       </p>
@@ -96,7 +96,7 @@ export function SystemAnnouncementModal({
             ) : (
               // Generic announcement content
               <div className="space-y-4">
-                <h3 className="text-gray-900 dark:text-white mb-4">
+                <h3 className="text-gray-900 dark:text-foreground mb-4">
                   {announcement.title}
                 </h3>
                 <p className="text-gray-700 dark:text-gray-300">
@@ -110,7 +110,7 @@ export function SystemAnnouncementModal({
           <div className="px-6 py-4 border-t border-gray-200 dark:border-green-900/20">
             <button
               onClick={onClose}
-              className="w-full px-4 py-3 rounded-full bg-green-500 dark:bg-green-700 text-white hover:bg-green-600 dark:hover:bg-green-600 transition-colors shadow-md dark:shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
+              className="w-full px-4 py-3 rounded-full bg-green-500 dark:bg-green-700 text-foreground hover:bg-green-600 dark:hover:bg-green-600 transition-colors shadow-md dark:shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
             >
               Got it
             </button>

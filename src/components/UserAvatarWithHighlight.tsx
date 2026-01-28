@@ -158,7 +158,7 @@ export function UserAvatarWithHighlight({
           }}
         >
           <Badge 
-            className={`${rankTagStyle.bgColor} ${sizeMap[size].badge} text-white border-2 shadow-lg`}
+            className={`${rankTagStyle.bgColor} ${sizeMap[size].badge} text-foreground border-2 shadow-lg`}
             style={{ borderColor: rankTagStyle.borderColor }}
           >
             {rankTagStyle.label}

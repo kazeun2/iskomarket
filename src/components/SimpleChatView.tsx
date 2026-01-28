@@ -24,7 +24,7 @@ export default function SimpleChatView({ conversationId, userId }: { conversatio
   }
 
   return (
-    <div className="p-3 border rounded bg-white">
+    <div className="p-3 border rounded bg-card">
       <div className="mb-2 font-bold">{user.name} view</div>
 
       <div className="mb-2">

@@ -149,24 +149,15 @@ export function AuthPage({
 
   // Compute a simple username from a CvSU email address.
   // Rule: take local part (before @), then take the first dot-separated segment (e.g., example.admin -> example),
-<<<<<<< HEAD
   // strip any non-alphanumeric/underscore chars and lowercase it.
-=======
-  // strip any non-alphanumeric/underscore chars and truncate to 10 chars, and lowercase it.
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   const computeUsernameFromEmail = (email: string | undefined | null) => {
     if (!email) return '';
     const local = String(email).split('@')[0] || '';
     const firstSegment = local.split('.')[0] || local.split('_')[0] || local;
     const cleaned = firstSegment.replace(/[^a-zA-Z0-9_]/g, '');
-<<<<<<< HEAD
     // No truncation - keep full derived username and lowercase it
     return cleaned.toLowerCase();
-  }; 
-=======
-    return cleaned.slice(0, 10).toLowerCase();
   };
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
 
 
 
@@ -187,8 +178,6 @@ export function AuthPage({
   };
 
 
-<<<<<<< HEAD
-=======
 //   setErrors({ general: 'Login failed. No user returned.' })
 //   setIsLoading(false)
 //   return
@@ -197,8 +186,7 @@ export function AuthPage({
 // const isAdmin = isAdminEmail(user.email || '')
 
 // onAuthenticated({
-//   id: user.id,                 // 🔑 Supabase UUID (critical for chat)
-//   email: user.email,
+//   id: user.id,                 // 🔑 Supabase UUID (critical for chat)//   email: user.email,
 //   username: user.email?.split('@')[0],
 //   name: user.email?.split('@')[0],
 //   isAdmin,
@@ -378,7 +366,6 @@ export function AuthPage({
   //   }
   // };
 
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -638,8 +625,6 @@ const handleRegister = async (e: React.FormEvent) => {
     
     }
 
-<<<<<<< HEAD
-=======
     // ======================
     // STEP 2: VERIFY + CREATE USER (DISABLED)
     // The email-verification step is intentionally disabled in code for development. The original verification
@@ -718,9 +703,7 @@ const handleRegister = async (e: React.FormEvent) => {
         return;
       }
     }
-    */
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
-  } catch (err) {
+    */  } catch (err) {
     setErrors({
       general: "Registration failed. Please try again.",
     });
@@ -1687,16 +1670,11 @@ const handleRegister = async (e: React.FormEvent) => {
                         {/* Username Preview (derived from CvSU email) */}
                         <div>
                           <label className="block text-sm mb-2">
-<<<<<<< HEAD
                             Username
-=======
-                            Username (derived from your CvSU email)
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
                           </label>
                           <div className="relative">
                             <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <Input
-<<<<<<< HEAD
                               placeholder="Derived from email"
                               value={computeUsernameFromEmail(registerForm.email)}
                               readOnly
@@ -1704,20 +1682,7 @@ const handleRegister = async (e: React.FormEvent) => {
                             />
                           </div>
                           <div className="text-xs text-muted-foreground mt-1">Your username will be automatically derived from your CvSU email and cannot be changed.</div>
-                        </div> 
-=======
-                              placeholder="derived from email"
-                              value={computeUsernameFromEmail(registerForm.email)}
-                              disabled
-                              className="pl-10 pr-14 bg-muted/30"
-                            />
-                            <div className="absolute right-3 top-3 text-xs text-muted-foreground pointer-events-none">
-                              {computeUsernameFromEmail(registerForm.email).length}/10
-                            </div>
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">Your username will be automatically derived from your CvSU email and cannot be changed.</div>
                         </div>
->>>>>>> 5fb2eafeae169a25463aa6b7379206387573cbb6
 
                         {/* Email */}
                         <div>

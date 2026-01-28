@@ -11,7 +11,7 @@ export default function MessageList({ messages, currentUser, otherUser, onSeen }
   }, [messages])
 
   return (
-    <div ref={elRef} className="border rounded p-4 overflow-auto h-64 bg-white">
+    <div ref={elRef} className="border rounded p-4 overflow-auto h-64 bg-card">
       {messages.map((m) => {
         const mine = m.senderId === currentUser.id
         const other = m.senderId === otherUser.id

@@ -61,7 +61,7 @@ export function CreditScoreHistoryOverlay({ userId, onClose, onBack } : { userId
       className="fixed inset-0 z-[40001] flex items-start justify-end p-6 pointer-events-auto"
       style={{ outline: 'none' }}
     >
-      <div className="w-full max-w-[980px] h-full bg-white dark:bg-[#04121a] shadow-2xl rounded-l-xl overflow-y-auto animate-in slide-in-from-right duration-300">
+      <div className="w-full max-w-[980px] h-full bg-card dark:bg-[#04121a] shadow-2xl rounded-l-xl overflow-y-auto animate-in slide-in-from-right duration-300">
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-3">
             {onBack && (

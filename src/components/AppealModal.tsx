@@ -6,7 +6,7 @@ export default function AppealModal({ onSubmit, onCancel }: { onSubmit: (payload
   const [description, setDescription] = useState('')
 
   return (
-    <div className="p-4 border rounded bg-white">
+    <div className="p-4 border rounded bg-card">
       <h3 className="font-bold">Submit Appeal</h3>
       <div className="mt-2">
         <label className="block text-sm">Reason</label>

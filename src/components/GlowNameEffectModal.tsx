@@ -79,7 +79,7 @@ export function GlowNameEffectModal({
                 {/* Selection Checkmark */}
                 {selectedGlow === style.name && (
                   <div className="absolute top-4 right-4 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
-                    <Check className="h-4 w-4 text-white" />
+                    <Check className="h-4 w-4 text-foreground" />
                   </div>
                 )}
 

@@ -87,7 +87,7 @@ export function TransactionAppealModal({
         <div className="modal-header-standard dark:bg-gradient-to-r dark:from-[#1a2f1a]/80 dark:via-[#1a2317]/80 dark:to-[#1a1f1a]/80 dark:border-green-900/20 dark:backdrop-blur-sm">
           <div className="modal-header-content">
             <div className="modal-header-text">
-              <h2 className="modal-header-title flex items-center gap-2 dark:text-white">
+              <h2 className="modal-header-title flex items-center gap-2 dark:text-foreground">
                 <AlertTriangle className="h-5 w-5 text-amber-500" />
                 Appeal Unsuccessful Transaction
               </h2>

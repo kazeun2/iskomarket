@@ -62,7 +62,7 @@ export function NotificationCard({ notification, onClick }: NotificationCardProp
       className={`
         w-full text-left
         px-5 py-4
-        bg-white dark:bg-gradient-to-br dark:from-[#1a2f1a] dark:via-[#1a2317] dark:to-[#1a1f1a]
+        bg-card dark:bg-gradient-to-br dark:from-[#1a2f1a] dark:via-[#1a2317] dark:to-[#1a1f1a]
         rounded-[16px]
         border border-green-100 dark:border-green-900/20
         ${styles.shadow} ${styles.darkShadow} ${styles.hoverShadow}
@@ -76,7 +76,7 @@ export function NotificationCard({ notification, onClick }: NotificationCardProp
         <div className="flex-1 min-w-0">
           {/* Title with unread dot */}
           <div className="flex items-center gap-2 mb-2">
-            <h4 className="text-[15px] text-gray-900 dark:text-white line-clamp-1">
+            <h4 className="text-[15px] text-gray-900 dark:text-foreground line-clamp-1">
               {notification.title}
             </h4>
             {notification.isUnread && (

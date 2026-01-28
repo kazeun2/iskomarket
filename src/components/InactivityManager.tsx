@@ -94,7 +94,7 @@ export function InactivityManager({ currentUser, onUserUpdate }: InactivityManag
 
             <Button 
               onClick={handleImActive}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-lg"
+              className="w-full bg-orange-600 hover:bg-orange-700 text-foreground transition-all duration-300 hover:scale-105 hover:shadow-lg"
               size="lg"
             >
               <CheckCircle className="h-5 w-5 mr-2" />
@@ -130,7 +130,7 @@ export function InactivityManager({ currentUser, onUserUpdate }: InactivityManag
 
             <Button 
               onClick={handleAppeal}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(251,146,60,0.6)] animate-glow"
+              className="w-full bg-orange-600 hover:bg-orange-700 text-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_20px_rgba(251,146,60,0.6)] animate-glow"
               size="lg"
             >
               <CheckCircle className="h-5 w-5 mr-2" />
@@ -190,7 +190,7 @@ export function InactivityManager({ currentUser, onUserUpdate }: InactivityManag
 
             <Button 
               onClick={handleAppeal}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(251,146,60,0.8)] animate-glow"
+              className="w-full bg-orange-600 hover:bg-orange-700 text-foreground transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(251,146,60,0.8)] animate-glow"
               size="lg"
             >
               <CheckCircle className="h-5 w-5 mr-2" />

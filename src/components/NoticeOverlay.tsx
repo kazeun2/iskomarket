@@ -43,7 +43,7 @@ export function NoticeOverlay({ mode = 'warn', user, onClose, onSend } : { mode?
               Cancel
             </Button>
             <Button
-              className={`flex-1 ${mode === 'warn' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 hover:bg-red-700'} text-white`}
+              className={`flex-1 ${mode === 'warn' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 hover:bg-red-700'} text-foreground`}
               onClick={() => {
                 if (typeof onSend === 'function') onSend(mode, user);
               }}
